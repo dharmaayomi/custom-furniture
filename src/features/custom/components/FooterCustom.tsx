@@ -4,7 +4,7 @@ import React from "react";
 
 export const FooterCustom = () => {
 	return (
-		<footer className="flex absolute z-5 bottom-0 mx-auto w-full  justify-between gap-4 p-8">
+		<footer className="flex absolute z-5 bottom-0 mx-auto w-full pointer-events-none justify-between gap-4 p-8">
 			<div className="bg-gray-800 p-3 rounded-full">
 				<Ruler className="text-white" />
 			</div>
