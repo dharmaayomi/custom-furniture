@@ -1,3 +1,4 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
@@ -9,6 +10,7 @@ import {
   Save,
   X,
 } from "lucide-react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
 
 interface MenuModalProps {
@@ -23,8 +25,14 @@ export const MenuModal = ({
   isLoggedIn = false,
 }: MenuModalProps) => {
   const router = useRouter();
+  const session = useSession();
+  const logout = () => {
+    signOut({ redirect: false });
+    router.push("/");
+  };
+
   const handleBack = () => {
-    redirect("/");
+    router.push("/");
   };
 
   const handleOpenDesignCode = () => {
@@ -37,14 +45,6 @@ export const MenuModal = ({
 
   const handleStartFromScratch = () => {
     console.log("Start from scratch");
-  };
-
-  const handleAuth = () => {
-    if (isLoggedIn) {
-      console.log("Logout");
-    } else {
-      console.log("Login");
-    }
   };
 
   return (
@@ -129,23 +129,38 @@ export const MenuModal = ({
               <div className="my-4 border-t" />
 
               {/* Login/Logout */}
-              <button
-                onClick={handleAuth}
-                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
-              >
-                {isLoggedIn ? <LogOut size={20} /> : <LogIn size={20} />}
-                <span className="font-medium">
-                  {isLoggedIn ? "Logout" : "Login"}
-                </span>
-              </button>
+
+              {!session.data?.user ? (
+                <button
+                  onClick={() => redirect("/login")}
+                  className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
+                >
+                  <LogIn size={20} />
+                  <span className="font-medium">Login</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => logout()}
+                  className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
+                >
+                  <LogOut size={20} />
+                  <span className="font-medium">Logout</span>
+                </button>
+              )}
             </div>
           </div>
 
           {/* Footer */}
           <div className="border-t p-4">
-            <p className="text-center text-sm font-medium text-gray-600">
-              HALO DEK
-            </p>
+            <div className="flex items-center gap-4">
+              <Avatar>
+                <AvatarImage src="https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png" />
+                <AvatarFallback>CN</AvatarFallback>
+              </Avatar>
+              <p className="text-center text-sm font-medium text-gray-600 capitalize">
+                {session.data?.user?.firstName}
+              </p>
+            </div>
           </div>
         </div>
       </div>

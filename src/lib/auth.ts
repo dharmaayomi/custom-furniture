@@ -1,19 +1,8 @@
-import NextAuth, { Session } from "next-auth";
+import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      name: string;
-      email: string;
-      accessToken: string;
-    };
-  }
-}
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  // trustHost: true,
+  trustHost: true,
   providers: [
     Credentials({
       async authorize(user) {

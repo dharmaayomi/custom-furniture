@@ -196,14 +196,14 @@ export function LoginForm({
     onSuccess: async (result) => {
       await signIn("credentials", {
         id: result.id,
-        name: result.name,
         email: result.email,
+        firstName: result.firstName,
         accessToken: result.accessToken,
         redirect: false,
       });
 
       toast.success("Login success");
-      router.push("/");
+      router.push("/custom");
     },
     onError: (error: AxiosError<{ message: string }>) => {
       toast.error(error.response?.data.message ?? "Something went wrong!");
@@ -217,7 +217,7 @@ export function LoginForm({
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <div>
-        <CardHeader>
+        <CardHeader className="pb-6 text-center">
           <CardTitle>Login to your account</CardTitle>
           <CardDescription>
             Enter your email below to login to your account
@@ -256,6 +256,7 @@ export function LoginForm({
                       {...field}
                       id="password"
                       type="password"
+                      autoComplete="current-password"
                       aria-invalid={fieldState.invalid}
                       placeholder="Your password"
                     />
@@ -267,12 +268,17 @@ export function LoginForm({
               />
 
               <Field>
-                <Button type="submit" form="form-login" disabled={isPending}>
+                <Button
+                  type="submit"
+                  form="form-login"
+                  disabled={isPending}
+                  className="bg-primary"
+                >
                   {isPending ? "Loading" : "Login"}
                 </Button>
 
                 <FieldDescription className="text-center">
-                  Don&apos;t have an account? <a href="#">Sign up</a>
+                  Don&apos;t have an account? <a href="/register">Sign up</a>
                 </FieldDescription>
               </Field>
             </FieldGroup>

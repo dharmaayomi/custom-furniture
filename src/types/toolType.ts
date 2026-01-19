@@ -5,6 +5,7 @@ export type ToolType =
   | "bed"
   | "tambahan"
   | "chair"
+  | "door"
   | null;
 
 export interface Tool {

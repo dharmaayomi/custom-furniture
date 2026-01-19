@@ -9,8 +9,11 @@ import { RoomCanvas } from "./RoomCanvas";
 import {
   Armchair,
   BedDouble,
+  DoorClosed,
   Grid,
+  LampFloor,
   LayoutTemplate,
+  Package,
   PaintBucket,
   X,
 } from "lucide-react";
@@ -27,8 +30,8 @@ export const RoomPage = () => {
   const tools: Tool[] = [
     {
       id: "bed",
-      icon: BedDouble,
-      label: "Furniture Bed",
+      icon: Package,
+      label: "Furniture",
       category: "Furniture",
     },
     {
@@ -38,18 +41,24 @@ export const RoomPage = () => {
       category: "Struktur",
     },
     {
-      id: "chair",
-      icon: Armchair,
-      label: "Furniture Kursi",
+      id: "door",
+      icon: DoorClosed,
+      label: "Pintu",
       category: "Furniture",
+    },
+    {
+      id: "lighting",
+      icon: LampFloor,
+      label: "Pencahayaan",
+      category: "Pencahayaan",
     },
     {
       id: "paint",
       icon: PaintBucket,
-      label: "Cat Dinding",
+      label: "Warna",
       category: "Finishing",
     },
-    { id: "grid", icon: Grid, label: "Grid Lantai", category: "View" },
+    { id: "grid", icon: Grid, label: "Lantai", category: "View" },
   ];
 
   const handleToolClick = (toolId: ToolType) => {
@@ -103,7 +112,7 @@ export const RoomPage = () => {
         <div className="space-y-4">
           <p className="text-sm text-gray-600">Kategori: {tool.category}</p>
 
-          {/* Sample items - sesuaikan dengan kebutuhan */}
+          {/* Sample items */}
           <div className="mt-6 grid grid-cols-2 gap-4">
             {[1, 2, 3, 4, 5, 6].map((item) => (
               <div
