@@ -1,85 +1,15 @@
-// import {
-//   FilePlus,
-//   FolderOpen,
-//   FolderOutput,
-//   Frame,
-//   LogOut,
-//   Save,
-//   X,
-// } from "lucide-react";
-
-// interface MenuModalProps {
-//   onClose: () => void;
-// }
-
-// export const MenuModal = ({ onClose }: MenuModalProps) => {
-//   return (
-//     <div className="flex h-full w-full flex-col bg-white">
-//       {/* Header Menu */}
-//       <div className="flex items-center justify-between border-b bg-white p-6">
-//         <h2 className="text-xl font-bold">Menu</h2>
-//         <button
-//           onClick={onClose}
-//           className="rounded-full p-1 text-gray-500 transition hover:bg-gray-100 hover:text-black"
-//         >
-//           <X className="h-5 w-5" />
-//         </button>
-//       </div>
-
-//       {/* List Menu */}
-//       <div className="flex-1 overflow-y-auto p-4">
-//         <ul className="space-y-2">
-//           <li className="flex cursor-pointer items-center gap-3 rounded-lg p-3 font-medium text-gray-700 transition hover:bg-gray-100">
-//             <FilePlus size={20} />
-//             <span>New Room</span>
-//           </li>
-//           <li className="flex cursor-pointer items-center gap-3 rounded-lg p-3 font-medium text-gray-700 transition hover:bg-gray-100">
-//             <FolderOpen size={20} />
-//             <span>Load Design</span>
-//           </li>
-//           <li className="flex cursor-pointer items-center gap-3 rounded-lg p-3 font-medium text-gray-700 transition hover:bg-gray-100">
-//             <FolderOutput size={20} />
-//             <span>Open Design Code</span>
-//           </li>
-//           <li className="flex cursor-pointer items-center gap-3 rounded-lg p-3 font-medium text-gray-700 transition hover:bg-gray-100">
-//             <Frame size={20} />
-//             <span>Start From Scratch</span>
-//           </li>
-//           <li className="flex cursor-pointer items-center gap-3 rounded-lg p-3 font-medium text-gray-700 transition hover:bg-gray-100">
-//             <Save size={20} />
-//             <span>Export / Save</span>
-//           </li>
-
-//           <div className="my-2 h-px bg-gray-200"></div>
-
-//           <li className="flex cursor-pointer items-center gap-3 rounded-lg p-3 font-medium text-red-600 transition hover:bg-red-50">
-//             <LogOut size={20} />
-//             <span>Logout</span>
-//           </li>
-//         </ul>
-//       </div>
-
-//       {/* Footer Menu */}
-//       <div className="border-t p-4 text-center text-xs text-gray-400">
-//         Furniture Planner v1.0
-//       </div>
-//     </div>
-//   );
-// };
-
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
-  Code,
   FolderClosed,
   FolderOpen,
   Frame,
   LogIn,
   LogOut,
   Save,
-  Sparkles,
   X,
 } from "lucide-react";
+import { redirect, useRouter } from "next/navigation";
 
 interface MenuModalProps {
   isOpen: boolean;
@@ -92,8 +22,9 @@ export const MenuModal = ({
   onClose,
   isLoggedIn = false,
 }: MenuModalProps) => {
+  const router = useRouter();
   const handleBack = () => {
-    console.log("Back to start page");
+    redirect("/");
   };
 
   const handleOpenDesignCode = () => {

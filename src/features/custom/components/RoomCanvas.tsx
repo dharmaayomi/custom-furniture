@@ -295,10 +295,10 @@ export const RoomCanvas = () => {
       floorVinyl.receiveShadows = true;
 
       // --- FURNITURE LOADER ---
-      let selectedModel = "man.glb";
+      let selectedModel = "chair-1.glb";
       try {
         selectedModel =
-          sessionStorage.getItem("selectedFurniture") || "man.glb";
+          sessionStorage.getItem("selectedFurniture") || "chair-1.glb";
       } catch (e) {
         console.log("Session storage not available");
       }

@@ -1,36 +1,31 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { montserrat } from "../../public/assets/font";
-
-const geistSans = Geist({
-	variable: "--font-geist-sans",
-	subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-	variable: "--font-geist-mono",
-	subsets: ["latin"],
-});
+import { SessionProvider } from "next-auth/react";
+import { Toaster } from "@/components/ui/sonner";
+import ReactQueryProvider from "@/providers/ReactQueryProviders";
 
 export const metadata: Metadata = {
-	title: "Custom Furniture",
-	description: "BBPersona",
+  title: "Custom Furniture",
+  description: "BBPersona",
 };
 
 export default function RootLayout({
-	children,
+  children,
 }: Readonly<{
-	children: React.ReactNode;
+  children: React.ReactNode;
 }>) {
-	return (
-		<html lang="en">
-			<body
-				className={`${montserrat.className} antialiased`}
-				suppressHydrationWarning
-			>
-				{children}
-			</body>
-		</html>
-	);
+  return (
+    <html lang="en">
+      <body
+        className={`${montserrat.className} antialiased`}
+        suppressHydrationWarning
+      >
+        <SessionProvider>
+          <ReactQueryProvider>{children}</ReactQueryProvider>
+        </SessionProvider>
+        <Toaster position="top-right" duration={2000} />
+      </body>
+    </html>
+  );
 }
