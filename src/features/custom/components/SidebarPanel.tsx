@@ -82,7 +82,7 @@ export const SidebarPanel = ({
 
     return (
       <div className="p-6">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-semibold text-gray-800">
               Browse products by room

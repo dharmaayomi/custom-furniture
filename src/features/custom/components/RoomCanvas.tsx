@@ -295,10 +295,10 @@ export const RoomCanvas = () => {
       floorVinyl.receiveShadows = true;
 
       // --- FURNITURE LOADER ---
-      let selectedModel = "chair-1.glb";
+      let selectedModel = "wine_cabinet.glb";
       try {
         selectedModel =
-          sessionStorage.getItem("selectedFurniture") || "chair-1.glb";
+          sessionStorage.getItem("selectedFurniture") || "wine_cabinet.glb";
       } catch (e) {
         console.log("Session storage not available");
       }
@@ -347,8 +347,8 @@ export const RoomCanvas = () => {
 
           furniture.scaling.set(scaleFactor, scaleFactor, scaleFactor);
           furniture.position.y = -boundsInfo.min.y * scaleFactor;
-          furniture.position.z = 157;
-          furniture.position.x = 240;
+          furniture.position.z = 217;
+          furniture.position.x = 40;
 
           // Drag Behavior
           const dragBehavior = new BABYLON.PointerDragBehavior({
