@@ -1,22 +1,24 @@
-import { Button } from "@/components/ui/button";
 import { CornerUpLeft, CornerUpRight, Ruler } from "lucide-react";
-import React from "react";
 
 export const FooterCustom = () => {
-	return (
-		<footer className="flex absolute z-5 bottom-0 mx-auto w-full pointer-events-none justify-between gap-4 p-8">
-			<div className="bg-gray-800 p-3 rounded-full">
-				<Ruler className="text-white" />
-			</div>
+  return (
+    <footer className="pointer-events-none absolute bottom-0 z-5 mx-auto flex w-full justify-between gap-4 px-3 pb-4 md:px-8">
+      {/* ruler button */}
+      <div className="pointer-events-auto">
+        <div className="cursor-pointer rounded-full bg-gray-800 p-3">
+          <Ruler className="text-white" />
+        </div>
+      </div>
 
-			<div className="flex items-center">
-				<div className="rounded-l-xl items-center bg-gray-100 p-2">
-					<CornerUpLeft />
-				</div>
-				<div className="rounded-r-xl items-center bg-gray-100 p-2">
-					<CornerUpRight />
-				</div>
-			</div>
-		</footer>
-	);
+      {/* arrow button */}
+      <div className="pointer-events-auto flex items-center">
+        <div className="cursor-pointer items-center rounded-l-xl bg-gray-100 p-2">
+          <CornerUpLeft />
+        </div>
+        <div className="cursor-pointer items-center rounded-r-xl bg-gray-100 p-2">
+          <CornerUpRight />
+        </div>
+      </div>
+    </footer>
+  );
 };
