@@ -3,291 +3,457 @@
 import React, { useEffect, useRef } from "react";
 import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders";
-import { HeaderCustom } from "./HeaderCustom";
 
 const CONFIG = {
-	rw: 400,
-	rd: 400,
-	type: "bedroom",
+  rw: 600,
+  rd: 500,
+  type: "kitchen",
 };
 
 export const RoomCanvas = () => {
-	const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-	useEffect(() => {
-		if (!canvasRef.current) return;
+  useEffect(() => {
+    if (!canvasRef.current) return;
 
-		const canvas = canvasRef.current;
+    const canvas = canvasRef.current;
+    const engine = new BABYLON.Engine(canvas, true);
 
-		// 1. Setup Engine
-		const engine = new BABYLON.Engine(canvas, true);
+    const createScene = () => {
+      const scene = new BABYLON.Scene(engine);
+      scene.clearColor = new BABYLON.Color4(1, 1, 1, 1);
+      //   scene.clearColor = new BABYLON.Color4(0.9, 0.88, 0.85);
 
-		// 2. Setup Scene
-		const createScene = () => {
-			const scene = new BABYLON.Scene(engine);
-			scene.clearColor = new BABYLON.Color4(0.9, 0.88, 0.85, 1);
+      scene.environmentIntensity = 1.3;
 
-			const rw = CONFIG.rw;
-			const rd = CONFIG.rd;
-			const wallH = 240;
-			const wallThick = 6;
+      scene.imageProcessingConfiguration.exposure = 2.2;
+      scene.imageProcessingConfiguration.contrast = 1.05;
+      scene.imageProcessingConfiguration.toneMappingEnabled = true;
+      scene.imageProcessingConfiguration.toneMappingType =
+        BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+      const rw = CONFIG.rw;
+      const rd = CONFIG.rd;
+      const wallH = 300;
+      const wallThick = 10;
 
-			// --- CAMERA ---
-			const camera = new BABYLON.ArcRotateCamera(
-				"camera",
-				-Math.PI / 2,
-				Math.PI / 3,
-				800,
-				new BABYLON.Vector3(0, 80, 0),
-				scene
-			);
-			camera.attachControl(canvas, true);
-			camera.wheelPrecision = 1.0;
-			camera.lowerBetaLimit = 0.1;
-			camera.upperBetaLimit = Math.PI / 2.1;
-			camera.lowerRadiusLimit = 200;
-			camera.upperRadiusLimit = 1200;
+      // --- CAMERA ---
+      const camera = new BABYLON.ArcRotateCamera(
+        "camera",
+        -Math.PI / 2,
+        // angle
+        Math.PI / 2.1,
+        600,
+        // middle number, set the height
+        new BABYLON.Vector3(0, 140, 0),
+        scene,
+      );
+      camera.attachControl(canvas, true);
+      camera.wheelPrecision = 1.0;
+      camera.lowerBetaLimit = 0.1;
+      camera.upperBetaLimit = Math.PI / 2.1;
+      camera.lowerRadiusLimit = 100;
+      camera.upperRadiusLimit = 1500;
+      const zoomInAnimation = new BABYLON.Animation(
+        "cameraZoomIn",
+        "radius",
+        60,
+        BABYLON.Animation.ANIMATIONTYPE_FLOAT,
+        BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT,
+      );
 
-			// --- LIGHTING ---
-			const light = new BABYLON.HemisphericLight(
-				"light",
-				new BABYLON.Vector3(0, 1, 0),
-				scene
-			);
-			light.intensity = 1.3;
-			light.groundColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+      const keyFrames = [
+        { frame: 0, value: 600 },
+        { frame: 90, value: 150 },
+      ];
 
-			const pointLight = new BABYLON.PointLight(
-				"pointLight",
-				new BABYLON.Vector3(0, wallH - 10, 0),
-				scene
-			);
-			pointLight.intensity = 0.5;
-			pointLight.diffuse = new BABYLON.Color3(1, 0.98, 0.95);
-			pointLight.range = 1000;
+      zoomInAnimation.setKeys(keyFrames);
 
-			// --- FLOOR ---
-			const floorThickness = 10;
-			const floor = BABYLON.MeshBuilder.CreateBox(
-				"floor",
-				{ width: rw, height: floorThickness, depth: rd },
-				scene
-			);
-			floor.position.y = -floorThickness / 2;
+      const easingFunction = new BABYLON.CubicEase();
+      easingFunction.setEasingMode(BABYLON.EasingFunction.EASINGMODE_EASEINOUT);
+      zoomInAnimation.setEasingFunction(easingFunction);
 
-			let floorMat = new BABYLON.PBRMaterial("floorMat", scene);
-			floorMat.roughness = 0.4;
-			floorMat.metallic = 0;
+      camera.animations.push(zoomInAnimation);
 
-			let texturePath = "";
-			if (CONFIG.type === "bathroom") {
-				texturePath = "/assets/texture/fine-wood-texture.jpg";
-			} else if (CONFIG.type === "kitchen") {
-				texturePath = "/assets/texture/wood-texture.jpg";
-			} else {
-				texturePath = "/assets/texture/light-wood-texture.jpg";
-			}
+      scene.beginAnimation(camera, 0, 90, false);
 
-			if (texturePath !== "") {
-				const texture = new BABYLON.Texture(texturePath, scene);
-				texture.uScale = rw / 100;
-				texture.vScale = rd / 100;
-				floorMat.albedoTexture = texture;
-			}
-			floor.material = floorMat;
+      // --- LIGHTING
+      const ambientLight = new BABYLON.HemisphericLight(
+        "ambient",
+        new BABYLON.Vector3(0, 1, 0),
+        scene,
+      );
+      ambientLight.intensity = 0.8;
+      ambientLight.diffuse = new BABYLON.Color3(1, 0.95, 0.85);
+      ambientLight.groundColor = new BABYLON.Color3(0.6, 0.55, 0.45);
 
-			// --- WALLS ---
-			const walls: BABYLON.Mesh[] = [];
-			const wallData = [
-				{ name: "back", w: rw, d: wallThick, x: 0, z: rd / 2 },
-				{ name: "front", w: rw, d: wallThick, x: 0, z: -rd / 2 },
-				{ name: "left", w: wallThick, d: rd, x: -rw / 2, z: 0 },
-				{ name: "right", w: wallThick, d: rd, x: rw / 2, z: 0 },
-			];
+      const ceilingLamp = new BABYLON.PointLight(
+        "ceilingLamp",
+        new BABYLON.Vector3(0, wallH - 40, 0),
+        scene,
+      );
+      ceilingLamp.intensity = 5.5; // Increased from 3.5
+      ceilingLamp.diffuse = new BABYLON.Color3(1, 0.92, 0.78); // Warmer orange tone
+      ceilingLamp.range = 2000;
 
-			const wallMat = new BABYLON.StandardMaterial("wallMat", scene);
-			wallMat.diffuseColor = new BABYLON.Color3(0.9, 0.9, 0.9);
-			wallMat.backFaceCulling = false;
+      // Additional ceiling lights for even illumination
+      const ceilingLamp2 = new BABYLON.PointLight(
+        "ceilingLamp2",
+        new BABYLON.Vector3(-rw / 4, wallH - 50, rd / 4),
+        scene,
+      );
+      ceilingLamp2.intensity = 3.0;
+      ceilingLamp2.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
+      ceilingLamp2.range = 1200;
 
-			wallData.forEach((data) => {
-				const wall = BABYLON.MeshBuilder.CreateBox(
-					"wall_" + data.name,
-					{ width: data.w, height: wallH + floorThickness, depth: data.d },
-					scene
-				);
-				let posX = data.x;
-				let posZ = data.z;
+      const ceilingLamp3 = new BABYLON.PointLight(
+        "ceilingLamp3",
+        new BABYLON.Vector3(rw / 4, wallH - 50, -rd / 4),
+        scene,
+      );
+      ceilingLamp3.intensity = 3.0;
+      ceilingLamp3.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
+      ceilingLamp3.range = 1200;
 
-				if (data.name === "back") posZ += wallThick / 2;
-				if (data.name === "front") posZ -= wallThick / 2;
-				if (data.name === "left") posX -= wallThick / 2;
-				if (data.name === "right") posX += wallThick / 2;
+      const fillLight = new BABYLON.DirectionalLight(
+        "fillLight",
+        new BABYLON.Vector3(0, -0.5, 0.2),
+        scene,
+      );
+      fillLight.intensity = 0.2;
+      fillLight.diffuse = new BABYLON.Color3(1, 0.95, 0.88); // Warm fill
 
-				wall.position.set(posX, wallH / 2 - floorThickness / 2, posZ);
-				wall.material = wallMat;
-				wall.metadata = { side: data.name };
-				walls.push(wall);
-			});
+      const mainSpot = new BABYLON.SpotLight(
+        "mainSpot",
+        new BABYLON.Vector3(0, wallH - 30, 0),
+        new BABYLON.Vector3(0, -1, 0),
+        Math.PI / 2.5,
+        2,
+        scene,
+      );
+      mainSpot.intensity = 8.0;
+      mainSpot.diffuse = new BABYLON.Color3(1, 0.95, 0.85);
+      mainSpot.range = 800;
 
-			// --- FURNITURE LOADER ---
+      // Spotlight tambahan
+      const spot2 = new BABYLON.SpotLight(
+        "spot2",
+        new BABYLON.Vector3(-rw / 3, wallH - 40, rd / 3),
+        new BABYLON.Vector3(0.2, -1, 0),
+        Math.PI / 3,
+        3,
+        scene,
+      );
+      spot2.intensity = 4.5;
+      spot2.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
+      spot2.range = 600;
 
-			let selectedModel = "sofa-1.glb";
-			try {
-				selectedModel =
-					sessionStorage.getItem("selectedFurniture") || "chair-1.glb";
-			} catch (e) {
-				console.log("Session storage not available");
-			}
+      const spot3 = new BABYLON.SpotLight(
+        "spot3",
+        new BABYLON.Vector3(rw / 3, wallH - 40, -rd / 3),
+        new BABYLON.Vector3(-0.2, -1, 0),
+        Math.PI / 3,
+        3,
+        scene,
+      );
+      spot3.intensity = 4.5;
+      spot3.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
+      spot3.range = 600;
 
-			BABYLON.SceneLoader.ImportMesh(
-				"",
-				"/assets/3d/",
-				selectedModel,
-				scene,
-				function (meshes) {
-					if (meshes.length === 0) return;
-					const furniture = meshes[0];
+      // --- FLOOR
 
-					// ---  GANTI TEKSTUR FURNITURE ---
-					let savedFurnitureTexture = "";
-					try {
-						savedFurnitureTexture =
-							sessionStorage.getItem("selectedFurnitureTexture") || "";
-					} catch (e) {}
+      const floorThickness = 9;
+      const vinylThickness = 1;
 
-					if (savedFurnitureTexture && savedFurnitureTexture.trim() !== "") {
-						const texturePath = "/assets/" + savedFurnitureTexture;
-						const newTex = new BABYLON.Texture(texturePath, scene);
+      const floorBase = BABYLON.MeshBuilder.CreateBox(
+        "floorBase",
+        { width: rw, height: floorThickness - vinylThickness, depth: rd },
+        scene,
+      );
+      floorBase.position.y = (floorThickness - vinylThickness) / 2;
 
-						const applyTextureToFurniture = () => {
-							// (Logika rekursif pencarian mesh dipersingkat untuk brevity, tapi logikamu bisa dimasukkan di sini)
-							meshes.forEach((mesh) => {
-								// Apply simple material override logic
-								const pbrMat = new BABYLON.PBRMaterial("customMat", scene);
-								pbrMat.albedoTexture = newTex;
-								pbrMat.roughness = 0.7;
-								mesh.material = pbrMat;
-							});
-						};
+      const floorBaseMat = new BABYLON.PBRMaterial("floorBaseMat", scene);
+      floorBaseMat.albedoColor = new BABYLON.Color3(0.75, 0.65, 0.55);
+      floorBaseMat.roughness = 0.7;
+      floorBaseMat.metallic = 0;
+      floorBase.material = floorBaseMat;
 
-						setTimeout(applyTextureToFurniture, 100);
-					}
+      const floorVinyl = BABYLON.MeshBuilder.CreateBox(
+        "floorVinyl",
+        { width: rw, height: vinylThickness, depth: rd },
+        scene,
+      );
+      floorVinyl.position.y = floorThickness - vinylThickness / 2;
 
-					furniture.getChildMeshes().forEach((m) => {
-						m.metadata = "furniture";
-					});
+      const floorVinylMat = new BABYLON.PBRMaterial("floorVinylMat", scene);
+      floorVinylMat.roughness = 0.5;
+      floorVinylMat.metallic = 0;
 
-					// Scaling & Positioning logic
-					const boundsInfo = furniture.getHierarchyBoundingVectors(true);
-					const sizeY = boundsInfo.max.y - boundsInfo.min.y;
-					// Cek division by zero
-					const targetHeight = 80;
-					const scaleFactor = sizeY > 0 ? targetHeight / sizeY : 1;
+      let texturePath = "";
+      if (CONFIG.type === "bathroom") {
+        texturePath = "/assets/texture/fine-wood-texture.jpg";
+      } else if (CONFIG.type === "kitchen") {
+        texturePath = "/assets/texture/wood-texture.jpg";
+      } else {
+        texturePath = "/assets/texture/light-wood-texture.jpg";
+      }
 
-					furniture.scaling.set(scaleFactor, scaleFactor, scaleFactor);
-					furniture.position.y = -boundsInfo.min.y * scaleFactor;
-					furniture.position.z = 0; // Center it initially
-					furniture.position.x = 0;
+      if (texturePath !== "") {
+        const texture = new BABYLON.Texture(texturePath, scene);
+        texture.uScale = rw / 100;
+        texture.vScale = rd / 100;
+        floorVinylMat.albedoTexture = texture;
+      } else {
+        floorVinylMat.albedoColor = new BABYLON.Color3(0.85, 0.75, 0.65);
+      }
 
-					// Drag Behavior
-					const dragBehavior = new BABYLON.PointerDragBehavior({
-						dragPlaneNormal: new BABYLON.Vector3(0, 1, 0),
-					});
-					dragBehavior.moveAttached = true;
+      floorVinyl.material = floorVinylMat;
 
-					// Visual Cue Events
-					dragBehavior.onDragStartObservable.add(() => {
-						canvas.setAttribute("data-visual-cue", "dragged");
-					});
-					dragBehavior.onDragEndObservable.add(() => {
-						canvas.setAttribute("data-visual-cue", "none");
-					});
+      // --- CEILING ---
+      const ceiling = BABYLON.MeshBuilder.CreateBox(
+        "ceiling",
+        { width: rw, height: floorThickness, depth: rd },
+        scene,
+      );
+      ceiling.position.y = wallH - floorThickness / 2;
 
-					// Anti-Tembus Logic
-					const clampToRoom = () => {
-						const b = furniture.getHierarchyBoundingVectors(true);
-						const margin = 2;
-						const limitX = rw / 2 - margin;
-						const limitZ = rd / 2 - margin;
+      const ceilingMat = new BABYLON.PBRMaterial("ceilingMat", scene);
+      ceilingMat.albedoColor = new BABYLON.Color3(0.96, 0.96, 0.96);
+      ceilingMat.roughness = 0.95;
+      ceilingMat.metallic = 0;
+      ceiling.material = ceilingMat;
+      ceiling.metadata = { side: "ceiling" };
 
-						if (b.max.x > limitX) furniture.position.x -= b.max.x - limitX;
-						if (b.min.x < -limitX) furniture.position.x += -limitX - b.min.x;
-						if (b.max.z > limitZ) furniture.position.z -= b.max.z - limitZ;
-						if (b.min.z < -limitZ) furniture.position.z += -limitZ - b.min.z;
-					};
+      // --- WALLS
+      const interiorColor = new BABYLON.Color3(0.95, 0.94, 0.92);
 
-					dragBehavior.onDragObservable.add(clampToRoom);
-					furniture.addBehavior(dragBehavior);
-				},
-				null, // onProgress
-				(scene, message) => {
-					console.error("Error loading mesh:", message);
-				}
-			);
+      const wallMat = new BABYLON.PBRMaterial("wallMat", scene);
+      wallMat.albedoColor = interiorColor;
+      wallMat.roughness = 0.9;
+      wallMat.metallic = 0;
+      wallMat.backFaceCulling = false;
 
-			// --- GLOBAL INTERACTIONS ---
-			scene.onPointerObservable.add((pointerInfo) => {
-				if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE) {
-					const pick = scene.pick(scene.pointerX, scene.pointerY);
-					if (canvas.getAttribute("data-visual-cue") !== "dragged") {
-						if (
-							pick.hit &&
-							pick.pickedMesh &&
-							(pick.pickedMesh.metadata === "furniture" ||
-								pick.pickedMesh.parent?.metadata === "furniture")
-						) {
-							canvas.style.cursor = "grab";
-						} else {
-							canvas.style.cursor = "default";
-						}
-					}
-				}
-			});
+      const walls: BABYLON.Mesh[] = [];
 
-			// Auto-Hide Walls logic
-			scene.registerBeforeRender(() => {
-				walls.forEach((w) => {
-					if (!w.metadata) return;
-					const cam = camera.position;
-					if (w.metadata.side === "back" && cam.z > w.position.z)
-						w.visibility = 0;
-					else if (w.metadata.side === "front" && cam.z < w.position.z)
-						w.visibility = 0;
-					else if (w.metadata.side === "left" && cam.x < w.position.x)
-						w.visibility = 0;
-					else if (w.metadata.side === "right" && cam.x > w.position.x)
-						w.visibility = 0;
-					else w.visibility = 1;
-				});
-			});
+      // back wall
+      const backWall = BABYLON.MeshBuilder.CreateBox(
+        "wall_back",
+        { width: rw + wallThick * 2, height: wallH, depth: wallThick },
+        scene,
+      );
+      backWall.position.set(0, wallH / 2, rd / 2 + wallThick / 2);
+      backWall.material = wallMat;
+      backWall.metadata = { side: "back" };
+      walls.push(backWall);
 
-			return scene;
-		};
+      // Front wall
+      const frontWall = BABYLON.MeshBuilder.CreateBox(
+        "wall_front",
+        { width: rw + wallThick * 2, height: wallH, depth: wallThick },
+        scene,
+      );
+      frontWall.position.set(0, wallH / 2, -rd / 2 - wallThick / 2);
+      frontWall.material = wallMat;
+      frontWall.metadata = { side: "front" };
+      walls.push(frontWall);
 
-		// 3. Init Scene & Render Loop
-		const scene = createScene();
+      // Left wall
+      const leftWall = BABYLON.MeshBuilder.CreateBox(
+        "wall_left",
+        { width: wallThick, height: wallH, depth: rd },
+        scene,
+      );
+      leftWall.position.set(-rw / 2 - wallThick / 2, wallH / 2, 0);
+      leftWall.material = wallMat;
+      leftWall.metadata = { side: "left" };
+      walls.push(leftWall);
 
-		engine.runRenderLoop(() => {
-			scene.render();
-		});
+      // Right wall
+      const rightWall = BABYLON.MeshBuilder.CreateBox(
+        "wall_right",
+        { width: wallThick, height: wallH, depth: rd },
+        scene,
+      );
+      rightWall.position.set(rw / 2 + wallThick / 2, wallH / 2, 0);
+      rightWall.material = wallMat;
+      rightWall.metadata = { side: "right" };
+      walls.push(rightWall);
 
-		// 4. Handle Window Resize
-		const handleResize = () => {
-			engine.resize();
-		};
-		window.addEventListener("resize", handleResize);
+      walls.push(ceiling);
 
-		// 5. Cleanup saat component unmount (Penting!)
-		return () => {
-			window.removeEventListener("resize", handleResize);
-			engine.dispose();
-		};
-	}, []); // Empty dependency array = run once on mount
+      // --- SHADOW SETUP ---
+      const shadowGen = new BABYLON.ShadowGenerator(2048, ceilingLamp);
+      shadowGen.useBlurExponentialShadowMap = true;
+      shadowGen.blurKernel = 64;
+      shadowGen.setDarkness(0.35);
 
-	return (
-		<canvas
-			ref={canvasRef}
-			className="w-full h-full outline-none touch-none" // touch-none penting untuk drag di mobile
-		/>
-	);
+      shadowGen.addShadowCaster(ceiling);
+
+      walls.forEach((wall) => {
+        wall.receiveShadows = true;
+      });
+      ceiling.receiveShadows = true;
+      floorVinyl.receiveShadows = true;
+
+      // --- FURNITURE LOADER ---
+      let selectedModel = "chair-1.glb";
+      try {
+        selectedModel =
+          sessionStorage.getItem("selectedFurniture") || "chair-1.glb";
+      } catch (e) {
+        console.log("Session storage not available");
+      }
+
+      BABYLON.SceneLoader.ImportMesh(
+        "",
+        "/assets/3d/",
+        selectedModel,
+        scene,
+        function (meshes) {
+          if (meshes.length === 0) return;
+          const furniture = meshes[0];
+
+          // ---  GANTI TEKSTUR FURNITURE ---
+          let savedFurnitureTexture = "";
+          try {
+            savedFurnitureTexture =
+              sessionStorage.getItem("selectedFurnitureTexture") || "";
+          } catch (e) {}
+
+          if (savedFurnitureTexture && savedFurnitureTexture.trim() !== "") {
+            const texturePath = "/assets/" + savedFurnitureTexture;
+            const newTex = new BABYLON.Texture(texturePath, scene);
+
+            const applyTextureToFurniture = () => {
+              meshes.forEach((mesh) => {
+                const pbrMat = new BABYLON.PBRMaterial("customMat", scene);
+                pbrMat.albedoTexture = newTex;
+                pbrMat.roughness = 0.7;
+                mesh.material = pbrMat;
+              });
+            };
+
+            setTimeout(applyTextureToFurniture, 100);
+          }
+
+          furniture.getChildMeshes().forEach((m) => {
+            m.metadata = "furniture";
+          });
+
+          // Scaling & Positioning logic
+          const boundsInfo = furniture.getHierarchyBoundingVectors(true);
+          const sizeY = boundsInfo.max.y - boundsInfo.min.y;
+          const targetHeight = 80;
+          const scaleFactor = sizeY > 0 ? targetHeight / sizeY : 1;
+
+          furniture.scaling.set(scaleFactor, scaleFactor, scaleFactor);
+          furniture.position.y = -boundsInfo.min.y * scaleFactor;
+          furniture.position.z = 157;
+          furniture.position.x = 240;
+
+          // Drag Behavior
+          const dragBehavior = new BABYLON.PointerDragBehavior({
+            dragPlaneNormal: new BABYLON.Vector3(0, 1, 0),
+          });
+          dragBehavior.moveAttached = true;
+
+          // Visual Cue Events
+          dragBehavior.onDragStartObservable.add(() => {
+            canvas.setAttribute("data-visual-cue", "dragged");
+          });
+          dragBehavior.onDragEndObservable.add(() => {
+            canvas.setAttribute("data-visual-cue", "none");
+          });
+
+          // Anti-Tembus Logic
+          const clampToRoom = () => {
+            const b = furniture.getHierarchyBoundingVectors(true);
+            const margin = 2;
+            const limitX = rw / 2 - margin;
+            const limitZ = rd / 2 - margin;
+
+            if (b.max.x > limitX) furniture.position.x -= b.max.x - limitX;
+            if (b.min.x < -limitX) furniture.position.x += -limitX - b.min.x;
+            if (b.max.z > limitZ) furniture.position.z -= b.max.z - limitZ;
+            if (b.min.z < -limitZ) furniture.position.z += -limitZ - b.min.z;
+          };
+
+          dragBehavior.onDragObservable.add(clampToRoom);
+          furniture.addBehavior(dragBehavior);
+        },
+        null,
+        (scene, message) => {
+          console.error("Error loading mesh:", message);
+        },
+      );
+
+      // --- GLOBAL INTERACTIONS ---
+      scene.onPointerObservable.add((pointerInfo) => {
+        if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE) {
+          const pick = scene.pick(scene.pointerX, scene.pointerY);
+          if (canvas.getAttribute("data-visual-cue") !== "dragged") {
+            if (
+              pick.hit &&
+              pick.pickedMesh &&
+              pick.pickedMesh?.metadata === "furniture"
+            ) {
+              canvas.style.cursor = "grab";
+            } else {
+              canvas.style.cursor = "default";
+            }
+          }
+        }
+      });
+
+      // Auto-Hide Walls logic
+      scene.registerBeforeRender(() => {
+        walls.forEach((w) => {
+          if (!w.metadata) return;
+          const cam = camera.position;
+
+          if (w.metadata.side === "back" && cam.z > w.position.z)
+            w.visibility = 0;
+          else if (w.metadata.side === "front" && cam.z < w.position.z)
+            w.visibility = 0;
+          else if (w.metadata.side === "left" && cam.x < w.position.x)
+            w.visibility = 0;
+          else if (w.metadata.side === "right" && cam.x > w.position.x)
+            w.visibility = 0;
+          else if (w.metadata.side === "ceiling" && cam.y > w.position.y)
+            w.visibility = 0;
+          else w.visibility = 1;
+        });
+      });
+
+      return scene;
+    };
+
+    const scene = createScene();
+
+    engine.runRenderLoop(() => {
+      scene.render();
+    });
+
+    const handleResize = () => {
+      engine.resize();
+    };
+    window.addEventListener("resize", handleResize);
+
+    const resizeObserver = new ResizeObserver(() => {
+      engine.resize();
+    });
+
+    if (canvas.parentElement) {
+      resizeObserver.observe(canvas.parentElement);
+    }
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      resizeObserver.disconnect();
+      engine.dispose();
+    };
+  }, []);
+
+  return (
+    <canvas ref={canvasRef} className="h-full w-full touch-none outline-none" />
+  );
 };
