@@ -4,9 +4,16 @@ import React from "react";
 
 interface HeaderCustomProps {
   onMenuClick: () => void;
+  onListClick?: () => void;
+  totalPrice?: number;
+  formattedPrice?: string;
 }
 
-export const HeaderCustom = ({ onMenuClick }: HeaderCustomProps) => {
+export const HeaderCustom = ({
+  onMenuClick,
+  onListClick,
+  formattedPrice = "Rp.0",
+}: HeaderCustomProps) => {
   return (
     <header className="pointer-events-none absolute z-5 mx-auto flex w-full justify-between gap-4 px-4 pt-5 sm:px-6 sm:pt-4 md:px-8">
       {/* left button */}
@@ -28,14 +35,18 @@ export const HeaderCustom = ({ onMenuClick }: HeaderCustomProps) => {
 
       {/* right button */}
       <div className="pointer-events-auto flex items-center gap-4">
-        <div className="cursor-pointer rounded-full bg-gray-100 p-2">
+        <div
+          className="cursor-pointer rounded-full bg-gray-100 p-2"
+          onClick={onListClick}
+        >
           <ListOrdered className="h-4 w-4" />
         </div>
         {/* dummy total price */}
         <div className="items-center justify-center text-center text-black">
-          Rp.3.000.000,00
+          {/* Rp.3.000.000,00 */}
+          {formattedPrice}
         </div>
-        <div className="flex cursor-pointer items-center gap-2 rounded-full bg-gray-900 px-2 py-2 text-sm font-bold text-white sm:px-4">
+        <div className="flex cursor-pointer items-center gap-2 rounded-full bg-slate-900 px-2 py-2 text-sm font-bold text-white sm:px-4">
           {/* text hanya muncul di tablet+ */}
           <span className="hidden sm:inline">SUMMARY</span>
 

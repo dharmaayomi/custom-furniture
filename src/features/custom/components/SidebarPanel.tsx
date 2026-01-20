@@ -8,6 +8,11 @@ interface SidebarPanelProps {
   selectedTool: ToolType;
   tools: Tool[];
   onClose: () => void;
+  assetList3D: string[];
+  assetListTexture: string[];
+  onSelectMainModel: (name: string) => void;
+  onAddAdditionalModel: (name: string) => void;
+  onSelectTexture: (name: string) => void;
 }
 
 export const SidebarPanel = ({
@@ -16,11 +21,33 @@ export const SidebarPanel = ({
   selectedTool,
   tools,
   onClose,
+  assetList3D,
+  assetListTexture,
+  onSelectMainModel,
+  onAddAdditionalModel,
+  onSelectTexture,
 }: SidebarPanelProps) => {
   const renderToolSidebar = () => {
     const tool = tools.find((t) => t.id === selectedTool);
     if (!tool) return null;
 
+    let itemsToShow: string[] = [];
+    let handleItemClick: (item: string) => void = () => {};
+    let isTexture = false;
+
+    if (tool.id === "furniture") {
+      itemsToShow = assetList3D;
+      handleItemClick = onSelectMainModel;
+    } else if (tool.id === "tambahan") {
+      itemsToShow = assetList3D;
+      handleItemClick = onAddAdditionalModel;
+    } else if (tool.id === "paint") {
+      itemsToShow = assetListTexture;
+      handleItemClick = onSelectTexture;
+      isTexture = true;
+    } else {
+      itemsToShow = ["1", "2"];
+    }
     return (
       <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
@@ -38,32 +65,31 @@ export const SidebarPanel = ({
         <div className="space-y-4">
           <p className="text-sm text-gray-600">Kategori: {tool.category}</p>
 
-          {/* Sample items */}
           <div className="mt-6 grid grid-cols-2 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((item) => (
+            {itemsToShow.map((item, idx) => (
               <div
-                key={item}
-                className="aspect-square cursor-pointer rounded-lg border-2 border-gray-200 bg-gray-100 transition-all hover:border-blue-500"
+                key={idx}
+                onClick={() => handleItemClick(item)}
+                className="relative aspect-square cursor-pointer overflow-hidden rounded-lg border-2 border-gray-200 bg-gray-100 transition-all hover:border-blue-500"
               >
-                <div className="flex h-full w-full items-center justify-center text-gray-400">
-                  Item {item}
-                </div>
+                {/* Render Preview (Simple Text/Image logic) */}
+                {isTexture ? (
+                  // Preview Texture
+                  <div
+                    className="h-full w-full bg-cover bg-center"
+                    style={{ backgroundImage: `url(/assets/texture/${item})` }}
+                  />
+                ) : (
+                  // Preview 3D Model (Thumbnail Placeholder)
+                  <div className="flex h-full w-full flex-col items-center justify-center p-2 text-center text-xs text-gray-600">
+                    <span className="font-bold">{item}</span>
+                    <span className="mt-1 text-[10px] text-gray-400">
+                      (3D Asset)
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
-          </div>
-
-          <div className="mt-6 border-t pt-6">
-            <h3 className="mb-3 font-medium">Filter</h3>
-            <div className="space-y-2">
-              <label className="flex cursor-pointer items-center space-x-2">
-                <input type="checkbox" className="rounded" />
-                <span className="text-sm">Option 1</span>
-              </label>
-              <label className="flex cursor-pointer items-center space-x-2">
-                <input type="checkbox" className="rounded" />
-                <span className="text-sm">Option 2</span>
-              </label>
-            </div>
           </div>
         </div>
       </div>
@@ -123,7 +149,8 @@ export const SidebarPanel = ({
 
   return (
     <div
-      className={`fixed top-0 right-0 z-50 h-full w-80 bg-white shadow-2xl transition-transform duration-500 ease-in-out ${
+      // className={`fixed top-0 right-0 z-50 h-full w-80 bg-white shadow-2xl transition-transform duration-500 ease-in-out ${
+      className={`fixed top-0 right-0 z-50 h-full w-80 bg-white ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
     >

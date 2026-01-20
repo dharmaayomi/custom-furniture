@@ -1,35 +1,56 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { FooterCustom } from "./FooterCustom";
 import { HeaderCustom } from "./HeaderCustom";
-import { RoomCanvas } from "./RoomCanvas";
 
+import { Tool, ToolType } from "@/types/toolType";
 import {
-  Armchair,
-  BedDouble,
   DoorClosed,
   Grid,
   LampFloor,
   LayoutTemplate,
   Package,
   PaintBucket,
-  X,
 } from "lucide-react";
+import { RoomCanvasOne } from "./CanvasOne";
 import { FloatingToolPanel } from "./FloatingPanel";
-import { SidebarPanel } from "./SidebarPanel";
 import { MenuModal } from "./MenuModal";
-import { Tool, ToolType } from "@/types/toolType";
+import { SidebarPanel } from "./SidebarPanel";
+import { RoomCanvasTwo } from "./CanvasTwo";
+import { calculateTotalPrice, formatPrice } from "@/lib/price";
+import { ListProductPanel } from "./ListProductPanel";
+import { is } from "zod/v4/locales";
 
+const ASSETS_3D = [
+  "wine_cabinet.glb",
+  "cabinet-1.glb",
+  "cabinet.glb",
+  "chair-1.glb",
+  "man.glb",
+  "wall_cupboard.glb",
+];
+
+const ASSETS_TEXTURE = [
+  "fine-wood-texture.jpg",
+  "light-wood-texture.jpg",
+  "wood-texture.jpg",
+  "WoodFine23_COL_1K.jpg",
+  "gray-abstract-texture.jpg",
+  "texture-of-dry-concrete-wall.jpg",
+];
 export const RoomPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProductListOpen, setIsProductListOpen] = useState(false);
   const [selectedTool, setSelectedTool] = useState<ToolType>(null);
   const [showHomeSidebar, setShowHomeSidebar] = useState(false);
+  const [mainModel, setMainModel] = useState("wine_cabinet.glb");
+  const [activeTexture, setActiveTexture] = useState("");
+  const [additionalModels, setAdditionalModels] = useState<string[]>([]); // Array untuk barang tambahan
   const tools: Tool[] = [
     {
-      id: "bed",
+      id: "furniture",
       icon: Package,
       label: "Furniture",
       category: "Furniture",
@@ -41,27 +62,33 @@ export const RoomPage = () => {
       category: "Struktur",
     },
     {
+      id: "paint",
+      icon: PaintBucket,
+      label: "Warna",
+      category: "Finishing",
+    },
+    {
       id: "door",
       icon: DoorClosed,
       label: "Pintu",
       category: "Furniture",
     },
+
     {
       id: "lighting",
       icon: LampFloor,
       label: "Pencahayaan",
       category: "Pencahayaan",
     },
-    {
-      id: "paint",
-      icon: PaintBucket,
-      label: "Warna",
-      category: "Finishing",
-    },
+
     { id: "grid", icon: Grid, label: "Lantai", category: "View" },
   ];
 
   const handleToolClick = (toolId: ToolType) => {
+    if (isProductListOpen) {
+      setIsProductListOpen(false);
+    }
+
     if (showHomeSidebar) {
       setShowHomeSidebar(false);
     }
@@ -82,6 +109,10 @@ export const RoomPage = () => {
   };
 
   const handleHomeClick = () => {
+    if (isProductListOpen) {
+      setIsProductListOpen(false);
+    }
+
     setShowHomeSidebar(!showHomeSidebar);
     if (showHomeSidebar) {
       setIsSidebarOpen(false);
@@ -91,57 +122,20 @@ export const RoomPage = () => {
       setSelectedTool(null);
     }
   };
-  const renderSidebarContent = () => {
-    const tool = tools.find((t) => t.id === selectedTool);
-    if (!tool) return null;
+  const handleListClick = () => {
+    // Toggle product list
+    const newState = !isProductListOpen;
+    setIsProductListOpen(newState);
 
-    return (
-      <div className="p-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-gray-800">{tool.label}</h2>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={closeSidebar}
-            className="hover:bg-gray-200"
-          >
-            <X size={20} />
-          </Button>
-        </div>
-
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600">Kategori: {tool.category}</p>
-
-          {/* Sample items */}
-          <div className="mt-6 grid grid-cols-2 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((item) => (
-              <div
-                key={item}
-                className="aspect-square cursor-pointer rounded-lg border-2 border-gray-200 bg-gray-100 transition-all hover:border-blue-500"
-              >
-                <div className="flex h-full w-full items-center justify-center text-gray-400">
-                  Item {item}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 border-t pt-6">
-            <h3 className="mb-3 font-medium">Filter</h3>
-            <div className="space-y-2">
-              <label className="flex cursor-pointer items-center space-x-2">
-                <input type="checkbox" className="rounded" />
-                <span className="text-sm">Option 1</span>
-              </label>
-              <label className="flex cursor-pointer items-center space-x-2">
-                <input type="checkbox" className="rounded" />
-                <span className="text-sm">Option 2</span>
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    // Jika product list dibuka, tutup sidebar dan home sidebar
+    if (newState) {
+      setIsSidebarOpen(false);
+      setSelectedTool(null);
+      setShowHomeSidebar(false);
+    }
+  };
+  const closeProductList = () => {
+    setIsProductListOpen(false);
   };
 
   return (
@@ -152,29 +146,52 @@ export const RoomPage = () => {
         isLoggedIn={false}
       />
 
+      <ListProductPanel
+        isOpen={isProductListOpen}
+        onClose={closeProductList}
+        mainModel={mainModel}
+        additionalModels={additionalModels}
+        totalPrice={calculateTotalPrice(
+          mainModel,
+          additionalModels,
+          activeTexture,
+        )}
+      />
+
       <div
-        className="relative min-w-0 flex-1 bg-gray-200 transition-all duration-500 ease-in-out"
+        className="relative min-w-0 flex-1 bg-gray-200"
         style={{
-          marginRight: isSidebarOpen || showHomeSidebar ? "320px" : "0",
+          marginRight:
+            isSidebarOpen || showHomeSidebar || isProductListOpen
+              ? "320px"
+              : "0",
         }}
       >
         {/* Header */}
         <div className="pointer-events-none absolute top-0 left-0 z-40 w-full">
           <div className="pointer-events-auto">
-            <HeaderCustom onMenuClick={() => setIsMenuOpen(!isMenuOpen)} />
+            <HeaderCustom
+              onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
+              onListClick={() => setIsProductListOpen(!isProductListOpen)}
+              totalPrice={calculateTotalPrice(
+                mainModel,
+                additionalModels,
+                activeTexture,
+              )}
+              formattedPrice={formatPrice(
+                calculateTotalPrice(mainModel, additionalModels, activeTexture),
+              )}
+            />
           </div>
         </div>
 
-        {/* Header */}
-        {/* <div className="pointer-events-none absolute top-0 left-0 z-40 w-full">
-          <div className="pointer-events-auto">
-            <HeaderCustom onMenuClick={() => setIsMenuOpen(!isMenuOpen)} />
-          </div>
-        </div> */}
-
         {/* Room Canvas */}
         <div className="relative h-screen flex-1">
-          <RoomCanvas />
+          <RoomCanvasTwo
+            mainModel={mainModel}
+            activeTexture={activeTexture}
+            additionalModels={additionalModels}
+          />
         </div>
 
         {/* floating tool panel */}
@@ -196,12 +213,26 @@ export const RoomPage = () => {
       </div>
 
       {/* Sidebar Panel */}
+      {/* <SidebarPanel
+        isOpen={isSidebarOpen || showHomeSidebar}
+        showHomeSidebar={showHomeSidebar}
+        selectedTool={selectedTool}
+        tools={tools}
+        onClose={closeSidebar}
+      /> */}
       <SidebarPanel
         isOpen={isSidebarOpen || showHomeSidebar}
         showHomeSidebar={showHomeSidebar}
         selectedTool={selectedTool}
         tools={tools}
         onClose={closeSidebar}
+        assetList3D={ASSETS_3D}
+        assetListTexture={ASSETS_TEXTURE}
+        onSelectMainModel={(model) => setMainModel(model)}
+        onAddAdditionalModel={(model) =>
+          setAdditionalModels([...additionalModels, model])
+        }
+        onSelectTexture={(tex) => setActiveTexture(tex)}
       />
     </div>
   );

@@ -5,7 +5,7 @@ export const FooterCustom = () => {
     <footer className="pointer-events-none absolute bottom-0 z-5 mx-auto flex w-full justify-between gap-4 px-3 pb-4 md:px-8">
       {/* ruler button */}
       <div className="pointer-events-auto">
-        <div className="cursor-pointer rounded-full bg-gray-800 p-3">
+        <div className="cursor-pointer rounded-full bg-slate-900 p-3">
           <Ruler className="text-white" />
         </div>
       </div>

@@ -8,6 +8,7 @@ import {
   LogIn,
   LogOut,
   Save,
+  Share,
   X,
 } from "lucide-react";
 import { signIn, signOut, useSession } from "next-auth/react";
@@ -45,6 +46,9 @@ export const MenuModal = ({
 
   const handleStartFromScratch = () => {
     console.log("Start from scratch");
+  };
+  const handleLogin = () => {
+    router.push("/login");
   };
 
   return (
@@ -98,6 +102,15 @@ export const MenuModal = ({
                 <span className="font-medium">Save</span>
               </button>
 
+              {/* share design */}
+              <button
+                onClick={handleSave}
+                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
+              >
+                <Share size={20} />
+                <span className="font-medium">Share Design</span>
+              </button>
+
               {/* My Design */}
               <button
                 onClick={handleOpenDesignCode}
@@ -124,43 +137,46 @@ export const MenuModal = ({
                 <Frame size={20} />
                 <span className="font-medium">Start from scratch</span>
               </button>
-
-              {/* Divider */}
-              <div className="my-4 border-t" />
-
-              {/* Login/Logout */}
-
-              {!session.data?.user ? (
-                <button
-                  onClick={() => redirect("/login")}
-                  className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
-                >
-                  <LogIn size={20} />
-                  <span className="font-medium">Login</span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => logout()}
-                  className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
-                >
-                  <LogOut size={20} />
-                  <span className="font-medium">Logout</span>
-                </button>
-              )}
             </div>
           </div>
 
           {/* Footer */}
+
           <div className="border-t p-4">
-            <div className="flex items-center gap-4">
-              <Avatar>
-                <AvatarImage src="https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png" />
-                <AvatarFallback>CN</AvatarFallback>
-              </Avatar>
-              <p className="text-center text-sm font-medium text-gray-600 capitalize">
-                {session.data?.user?.firstName}
-              </p>
-            </div>
+            {session.data?.user ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <Avatar>
+                    <AvatarImage src="https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png" />
+                    <AvatarFallback>CN</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <p className="truncate text-sm font-semibold text-gray-700 capitalize">
+                      {session.data?.user?.firstName || "User"}
+                    </p>
+                    <p className="text-xs text-gray-500">Online</p>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => logout()}
+                  variant="ghost"
+                  size="icon"
+                  className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                  title="Logout"
+                >
+                  <LogOut size={20} />
+                </Button>
+              </div>
+            ) : (
+              <button
+                onClick={handleLogin}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-3 text-white transition-opacity hover:opacity-90"
+              >
+                <LogIn size={20} />
+                <span className="font-medium">Login</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
