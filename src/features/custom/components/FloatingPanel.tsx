@@ -28,7 +28,8 @@ export const FloatingToolPanel = ({
   return (
     <TooltipProvider>
       <div
-        className="pointer-events-auto absolute top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-3 transition-all duration-500 ease-in-out"
+        // className="pointer-events-auto absolute top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-3 transition-all duration-500 ease-in-out"
+        className="pointer-events-auto absolute top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-3"
         style={{
           right: isSidebarOpen || showHomeSidebar ? " 2rem" : "2rem",
         }}
@@ -38,7 +39,8 @@ export const FloatingToolPanel = ({
           <TooltipTrigger asChild>
             <Button
               onClick={onHomeClick}
-              className={`shadow-lg transition-all ${
+              // className={`shadow-lg transition-all ${
+              className={`shadow-lg ${
                 showHomeSidebar
                   ? "bg-white text-black hover:bg-white hover:text-black"
                   : "bg-slate-900 text-white hover:bg-slate-800"
@@ -55,10 +57,10 @@ export const FloatingToolPanel = ({
 
         {/* Tool Group */}
         <div className="flex flex-col overflow-hidden rounded-sm bg-slate-900 shadow-lg">
-          {tools.map((tool) => {
+          {tools.map((tool, index) => {
             const Icon = tool.icon;
             return (
-              <Tooltip key={tool.id}>
+              <Tooltip key={index}>
                 <TooltipTrigger asChild>
                   <Button
                     onClick={() => onToolClick(tool.id)}

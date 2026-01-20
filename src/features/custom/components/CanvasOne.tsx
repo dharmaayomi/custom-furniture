@@ -15,7 +15,7 @@ interface RoomCanvasProps {
   additionalModels: string[];
 }
 
-export const RoomCanvas = ({
+export const RoomCanvasOne = ({
   mainModel,
   activeTexture,
   additionalModels,
@@ -24,6 +24,7 @@ export const RoomCanvas = ({
   const sceneRef = useRef<BABYLON.Scene | null>(null);
   const mainMeshRef = useRef<BABYLON.AbstractMesh | null>(null);
 
+  // --- 1. INITIAL SCENE SETUP (Hanya jalan sekali saat mount) ---
   useEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
@@ -34,11 +35,13 @@ export const RoomCanvas = ({
       scene.clearColor = new BABYLON.Color4(1, 1, 1, 1);
       scene.environmentIntensity = 1.3;
 
+      // Image Processing
       scene.imageProcessingConfiguration.exposure = 2.2;
       scene.imageProcessingConfiguration.contrast = 1.05;
       scene.imageProcessingConfiguration.toneMappingEnabled = true;
       scene.imageProcessingConfiguration.toneMappingType =
         BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+
       const rw = CONFIG.rw;
       const rd = CONFIG.rd;
       const wallH = 300;
@@ -48,10 +51,8 @@ export const RoomCanvas = ({
       const camera = new BABYLON.ArcRotateCamera(
         "camera",
         -Math.PI / 2,
-        // angle
         Math.PI / 2.1,
         600,
-        // middle number, set the height
         new BABYLON.Vector3(0, 140, 0),
         scene,
       );
@@ -61,6 +62,8 @@ export const RoomCanvas = ({
       camera.upperBetaLimit = Math.PI / 2.1;
       camera.lowerRadiusLimit = 100;
       camera.upperRadiusLimit = 1500;
+
+      // Animation
       const zoomInAnimation = new BABYLON.Animation(
         "cameraZoomIn",
         "radius",
@@ -68,23 +71,18 @@ export const RoomCanvas = ({
         BABYLON.Animation.ANIMATIONTYPE_FLOAT,
         BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT,
       );
-
       const keyFrames = [
         { frame: 0, value: 600 },
         { frame: 90, value: 150 },
       ];
-
       zoomInAnimation.setKeys(keyFrames);
-
       const easingFunction = new BABYLON.CubicEase();
       easingFunction.setEasingMode(BABYLON.EasingFunction.EASINGMODE_EASEINOUT);
       zoomInAnimation.setEasingFunction(easingFunction);
-
       camera.animations.push(zoomInAnimation);
-
       scene.beginAnimation(camera, 0, 90, false);
 
-      // --- LIGHTING
+      // --- LIGHTING ---
       const ambientLight = new BABYLON.HemisphericLight(
         "ambient",
         new BABYLON.Vector3(0, 1, 0),
@@ -99,11 +97,10 @@ export const RoomCanvas = ({
         new BABYLON.Vector3(0, wallH - 40, 0),
         scene,
       );
-      ceilingLamp.intensity = 5.5; // Increased from 3.5
-      ceilingLamp.diffuse = new BABYLON.Color3(1, 0.92, 0.78); // Warmer orange tone
+      ceilingLamp.intensity = 5.5;
+      ceilingLamp.diffuse = new BABYLON.Color3(1, 0.92, 0.78);
       ceilingLamp.range = 2000;
 
-      // Additional ceiling lights for even illumination
       const ceilingLamp2 = new BABYLON.PointLight(
         "ceilingLamp2",
         new BABYLON.Vector3(-rw / 4, wallH - 50, rd / 4),
@@ -128,7 +125,7 @@ export const RoomCanvas = ({
         scene,
       );
       fillLight.intensity = 0.2;
-      fillLight.diffuse = new BABYLON.Color3(1, 0.95, 0.88); // Warm fill
+      fillLight.diffuse = new BABYLON.Color3(1, 0.95, 0.88);
 
       const mainSpot = new BABYLON.SpotLight(
         "mainSpot",
@@ -142,7 +139,6 @@ export const RoomCanvas = ({
       mainSpot.diffuse = new BABYLON.Color3(1, 0.95, 0.85);
       mainSpot.range = 800;
 
-      // Spotlight tambahan
       const spot2 = new BABYLON.SpotLight(
         "spot2",
         new BABYLON.Vector3(-rw / 3, wallH - 40, rd / 3),
@@ -167,8 +163,7 @@ export const RoomCanvas = ({
       spot3.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
       spot3.range = 600;
 
-      // --- FLOOR
-
+      // --- FLOOR ---
       const floorThickness = 9;
       const vinylThickness = 1;
 
@@ -213,7 +208,6 @@ export const RoomCanvas = ({
       } else {
         floorVinylMat.albedoColor = new BABYLON.Color3(0.85, 0.75, 0.65);
       }
-
       floorVinyl.material = floorVinylMat;
 
       // --- CEILING ---
@@ -223,7 +217,6 @@ export const RoomCanvas = ({
         scene,
       );
       ceiling.position.y = wallH - floorThickness / 2;
-
       const ceilingMat = new BABYLON.PBRMaterial("ceilingMat", scene);
       ceilingMat.albedoColor = new BABYLON.Color3(0.96, 0.96, 0.96);
       ceilingMat.roughness = 0.95;
@@ -231,9 +224,8 @@ export const RoomCanvas = ({
       ceiling.material = ceilingMat;
       ceiling.metadata = { side: "ceiling" };
 
-      // --- WALLS
+      // --- WALLS ---
       const interiorColor = new BABYLON.Color3(0.95, 0.94, 0.92);
-
       const wallMat = new BABYLON.PBRMaterial("wallMat", scene);
       wallMat.albedoColor = interiorColor;
       wallMat.roughness = 0.9;
@@ -242,7 +234,7 @@ export const RoomCanvas = ({
 
       const walls: BABYLON.Mesh[] = [];
 
-      // back wall
+      // Back wall
       const backWall = BABYLON.MeshBuilder.CreateBox(
         "wall_back",
         { width: rw + wallThick * 2, height: wallH, depth: wallThick },
@@ -293,7 +285,6 @@ export const RoomCanvas = ({
       shadowGen.useBlurExponentialShadowMap = true;
       shadowGen.blurKernel = 64;
       shadowGen.setDarkness(0.35);
-
       shadowGen.addShadowCaster(ceiling);
 
       walls.forEach((wall) => {
@@ -301,98 +292,6 @@ export const RoomCanvas = ({
       });
       ceiling.receiveShadows = true;
       floorVinyl.receiveShadows = true;
-
-      // --- FURNITURE LOADER ---
-      let selectedModel = "wine_cabinet.glb";
-      try {
-        selectedModel =
-          sessionStorage.getItem("selectedFurniture") || "wine_cabinet.glb";
-      } catch (e) {
-        console.log("Session storage not available");
-      }
-
-      BABYLON.SceneLoader.ImportMesh(
-        "",
-        "/assets/3d/",
-        selectedModel,
-        scene,
-        function (meshes) {
-          if (meshes.length === 0) return;
-          const furniture = meshes[0];
-
-          // ---  GANTI TEKSTUR FURNITURE ---
-          let savedFurnitureTexture = "";
-          try {
-            savedFurnitureTexture =
-              sessionStorage.getItem("selectedFurnitureTexture") || "";
-          } catch (e) {}
-
-          if (savedFurnitureTexture && savedFurnitureTexture.trim() !== "") {
-            const texturePath = "/assets/" + savedFurnitureTexture;
-            const newTex = new BABYLON.Texture(texturePath, scene);
-
-            const applyTextureToFurniture = () => {
-              meshes.forEach((mesh) => {
-                const pbrMat = new BABYLON.PBRMaterial("customMat", scene);
-                pbrMat.albedoTexture = newTex;
-                pbrMat.roughness = 0.7;
-                mesh.material = pbrMat;
-              });
-            };
-
-            setTimeout(applyTextureToFurniture, 100);
-          }
-
-          furniture.getChildMeshes().forEach((m) => {
-            m.metadata = "furniture";
-          });
-
-          // Scaling & Positioning logic
-          const boundsInfo = furniture.getHierarchyBoundingVectors(true);
-          const sizeY = boundsInfo.max.y - boundsInfo.min.y;
-          const targetHeight = 80;
-          const scaleFactor = sizeY > 0 ? targetHeight / sizeY : 1;
-
-          furniture.scaling.set(scaleFactor, scaleFactor, scaleFactor);
-          furniture.position.y = -boundsInfo.min.y * scaleFactor;
-          furniture.position.z = 217;
-          furniture.position.x = 40;
-
-          // Drag Behavior
-          const dragBehavior = new BABYLON.PointerDragBehavior({
-            dragPlaneNormal: new BABYLON.Vector3(0, 1, 0),
-          });
-          dragBehavior.moveAttached = true;
-
-          // Visual Cue Events
-          dragBehavior.onDragStartObservable.add(() => {
-            canvas.setAttribute("data-visual-cue", "dragged");
-          });
-          dragBehavior.onDragEndObservable.add(() => {
-            canvas.setAttribute("data-visual-cue", "none");
-          });
-
-          // Anti-Tembus Logic
-          const clampToRoom = () => {
-            const b = furniture.getHierarchyBoundingVectors(true);
-            const margin = 2;
-            const limitX = rw / 2 - margin;
-            const limitZ = rd / 2 - margin;
-
-            if (b.max.x > limitX) furniture.position.x -= b.max.x - limitX;
-            if (b.min.x < -limitX) furniture.position.x += -limitX - b.min.x;
-            if (b.max.z > limitZ) furniture.position.z -= b.max.z - limitZ;
-            if (b.min.z < -limitZ) furniture.position.z += -limitZ - b.min.z;
-          };
-
-          dragBehavior.onDragObservable.add(clampToRoom);
-          furniture.addBehavior(dragBehavior);
-        },
-        null,
-        (scene, message) => {
-          console.error("Error loading mesh:", message);
-        },
-      );
 
       // --- GLOBAL INTERACTIONS ---
       scene.onPointerObservable.add((pointerInfo) => {
@@ -412,7 +311,7 @@ export const RoomCanvas = ({
         }
       });
 
-      // Auto-Hide Walls logic
+      // Auto-Hide Walls Logic
       scene.registerBeforeRender(() => {
         walls.forEach((w) => {
           if (!w.metadata) return;
@@ -436,21 +335,15 @@ export const RoomCanvas = ({
     };
 
     const scene = createScene();
-    sceneRef.current = scene; // Simpan scene ke Ref global
+    sceneRef.current = scene;
 
     engine.runRenderLoop(() => {
       scene.render();
     });
 
-    const handleResize = () => {
-      engine.resize();
-    };
+    const handleResize = () => engine.resize();
     window.addEventListener("resize", handleResize);
-
-    const resizeObserver = new ResizeObserver(() => {
-      engine.resize();
-    });
-
+    const resizeObserver = new ResizeObserver(() => engine.resize());
     if (canvas.parentElement) {
       resizeObserver.observe(canvas.parentElement);
     }
@@ -462,84 +355,100 @@ export const RoomCanvas = ({
     };
   }, []);
 
+  // --- 2. EFFECT: LOAD MAIN MODEL (ASYNC) ---
   useEffect(() => {
     if (!sceneRef.current || !mainModel) return;
     const scene = sceneRef.current;
 
-    // Hapus mesh utama sebelumnya jika ada
-    if (mainMeshRef.current) {
-      mainMeshRef.current.dispose();
-      mainMeshRef.current = null;
-    }
+    // Gunakan Async Function di dalam useEffect
+    const loadMainModel = async () => {
+      // Hapus mesh lama
+      if (mainMeshRef.current) {
+        mainMeshRef.current.dispose();
+        mainMeshRef.current = null;
+      }
 
-    BABYLON.SceneLoader.ImportMesh(
-      "",
-      "/assets/3d/",
-      mainModel, // Pakai prop mainModel
-      scene,
-      function (meshes) {
+      try {
+        // --- NEW: ImportMeshAsync ---
+        // Parameter: (meshNames, rootUrl, sceneFilename, scene)
+        const result = await BABYLON.SceneLoader.ImportMeshAsync(
+          "",
+          "/assets/3d/",
+          mainModel,
+          scene,
+        );
+
+        const meshes = result.meshes;
         if (meshes.length === 0) return;
-        const rootMesh = meshes[0];
-        mainMeshRef.current = rootMesh; // Simpan ke ref
 
-        // Setup dasar mesh (scale, posisi) sama seperti code lamamu
+        const rootMesh = meshes[0];
+        mainMeshRef.current = rootMesh;
+
+        // Setup mesh logic
         rootMesh.getChildMeshes().forEach((m) => {
-          m.metadata = "furniture"; // Tagging
-          // Cek jika ada texture aktif, langsung apply
+          m.metadata = "furniture";
           if (activeTexture) applyTextureToMesh(m, activeTexture, scene);
         });
 
-        // Auto Scaling Logic
+        // Auto Scaling
         const boundsInfo = rootMesh.getHierarchyBoundingVectors(true);
         const sizeY = boundsInfo.max.y - boundsInfo.min.y;
-        const targetHeight = 80; // Sesuaikan
+        const targetHeight = 80;
         const scaleFactor = sizeY > 0 ? targetHeight / sizeY : 1;
         rootMesh.scaling.set(scaleFactor, scaleFactor, scaleFactor);
-        rootMesh.position.set(40, -boundsInfo.min.y * scaleFactor, 0); // Posisi default tengah
+        rootMesh.position.set(40, -boundsInfo.min.y * scaleFactor, 0);
 
-        // Add Drag Behavior
+        // Add Drag
         addDragBehavior(rootMesh, scene);
-      },
-    );
+      } catch (error) {
+        console.error("Error loading main model:", error);
+      }
+    };
+
+    loadMainModel();
   }, [mainModel]); // Dependency: mainModel
 
-  // --- 3. EFFECT: LOAD ADDITIONAL MODELS (Jalan tiap user klik Tambahan) ---
+  // --- 3. EFFECT: LOAD ADDITIONAL MODELS (ASYNC) ---
   useEffect(() => {
     if (!sceneRef.current || additionalModels.length === 0) return;
     const scene = sceneRef.current;
-
-    // Ambil item terakhir yg ditambahkan array
     const lastAddedModel = additionalModels[additionalModels.length - 1];
 
-    BABYLON.SceneLoader.ImportMesh(
-      "",
-      "/assets/3d/",
-      lastAddedModel,
-      scene,
-      (meshes) => {
+    const loadAdditional = async () => {
+      try {
+        // --- NEW: ImportMeshAsync ---
+        const result = await BABYLON.SceneLoader.ImportMeshAsync(
+          "",
+          "/assets/3d/",
+          lastAddedModel,
+          scene,
+        );
+
+        const meshes = result.meshes;
+        if (meshes.length === 0) return;
+
         const rootMesh = meshes[0];
-        rootMesh.position.x = Math.random() * 100 - 50; // Random posisi biar gak numpuk
+        rootMesh.position.x = Math.random() * 100 - 50;
 
         rootMesh.getChildMeshes().forEach((m) => {
           m.metadata = "furniture";
           if (activeTexture) applyTextureToMesh(m, activeTexture, scene);
         });
 
-        // Scaling standard
-        rootMesh.scaling.set(1, 1, 1); // Sesuaikan scaling logic
+        rootMesh.scaling.set(1, 1, 1);
         addDragBehavior(rootMesh, scene);
-      },
-    );
-  }, [additionalModels.length]); // Dependency: panjang array berubah
+      } catch (error) {
+        console.error("Error loading additional model:", error);
+      }
+    };
 
-  // --- 4. EFFECT: CHANGE TEXTURE (Jalan tiap user pilih Warna) ---
+    loadAdditional();
+  }, [additionalModels.length]);
+
+  // --- 4. EFFECT: CHANGE TEXTURE ---
   useEffect(() => {
     if (!sceneRef.current || !activeTexture) return;
     const scene = sceneRef.current;
-
-    // Strategi: Apply texture ke SEMUA mesh yang punya metadata="furniture"
-    // Atau kamu bisa cuma apply ke yg diselect (perlu logic selection manager tambahan)
-    // Untuk sekarang: Apply ke Main Mesh dulu.
 
     if (mainMeshRef.current) {
       mainMeshRef.current.getChildMeshes().forEach((m) => {
@@ -547,7 +456,6 @@ export const RoomCanvas = ({
       });
     }
 
-    // Apply juga ke additional items (bisa diimprove dgn simpan ref array)
     scene.meshes.forEach((mesh) => {
       if (
         mesh.metadata === "furniture" &&
@@ -580,6 +488,19 @@ export const RoomCanvas = ({
       dragPlaneNormal: new BABYLON.Vector3(0, 1, 0),
     });
     dragBehavior.moveAttached = true;
+
+    // Add visual cues using the parent canvas logic if needed,
+    // or access via scene.getEngine().getRenderingCanvas()
+    const canvas = scene.getEngine().getRenderingCanvas();
+    if (canvas) {
+      dragBehavior.onDragStartObservable.add(() => {
+        canvas.setAttribute("data-visual-cue", "dragged");
+      });
+      dragBehavior.onDragEndObservable.add(() => {
+        canvas.setAttribute("data-visual-cue", "none");
+      });
+    }
+
     mesh.addBehavior(dragBehavior);
   };
 

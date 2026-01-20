@@ -2,7 +2,7 @@ export type ToolType =
   | "paint"
   | "lighting"
   | "grid"
-  | "bed"
+  | "furniture"
   | "tambahan"
   | "chair"
   | "door"
