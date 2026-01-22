@@ -3,6 +3,7 @@
 import React from "react";
 import { GalleryVerticalEnd } from "lucide-react";
 import { RegisterForm } from "./components/registerForm";
+import Image from "next/image";
 
 export const RegisterPage = () => {
   return (
@@ -10,8 +11,9 @@ export const RegisterPage = () => {
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex justify-center gap-2 md:justify-start">
           <a href="/" className="flex items-center gap-2 font-medium">
-            <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-              <GalleryVerticalEnd className="size-4" />
+            <div className="text-primary-foreground flex size-6 items-center justify-center rounded-md">
+              {/* <GalleryVerticalEnd className="size-4" /> */}
+              <Image src="/hihi.jpg" alt="Logo" width={30} height={30} />
             </div>
             Custom Furniture
           </a>

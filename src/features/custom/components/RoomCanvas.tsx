@@ -85,87 +85,103 @@ export const RoomCanvas = ({
       scene.beginAnimation(camera, 0, 90, false);
 
       // --- LIGHTING
-      const ambientLight = new BABYLON.HemisphericLight(
-        "ambient",
+      const light = new BABYLON.HemisphericLight(
+        "light",
         new BABYLON.Vector3(0, 1, 0),
         scene,
       );
-      ambientLight.intensity = 0.8;
-      ambientLight.diffuse = new BABYLON.Color3(1, 0.95, 0.85);
-      ambientLight.groundColor = new BABYLON.Color3(0.6, 0.55, 0.45);
+      light.intensity = 1.3;
+      light.groundColor = new BABYLON.Color3(0.2, 0.2, 0.2);
 
-      const ceilingLamp = new BABYLON.PointLight(
-        "ceilingLamp",
-        new BABYLON.Vector3(0, wallH - 40, 0),
+      const pointLight = new BABYLON.PointLight(
+        "pointLight",
+        new BABYLON.Vector3(0, wallH - 10, 0),
         scene,
       );
-      ceilingLamp.intensity = 5.5; // Increased from 3.5
-      ceilingLamp.diffuse = new BABYLON.Color3(1, 0.92, 0.78); // Warmer orange tone
-      ceilingLamp.range = 2000;
+      pointLight.intensity = 0.5;
+      pointLight.diffuse = new BABYLON.Color3(1, 0.98, 0.95);
+      pointLight.range = 1000;
+      // const ambientLight = new BABYLON.HemisphericLight(
+      //   "ambient",
+      //   new BABYLON.Vector3(0, 1, 0),
+      //   scene,
+      // );
+      // ambientLight.intensity = 0.8;
+      // ambientLight.diffuse = new BABYLON.Color3(1, 0.95, 0.85);
+      // ambientLight.groundColor = new BABYLON.Color3(0.6, 0.55, 0.45);
 
-      // Additional ceiling lights for even illumination
-      const ceilingLamp2 = new BABYLON.PointLight(
-        "ceilingLamp2",
-        new BABYLON.Vector3(-rw / 4, wallH - 50, rd / 4),
-        scene,
-      );
-      ceilingLamp2.intensity = 3.0;
-      ceilingLamp2.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
-      ceilingLamp2.range = 1200;
+      // const ceilingLamp = new BABYLON.PointLight(
+      //   "ceilingLamp",
+      //   new BABYLON.Vector3(0, wallH - 40, 0),
+      //   scene,
+      // );
+      // ceilingLamp.intensity = 5.5; // Increased from 3.5
+      // ceilingLamp.diffuse = new BABYLON.Color3(1, 0.92, 0.78); // Warmer orange tone
+      // ceilingLamp.range = 2000;
 
-      const ceilingLamp3 = new BABYLON.PointLight(
-        "ceilingLamp3",
-        new BABYLON.Vector3(rw / 4, wallH - 50, -rd / 4),
-        scene,
-      );
-      ceilingLamp3.intensity = 3.0;
-      ceilingLamp3.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
-      ceilingLamp3.range = 1200;
+      // // Additional ceiling lights for even illumination
+      // const ceilingLamp2 = new BABYLON.PointLight(
+      //   "ceilingLamp2",
+      //   new BABYLON.Vector3(-rw / 4, wallH - 50, rd / 4),
+      //   scene,
+      // );
+      // ceilingLamp2.intensity = 3.0;
+      // ceilingLamp2.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
+      // ceilingLamp2.range = 1200;
 
-      const fillLight = new BABYLON.DirectionalLight(
-        "fillLight",
-        new BABYLON.Vector3(0, -0.5, 0.2),
-        scene,
-      );
-      fillLight.intensity = 0.2;
-      fillLight.diffuse = new BABYLON.Color3(1, 0.95, 0.88); // Warm fill
+      // const ceilingLamp3 = new BABYLON.PointLight(
+      //   "ceilingLamp3",
+      //   new BABYLON.Vector3(rw / 4, wallH - 50, -rd / 4),
+      //   scene,
+      // );
+      // ceilingLamp3.intensity = 3.0;
+      // ceilingLamp3.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
+      // ceilingLamp3.range = 1200;
 
-      const mainSpot = new BABYLON.SpotLight(
-        "mainSpot",
-        new BABYLON.Vector3(0, wallH - 30, 0),
-        new BABYLON.Vector3(0, -1, 0),
-        Math.PI / 2.5,
-        2,
-        scene,
-      );
-      mainSpot.intensity = 8.0;
-      mainSpot.diffuse = new BABYLON.Color3(1, 0.95, 0.85);
-      mainSpot.range = 800;
+      // const fillLight = new BABYLON.DirectionalLight(
+      //   "fillLight",
+      //   new BABYLON.Vector3(0, -0.5, 0.2),
+      //   scene,
+      // );
+      // fillLight.intensity = 0.2;
+      // fillLight.diffuse = new BABYLON.Color3(1, 0.95, 0.88); // Warm fill
 
-      // Spotlight tambahan
-      const spot2 = new BABYLON.SpotLight(
-        "spot2",
-        new BABYLON.Vector3(-rw / 3, wallH - 40, rd / 3),
-        new BABYLON.Vector3(0.2, -1, 0),
-        Math.PI / 3,
-        3,
-        scene,
-      );
-      spot2.intensity = 4.5;
-      spot2.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
-      spot2.range = 600;
+      // const mainSpot = new BABYLON.SpotLight(
+      //   "mainSpot",
+      //   new BABYLON.Vector3(0, wallH - 30, 0),
+      //   new BABYLON.Vector3(0, -1, 0),
+      //   Math.PI / 2.5,
+      //   2,
+      //   scene,
+      // );
+      // mainSpot.intensity = 8.0;
+      // mainSpot.diffuse = new BABYLON.Color3(1, 0.95, 0.85);
+      // mainSpot.range = 800;
 
-      const spot3 = new BABYLON.SpotLight(
-        "spot3",
-        new BABYLON.Vector3(rw / 3, wallH - 40, -rd / 3),
-        new BABYLON.Vector3(-0.2, -1, 0),
-        Math.PI / 3,
-        3,
-        scene,
-      );
-      spot3.intensity = 4.5;
-      spot3.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
-      spot3.range = 600;
+      // // Spotlight tambahan
+      // const spot2 = new BABYLON.SpotLight(
+      //   "spot2",
+      //   new BABYLON.Vector3(-rw / 3, wallH - 40, rd / 3),
+      //   new BABYLON.Vector3(0.2, -1, 0),
+      //   Math.PI / 3,
+      //   3,
+      //   scene,
+      // );
+      // spot2.intensity = 4.5;
+      // spot2.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
+      // spot2.range = 600;
+
+      // const spot3 = new BABYLON.SpotLight(
+      //   "spot3",
+      //   new BABYLON.Vector3(rw / 3, wallH - 40, -rd / 3),
+      //   new BABYLON.Vector3(-0.2, -1, 0),
+      //   Math.PI / 3,
+      //   3,
+      //   scene,
+      // );
+      // spot3.intensity = 4.5;
+      // spot3.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
+      // spot3.range = 600;
 
       // --- FLOOR
 
@@ -289,18 +305,18 @@ export const RoomCanvas = ({
       walls.push(ceiling);
 
       // --- SHADOW SETUP ---
-      const shadowGen = new BABYLON.ShadowGenerator(2048, ceilingLamp);
-      shadowGen.useBlurExponentialShadowMap = true;
-      shadowGen.blurKernel = 64;
-      shadowGen.setDarkness(0.35);
+      // const shadowGen = new BABYLON.ShadowGenerator(2048, ceilingLamp);
+      // shadowGen.useBlurExponentialShadowMap = true;
+      // shadowGen.blurKernel = 64;
+      // shadowGen.setDarkness(0.35);
 
-      shadowGen.addShadowCaster(ceiling);
+      // shadowGen.addShadowCaster(ceiling);
 
-      walls.forEach((wall) => {
-        wall.receiveShadows = true;
-      });
-      ceiling.receiveShadows = true;
-      floorVinyl.receiveShadows = true;
+      // walls.forEach((wall) => {
+      //   wall.receiveShadows = true;
+      // });
+      // ceiling.receiveShadows = true;
+      // floorVinyl.receiveShadows = true;
 
       // --- FURNITURE LOADER ---
       let selectedModel = "wine_cabinet.glb";
