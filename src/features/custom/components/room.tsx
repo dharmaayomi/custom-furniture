@@ -21,6 +21,8 @@ import { RoomCanvasTwo } from "./CanvasTwo";
 import { calculateTotalPrice, formatPrice } from "@/lib/price";
 import { ListProductPanel } from "./ListProductPanel";
 import { is } from "zod/v4/locales";
+import { RoomCanvasThree } from "../_components/RoomCanvas";
+import { RoomCanvas } from "./RoomCanvas";
 
 const ASSETS_3D = [
   "wine_cabinet.glb",
@@ -29,6 +31,7 @@ const ASSETS_3D = [
   "chair-1.glb",
   "man.glb",
   "wall_cupboard.glb",
+  "rakayolahkaliinibener.glb",
 ];
 
 const ASSETS_TEXTURE = [
@@ -40,6 +43,7 @@ const ASSETS_TEXTURE = [
   "texture-of-dry-concrete-wall.jpg",
 ];
 export const RoomPage = () => {
+  const [cameraSystem, setCameraSystem] = useState<any>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProductListOpen, setIsProductListOpen] = useState(false);
@@ -187,7 +191,7 @@ export const RoomPage = () => {
 
         {/* Room Canvas */}
         <div className="relative h-screen flex-1">
-          <RoomCanvasTwo
+          <RoomCanvasThree
             mainModel={mainModel}
             activeTexture={activeTexture}
             additionalModels={additionalModels}

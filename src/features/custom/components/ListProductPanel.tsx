@@ -41,6 +41,10 @@ const getProductName = (
       name: "Decoration",
       description: "Decorative element",
     },
+    "rakayolahkaliinibener.glb": {
+      name: "Storage Cabinet",
+      description: "storage cabinet",
+    },
   };
 
   return productNames[modelName] || { name: "Item", description: "Product" };
