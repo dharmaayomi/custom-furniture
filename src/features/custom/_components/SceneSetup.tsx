@@ -2,7 +2,10 @@ import * as BABYLON from "@babylonjs/core";
 import { setupCamera } from "./CameraSetup";
 import { setupLighting } from "./LightingSetup";
 import { setupRoom } from "./RoomSetup";
-import { setupPointerInteractions, setupAutoHideWalls } from "./MeshUtils";
+import {
+  setupPointerInteractions,
+  setupAutoHideWalls,
+} from "./MeshUtils_WallSnap";
 import { CONFIG } from "./RoomConfig";
 
 /**
@@ -83,7 +86,7 @@ const createDebugHelpers = (scene: BABYLON.Scene) => {
 };
 
 /**
- * Create and initialize the complete scene
+ * Create and initialize the complete scene with auto-snap system
  */
 export const createScene = (
   canvas: HTMLCanvasElement,
@@ -100,7 +103,9 @@ export const createScene = (
   scene.imageProcessingConfiguration.toneMappingType =
     BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
 
-  // Setup camera
+  console.log("🎯 Scene initialized with Auto-Snap system");
+
+  // Setup camera (fixed smooth camera)
   const camera = setupCamera(canvas, scene);
 
   // Setup lighting

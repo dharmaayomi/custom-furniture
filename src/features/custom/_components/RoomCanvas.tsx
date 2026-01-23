@@ -8,7 +8,7 @@ import {
   loadAdditionalModel,
   loadMainModel,
   updateAllTextures,
-} from "./ModelLoader";
+} from "./ModelLoader_WallSnap";
 
 interface RoomCanvasProps {
   mainModel: string;
@@ -31,7 +31,7 @@ export const RoomCanvasThree = ({
     const canvas = canvasRef.current;
     const engine = new BABYLON.Engine(canvas, true);
 
-    // Create scene with all setup
+    // Create scene with all setup (includes smooth camera & auto-snap system)
     const scene = createScene(canvas, engine);
     sceneRef.current = scene;
 
@@ -69,7 +69,7 @@ export const RoomCanvasThree = ({
         mainMeshRef.current = null;
       }
 
-      // Load new mesh
+      // Load new mesh (will be positioned at center back wall)
       const mesh = await loadMainModel(mainModel, activeTexture, scene);
       mainMeshRef.current = mesh;
     };
@@ -77,13 +77,14 @@ export const RoomCanvasThree = ({
     load();
   }, [mainModel]);
 
-  // --- 3. LOAD ADDITIONAL MODELS ---
+  // --- 3. LOAD ADDITIONAL MODELS WITH AUTO-SNAP ---
   useEffect(() => {
     if (!sceneRef.current || additionalModels.length === 0) return;
     const scene = sceneRef.current;
     const lastAddedModel = additionalModels[additionalModels.length - 1];
 
     const load = async () => {
+      // Will auto-snap next to existing furniture
       await loadAdditionalModel(
         lastAddedModel,
         activeTexture,

@@ -1,6 +1,11 @@
+import { useRoomStore } from "@/store/useRoomStore";
 import { CornerUpLeft, CornerUpRight, Ruler } from "lucide-react";
 
 export const FooterCustom = () => {
+  const { undo, redo, past, future } = useRoomStore();
+
+  const canUndo = past.length > 0;
+  const canRedo = future.length > 0;
   return (
     <footer className="pointer-events-none absolute bottom-0 z-5 mx-auto flex w-full justify-between gap-4 px-3 pb-4 md:px-8">
       {/* ruler button */}
@@ -12,12 +17,28 @@ export const FooterCustom = () => {
 
       {/* arrow button */}
       <div className="pointer-events-auto flex items-center">
-        <div className="cursor-pointer items-center rounded-l-xl bg-gray-100 p-2">
-          <CornerUpLeft />
-        </div>
-        <div className="cursor-pointer items-center rounded-r-xl bg-gray-100 p-2">
-          <CornerUpRight />
-        </div>
+        {/* UNDO BUTTON */}
+        <button
+          onClick={undo}
+          disabled={!canUndo}
+          className={`flex items-center rounded-l-xl bg-white p-2 transition-opacity ${
+            canUndo ? "cursor-pointer hover:bg-white/90" : "opacity-80"
+          }`}
+          aria-label="Undo"
+        >
+          <CornerUpLeft className="h-6 w-6 text-slate-900" />
+        </button>
+
+        <button
+          onClick={redo}
+          disabled={!canRedo}
+          className={`flex items-center rounded-r-xl bg-white p-2 transition-opacity ${
+            canRedo ? "cursor-pointer hover:bg-white/90" : "opacity-80"
+          }`}
+          aria-label="Redo"
+        >
+          <CornerUpRight className="h-6 w-6 text-slate-900" />
+        </button>
       </div>
     </footer>
   );

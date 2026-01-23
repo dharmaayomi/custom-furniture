@@ -14,24 +14,12 @@ export const ROOM_DIMENSIONS = {
   vinylThickness: 1,
 } as const;
 
-// export const CAMERA_CONFIG = {
-//   alpha: -Math.PI / 2,
-//   beta: Math.PI / 2.1,
-//   radius: 600,
-//   targetY: 140,
-//   wheelPrecision: 1.0,
-//   lowerBetaLimit: 0.001,
-//   upperBetaLimit: Math.PI / 2.05,
-//   lowerRadiusLimit: 90,
-//   upperRadiusLimit: 1500,
-// } as const;
-
 export const CAMERA_CONFIG = {
   alpha: -Math.PI / 2,
   beta: Math.PI / 2.2,
   radius: 600,
   targetY: 140,
-  wheelPrecision: 1.0,
+  wheelPrecision: 0.5,
   lowerBetaLimit: 0.2,
   upperBetaLimit: Math.PI / 2.02,
   lowerRadiusLimit: 90,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FooterCustom } from "./FooterCustom";
 import { HeaderCustom } from "./HeaderCustom";
 
@@ -13,16 +13,17 @@ import {
   Package,
   PaintBucket,
 } from "lucide-react";
-import { RoomCanvasOne } from "./CanvasOne";
+import { RoomCanvasOne } from "../trial/CanvasOne";
 import { FloatingToolPanel } from "./FloatingPanel";
 import { MenuModal } from "./MenuModal";
 import { SidebarPanel } from "./SidebarPanel";
-import { RoomCanvasTwo } from "./CanvasTwo";
+import { RoomCanvasTwo } from "../trial/CanvasTwo";
 import { calculateTotalPrice, formatPrice } from "@/lib/price";
 import { ListProductPanel } from "./ListProductPanel";
 import { is } from "zod/v4/locales";
 import { RoomCanvasThree } from "../_components/RoomCanvas";
-import { RoomCanvas } from "./RoomCanvas";
+import { RoomCanvas } from "../trial/RoomCanvas";
+import { useRoomStore } from "@/store/useRoomStore";
 
 const ASSETS_3D = [
   "wine_cabinet.glb",
@@ -49,9 +50,21 @@ export const RoomPage = () => {
   const [isProductListOpen, setIsProductListOpen] = useState(false);
   const [selectedTool, setSelectedTool] = useState<ToolType>(null);
   const [showHomeSidebar, setShowHomeSidebar] = useState(false);
-  const [mainModel, setMainModel] = useState("wine_cabinet.glb");
-  const [activeTexture, setActiveTexture] = useState("");
-  const [additionalModels, setAdditionalModels] = useState<string[]>([]); // Array untuk barang tambahan
+  // const [mainModel, setMainModel] = useState("wine_cabinet.glb");
+  // const [activeTexture, setActiveTexture] = useState("");
+  // const [additionalModels, setAdditionalModels] = useState<string[]>([]);
+
+  const {
+    present,
+    setMainModel,
+    setActiveTexture,
+    addAdditionalModel,
+    undo,
+    redo,
+    past,
+    future,
+  } = useRoomStore();
+  const { mainModel, activeTexture, additionalModels } = present;
   const tools: Tool[] = [
     {
       id: "furniture",
@@ -87,6 +100,24 @@ export const RoomPage = () => {
 
     { id: "grid", icon: Grid, label: "Lantai", category: "View" },
   ];
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        e.preventDefault();
+        undo();
+      }
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        (e.key === "y" || (e.shiftKey && e.key === "Z"))
+      ) {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo]);
 
   const handleToolClick = (toolId: ToolType) => {
     if (isProductListOpen) {
@@ -233,9 +264,10 @@ export const RoomPage = () => {
         assetList3D={ASSETS_3D}
         assetListTexture={ASSETS_TEXTURE}
         onSelectMainModel={(model) => setMainModel(model)}
-        onAddAdditionalModel={(model) =>
-          setAdditionalModels([...additionalModels, model])
-        }
+        // onAddAdditionalModel={(model) =>
+        //   setAdditionalModels([...additionalModels, model])
+        // }
+        onAddAdditionalModel={addAdditionalModel}
         onSelectTexture={(tex) => setActiveTexture(tex)}
       />
     </div>
