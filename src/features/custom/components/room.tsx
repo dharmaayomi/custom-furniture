@@ -13,16 +13,13 @@ import {
   Package,
   PaintBucket,
 } from "lucide-react";
-import { RoomCanvasOne } from "../trial/CanvasOne";
 import { FloatingToolPanel } from "./FloatingPanel";
 import { MenuModal } from "./MenuModal";
 import { SidebarPanel } from "./SidebarPanel";
-import { RoomCanvasTwo } from "../trial/CanvasTwo";
 import { calculateTotalPrice, formatPrice } from "@/lib/price";
 import { ListProductPanel } from "./ListProductPanel";
 import { is } from "zod/v4/locales";
 import { RoomCanvasThree } from "../_components/RoomCanvas";
-import { RoomCanvas } from "../trial/RoomCanvas";
 import { useRoomStore } from "@/store/useRoomStore";
 
 const ASSETS_3D = [
@@ -32,7 +29,9 @@ const ASSETS_3D = [
   "chair-1.glb",
   "man.glb",
   "wall_cupboard.glb",
+  "rak-1.glb",
   "rakayolahkaliinibener.glb",
+  "restaurant_pub_wardrobe.glb",
 ];
 
 const ASSETS_TEXTURE = [

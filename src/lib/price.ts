@@ -6,6 +6,8 @@ export const ASSET_PRICES: Record<string, number> = {
   "man.glb": 0,
   "wall_cupboard.glb": 2000000,
   "rakayolahkaliinibener.glb": 1500000,
+  "ral-1.glb": 1500000,
+  "restaurant_pub_wardrobe.glb": 2500000,
 };
 
 export const TEXTURE_PRICES: Record<string, number> = {

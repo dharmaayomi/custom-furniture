@@ -16,6 +16,15 @@ interface RoomCanvasProps {
   additionalModels: string[];
 }
 
+const getAdditionalMeshes = (
+  scene: BABYLON.Scene,
+  mainMesh: BABYLON.AbstractMesh | null,
+) => {
+  return scene.meshes.filter(
+    (m) => m.metadata === "furniture" && m !== mainMesh && !m.parent,
+  );
+};
+
 export const RoomCanvasThree = ({
   mainModel,
   activeTexture,
@@ -31,16 +40,13 @@ export const RoomCanvasThree = ({
     const canvas = canvasRef.current;
     const engine = new BABYLON.Engine(canvas, true);
 
-    // Create scene with all setup (includes smooth camera & auto-snap system)
     const scene = createScene(canvas, engine);
     sceneRef.current = scene;
 
-    // Start render loop
     engine.runRenderLoop(() => {
       scene.render();
     });
 
-    // Handle resize
     const handleResize = () => engine.resize();
     window.addEventListener("resize", handleResize);
 
@@ -49,7 +55,6 @@ export const RoomCanvasThree = ({
       resizeObserver.observe(canvas.parentElement);
     }
 
-    // Cleanup
     return () => {
       window.removeEventListener("resize", handleResize);
       resizeObserver.disconnect();
@@ -63,13 +68,10 @@ export const RoomCanvasThree = ({
     const scene = sceneRef.current;
 
     const load = async () => {
-      // Remove old mesh
       if (mainMeshRef.current) {
         mainMeshRef.current.dispose();
         mainMeshRef.current = null;
       }
-
-      // Load new mesh (will be positioned at center back wall)
       const mesh = await loadMainModel(mainModel, activeTexture, scene);
       mainMeshRef.current = mesh;
     };
@@ -77,24 +79,45 @@ export const RoomCanvasThree = ({
     load();
   }, [mainModel]);
 
-  // --- 3. LOAD ADDITIONAL MODELS WITH AUTO-SNAP ---
+  // --- 3. SYNC ADDITIONAL MODELS (FIX UNTUK UNDO/REDO) ---
   useEffect(() => {
-    if (!sceneRef.current || additionalModels.length === 0) return;
+    if (!sceneRef.current) return;
     const scene = sceneRef.current;
-    const lastAddedModel = additionalModels[additionalModels.length - 1];
 
-    const load = async () => {
-      // Will auto-snap next to existing furniture
-      await loadAdditionalModel(
-        lastAddedModel,
-        activeTexture,
-        scene,
-        mainMeshRef.current,
-      );
+    const syncModels = async () => {
+      const currentMeshes = getAdditionalMeshes(scene, mainMeshRef.current);
+
+      // KASUS A: Store lebih banyak -> TAMBAH mesh
+      if (additionalModels.length > currentMeshes.length) {
+        const indexToAdd = currentMeshes.length;
+        const modelToLoad = additionalModels[indexToAdd];
+
+        if (modelToLoad) {
+          await loadAdditionalModel(
+            modelToLoad,
+            activeTexture,
+            scene,
+            mainMeshRef.current,
+          );
+        }
+      }
+      // KASUS B: Scene lebih banyak -> HAPUS mesh (UNDO)
+      else if (currentMeshes.length > additionalModels.length) {
+        const diff = currentMeshes.length - additionalModels.length;
+
+        // Hapus mesh dari belakang (LIFO)
+        for (let i = 0; i < diff; i++) {
+          const meshToRemove = currentMeshes[currentMeshes.length - 1 - i];
+          if (meshToRemove) {
+            console.log("🗑️ Removing mesh:", meshToRemove.name);
+            meshToRemove.dispose();
+          }
+        }
+      }
     };
 
-    load();
-  }, [additionalModels.length]);
+    syncModels();
+  }, [additionalModels.length]); // Trigger saat jumlah berubah
 
   // --- 4. UPDATE TEXTURE ---
   useEffect(() => {

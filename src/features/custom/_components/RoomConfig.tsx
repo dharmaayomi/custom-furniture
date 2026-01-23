@@ -19,7 +19,7 @@ export const CAMERA_CONFIG = {
   beta: Math.PI / 2.2,
   radius: 600,
   targetY: 140,
-  wheelPrecision: 0.5,
+  wheelPrecision: 0.2,
   lowerBetaLimit: 0.2,
   upperBetaLimit: Math.PI / 2.02,
   lowerRadiusLimit: 90,
@@ -35,12 +35,12 @@ export const LIGHTING_CONFIG = {
     groundColor: [0.6, 0.55, 0.45] as const,
   },
   ceilingLamp: {
-    intensity: 5.5,
+    intensity: 1.5,
     diffuse: [1, 0.92, 0.78] as const,
     range: 2000,
   },
   mainSpot: {
-    intensity: 8.0,
+    intensity: 5.0,
     diffuse: [1, 0.95, 0.85] as const,
     range: 800,
     angle: Math.PI / 2.5,

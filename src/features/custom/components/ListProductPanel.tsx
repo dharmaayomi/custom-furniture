@@ -25,6 +25,10 @@ const getProductName = (
       name: "Cabinet",
       description: "Modern storage cabinet",
     },
+    "restaurant_pub_wardrobe.glb": {
+      name: "Cabinet",
+      description: "Modern Pub Wardrobe",
+    },
     "cabinet.glb": {
       name: "Storage Cabinet",
       description: "Functional storage solution",
@@ -42,6 +46,10 @@ const getProductName = (
       description: "Decorative element",
     },
     "rakayolahkaliinibener.glb": {
+      name: "Storage Cabinet",
+      description: "storage cabinet",
+    },
+    "rak-1.glb": {
       name: "Storage Cabinet",
       description: "storage cabinet",
     },

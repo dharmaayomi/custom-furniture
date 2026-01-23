@@ -1,9 +1,32 @@
+import { ASSET_PRICES, TEXTURE_PRICES } from "@/lib/price";
 import { create } from "zustand";
 
+// --- 1. SETUP DATA HARGA (DATABASE SEMENTARA) ---
+// Di aplikasi real, ini mungkin dari API atau database
+
+// Helper untuk hitung total harga saat ini
+const calculateTotal = (
+  mainModel: string,
+  additionalModels: string[],
+  activeTexture: string,
+) => {
+  let total = ASSET_PRICES[mainModel] || 0;
+
+  additionalModels.forEach((model) => {
+    total += ASSET_PRICES[model] || 0;
+  });
+
+  total += TEXTURE_PRICES[activeTexture] || 0;
+
+  return total;
+};
+
+// --- 2. UPDATE INTERFACE ---
 interface RoomData {
   mainModel: string;
   activeTexture: string;
   additionalModels: string[];
+  totalPrice: number; // Tambahkan field ini
 }
 
 interface RoomStore {
@@ -17,14 +40,18 @@ interface RoomStore {
 
   undo: () => void;
   redo: () => void;
-
   reset: () => void;
 }
 
+// State Awal
+const INITIAL_MAIN = "wine_cabinet.glb";
+const INITIAL_TEXTURE = "";
+
 const INITIAL_STATE: RoomData = {
-  mainModel: "wine_cabinet.glb",
-  activeTexture: "",
+  mainModel: INITIAL_MAIN,
+  activeTexture: INITIAL_TEXTURE,
   additionalModels: [],
+  totalPrice: calculateTotal(INITIAL_MAIN, [], INITIAL_TEXTURE),
 };
 
 export const useRoomStore = create<RoomStore>((set) => ({
@@ -32,11 +59,25 @@ export const useRoomStore = create<RoomStore>((set) => ({
   present: INITIAL_STATE,
   future: [],
 
+  // --- 3. ACTIONS DENGAN KALKULASI HARGA OTOMATIS ---
+
   setMainModel: (model) =>
     set((state) => {
       if (state.present.mainModel === model) return state;
 
-      const newPresent = { ...state.present, mainModel: model };
+      // Hitung harga baru
+      const newPrice = calculateTotal(
+        model,
+        state.present.additionalModels,
+        state.present.activeTexture,
+      );
+
+      const newPresent = {
+        ...state.present,
+        mainModel: model,
+        totalPrice: newPrice,
+      };
+
       return {
         past: [...state.past, state.present],
         present: newPresent,
@@ -48,7 +89,18 @@ export const useRoomStore = create<RoomStore>((set) => ({
     set((state) => {
       if (state.present.activeTexture === texture) return state;
 
-      const newPresent = { ...state.present, activeTexture: texture };
+      const newPrice = calculateTotal(
+        state.present.mainModel,
+        state.present.additionalModels,
+        texture,
+      );
+
+      const newPresent = {
+        ...state.present,
+        activeTexture: texture,
+        totalPrice: newPrice,
+      };
+
       return {
         past: [...state.past, state.present],
         present: newPresent,
@@ -58,16 +110,30 @@ export const useRoomStore = create<RoomStore>((set) => ({
 
   addAdditionalModel: (model) =>
     set((state) => {
+      const newModels = [...state.present.additionalModels, model];
+
+      const newPrice = calculateTotal(
+        state.present.mainModel,
+        newModels,
+        state.present.activeTexture,
+      );
+
       const newPresent = {
         ...state.present,
-        additionalModels: [...state.present.additionalModels, model],
+        additionalModels: newModels,
+        totalPrice: newPrice,
       };
+
       return {
         past: [...state.past, state.present],
         present: newPresent,
         future: [],
       };
     }),
+
+  // --- 4. UNDO & REDO (Tidak perlu diubah logic-nya) ---
+  // Karena 'price' ada di dalam objek 'present', maka saat undo,
+  // dia akan me-replace 'present' dengan data dari 'past' (yang berisi harga lama).
 
   undo: () =>
     set((state) => {

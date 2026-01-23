@@ -20,7 +20,7 @@ export const setupLighting = (scene: BABYLON.Scene) => {
   // Ceiling Lamp (Main)
   const ceilingLamp = new BABYLON.PointLight(
     "ceilingLamp",
-    new BABYLON.Vector3(0, wallHeight - 40, 0),
+    new BABYLON.Vector3(0, wallHeight - 10, 0),
     scene,
   );
   ceilingLamp.intensity = LIGHTING_CONFIG.ceilingLamp.intensity;
@@ -55,7 +55,7 @@ export const setupLighting = (scene: BABYLON.Scene) => {
     new BABYLON.Vector3(0, -0.5, 0.2),
     scene,
   );
-  fillLight.intensity = 0.2;
+  fillLight.intensity = 0.8;
   fillLight.diffuse = new BABYLON.Color3(1, 0.95, 0.88);
 
   // Main Spot Light

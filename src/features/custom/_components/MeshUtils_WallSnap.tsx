@@ -24,6 +24,54 @@ export interface WallSnapPosition {
 }
 
 // ============================================================================
+// MATERIAL CACHE - FIX UNTUK MASALAH LIGHTING
+// ============================================================================
+
+// Cache untuk material agar tidak dibuat ulang setiap kali
+const materialCache = new Map<string, BABYLON.PBRMaterial>();
+
+/**
+ * Get atau create material dengan caching
+ * Ini mencegah material baru dibuat terus-menerus yang menyebabkan perubahan lighting
+ */
+const getOrCreateMaterial = (
+  texName: string,
+  scene: BABYLON.Scene,
+): BABYLON.PBRMaterial => {
+  const cacheKey = `furnitureMat_${texName}`;
+
+  // Cek apakah material sudah ada di cache
+  if (materialCache.has(cacheKey)) {
+    const cachedMat = materialCache.get(cacheKey);
+    if (cachedMat && !cachedMat.dispose) {
+      return cachedMat;
+    }
+  }
+
+  // Buat material baru jika belum ada
+  const texturePath = "/assets/texture/" + texName;
+  const newTex = new BABYLON.Texture(texturePath, scene);
+
+  const pbrMat = new BABYLON.PBRMaterial(cacheKey, scene);
+  pbrMat.albedoTexture = newTex;
+  pbrMat.roughness = MATERIAL_CONFIG.furniture.roughness;
+  pbrMat.metallic = MATERIAL_CONFIG.furniture.metallic;
+  pbrMat.directIntensity = MATERIAL_CONFIG.furniture.directIntensity;
+  pbrMat.environmentIntensity = MATERIAL_CONFIG.furniture.environmentIntensity;
+  pbrMat.specularIntensity = MATERIAL_CONFIG.furniture.specularIntensity;
+  pbrMat.albedoColor = new BABYLON.Color3(
+    MATERIAL_CONFIG.furniture.albedoBoost,
+    MATERIAL_CONFIG.furniture.albedoBoost,
+    MATERIAL_CONFIG.furniture.albedoBoost,
+  );
+
+  // Simpan ke cache
+  materialCache.set(cacheKey, pbrMat);
+
+  return pbrMat;
+};
+
+// ============================================================================
 // AABB UTILITIES
 // ============================================================================
 
@@ -120,7 +168,12 @@ export const getWallSnapPosition = (
   fixedDims?: { width: number; depth: number }, // Optional: dimensi fix jika sudah diketahui
 ): WallSnapPosition => {
   const { rw, rd } = CONFIG;
-  const offset = 1;
+
+  // JARAK FURNITURE KE TEMBOK (dalam satuan babylon unit)
+  // 0 = menempel ke tembok
+  // 5 = jarak 5 unit dari tembok
+  // 10 = jarak 10 unit dari tembok
+  const WALL_OFFSET = 0; // <-- UBAH INI UNTUK ATUR JARAK KE TEMBOK
 
   // 1. Tentukan Rotasi Target
   // Asumsi: Bagian "Belakang" model adalah sisi -Z lokal (standar GLB furniture)
@@ -135,46 +188,69 @@ export const getWallSnapPosition = (
   else if (wall === "left") targetRotation = Math.PI / 2; // 90 deg
 
   // 2. Tentukan Dimensi
-  // Jika dimensi fix diberikan (dari onDragStart), pakai itu agar stabil.
-  // Jika tidak, hitung sendiri.
-  const dims = fixedDims || getLocalDimensions(mesh);
-  const localWidth = dims.width;
-  const localDepth = dims.depth;
+  // CRITICAL: Selalu gunakan WORLD BOUNDING BOX untuk konsistensi!
+  // Jika fixedDims diberikan (dari cache saat drag), gunakan itu.
+  // Jika tidak, hitung dari mesh langsung.
 
-  // 3. Tentukan Dimensi Efektif untuk Clamping
-  // Jika nempel tembok Back/Front: Panjang barang = Local Width. Tebal = Local Depth.
-  // Jika nempel tembok Left/Right: Panjang barang = Local Depth. Tebal = Local Width. (SALAH)
-  // KOREKSI:
-  // Saat diputar 90 derajat (nempel kiri/kanan):
-  // Sisi yang sejajar tembok adalah Local Width (Sisi panjang barang).
-  // Sisi yang menonjol keluar adalah Local Depth (Sisi tebal barang).
-  // Jadi 'dimParallel' selalu localWidth, 'dimPerpendicular' selalu localDepth.
-  // (Asumsi barang lebih lebar daripada tebal, seperti lemari/meja standar).
+  let worldWidth: number;
+  let worldDepth: number;
 
-  const dimParallel = localWidth;
-  const dimPerpendicular = localDepth;
+  if (fixedDims) {
+    // Gunakan dimensi yang sudah di-cache saat drag start
+    worldWidth = fixedDims.width;
+    worldDepth = fixedDims.depth;
+  } else {
+    // Hitung dari mesh langsung
+    mesh.computeWorldMatrix(true);
+    const bounds = mesh.getHierarchyBoundingVectors(true);
+    worldWidth = Math.abs(bounds.max.x - bounds.min.x);
+    worldDepth = Math.abs(bounds.max.z - bounds.min.z);
+  }
+
+  // Tentukan dimensi untuk setiap wall:
+  // - dimParallel: dimensi SEJAJAR dengan tembok (bisa geser)
+  // - dimPerpendicular: dimensi TEGAK LURUS ke tembok (jarak dari tembok)
+
+  let dimParallel: number;
+  let dimPerpendicular: number;
+
+  if (wall === "back" || wall === "front") {
+    // Back/Front wall (horizontal walls di axis Z):
+    // - Parallel (X-axis) = worldWidth
+    // - Perpendicular (Z-axis) = worldDepth
+    dimParallel = worldWidth;
+    dimPerpendicular = worldDepth;
+  } else {
+    // Left/Right wall (vertical walls di axis X):
+    // - Parallel (Z-axis) = worldDepth
+    // - Perpendicular (X-axis) = worldWidth
+    dimParallel = worldDepth;
+    dimPerpendicular = worldWidth;
+  }
 
   let finalX = 0;
   let finalZ = 0;
 
   // 4. Hitung Posisi
   if (wall === "back") {
-    finalZ = rd / 2 - dimPerpendicular / 2 - offset;
+    finalZ = rd / 2 - dimPerpendicular / 2 - WALL_OFFSET;
     const minX = -(rw / 2) + dimParallel / 2;
     const maxX = rw / 2 - dimParallel / 2;
     finalX = Math.max(minX, Math.min(maxX, pointerPos.x));
   } else if (wall === "front") {
-    finalZ = -(rd / 2) + dimPerpendicular / 2 + offset;
+    finalZ = -(rd / 2) + dimPerpendicular / 2 + WALL_OFFSET;
     const minX = -(rw / 2) + dimParallel / 2;
     const maxX = rw / 2 - dimParallel / 2;
     finalX = Math.max(minX, Math.min(maxX, pointerPos.x));
   } else if (wall === "right") {
-    finalX = rw / 2 - dimPerpendicular / 2 - offset;
+    // Right wall: X positif maksimal
+    finalX = rw / 2 - dimPerpendicular / 2 - WALL_OFFSET;
     const minZ = -(rd / 2) + dimParallel / 2;
     const maxZ = rd / 2 - dimParallel / 2;
     finalZ = Math.max(minZ, Math.min(maxZ, pointerPos.z));
   } else if (wall === "left") {
-    finalX = -(rw / 2) + dimPerpendicular / 2 + offset;
+    // Left wall: X negatif maksimal
+    finalX = -(rw / 2) + dimPerpendicular / 2 + WALL_OFFSET;
     const minZ = -(rd / 2) + dimParallel / 2;
     const maxZ = rd / 2 - dimParallel / 2;
     finalZ = Math.max(minZ, Math.min(maxZ, pointerPos.z));
@@ -249,43 +325,32 @@ export const findAutoSnapPosition = (
       if (
         pos.x + newMeshWidth / 2 > rw / 2 ||
         pos.x - newMeshWidth / 2 < -rw / 2
-      )
+      ) {
         isValid = false;
+      }
     } else {
       if (
         pos.z + newMeshWidth / 2 > rd / 2 ||
         pos.z - newMeshWidth / 2 < -rd / 2
-      )
+      ) {
         isValid = false;
+      }
     }
 
     if (!isValid) continue;
 
-    const testBox = {
-      minX:
-        pos.wall === "left" || pos.wall === "right"
-          ? pos.x - newMeshDepth / 2
-          : pos.x - newMeshWidth / 2,
-      maxX:
-        pos.wall === "left" || pos.wall === "right"
-          ? pos.x + newMeshDepth / 2
-          : pos.x + newMeshWidth / 2,
-      minZ:
-        pos.wall === "left" || pos.wall === "right"
-          ? pos.z - newMeshWidth / 2
-          : pos.z - newMeshDepth / 2,
-      maxZ:
-        pos.wall === "left" || pos.wall === "right"
-          ? pos.z + newMeshWidth / 2
-          : pos.z + newMeshDepth / 2,
+    let hasCollision = false;
+    const testBox: BoundingBox = {
+      minX: pos.x - newMeshWidth / 2,
+      maxX: pos.x + newMeshWidth / 2,
+      minZ: pos.z - newMeshDepth / 2,
+      maxZ: pos.z + newMeshDepth / 2,
       width: newMeshWidth,
       depth: newMeshDepth,
     };
 
-    let hasCollision = false;
     for (const other of allFurniture) {
-      if (other === targetFurniture) continue;
-      if (checkAABBOverlap(testBox as BoundingBox, getMeshAABB(other))) {
+      if (checkAABBOverlap(testBox, getMeshAABB(other))) {
         hasCollision = true;
         break;
       }
@@ -298,7 +363,7 @@ export const findAutoSnapPosition = (
 };
 
 // ============================================================================
-// TEXTURE & UTILITIES
+// TEXTURE & UTILITIES - DENGAN MATERIAL CACHING
 // ============================================================================
 
 export const applyTextureToMesh = (
@@ -306,26 +371,13 @@ export const applyTextureToMesh = (
   texName: string,
   scene: BABYLON.Scene,
 ) => {
-  const texturePath = "/assets/texture/" + texName;
-  const newTex = new BABYLON.Texture(texturePath, scene);
-
   // FIX: Reset Quaternion jika ada, agar rotasi texture/mesh normal
   if (mesh.rotationQuaternion) mesh.rotationQuaternion = null;
 
-  const pbrMat = new BABYLON.PBRMaterial("customMat_" + texName, scene);
-  pbrMat.albedoTexture = newTex;
-  pbrMat.roughness = MATERIAL_CONFIG.furniture.roughness;
-  pbrMat.metallic = MATERIAL_CONFIG.furniture.metallic;
-  pbrMat.directIntensity = MATERIAL_CONFIG.furniture.directIntensity;
-  pbrMat.environmentIntensity = MATERIAL_CONFIG.furniture.environmentIntensity;
-  pbrMat.specularIntensity = MATERIAL_CONFIG.furniture.specularIntensity;
-  pbrMat.albedoColor = new BABYLON.Color3(
-    MATERIAL_CONFIG.furniture.albedoBoost,
-    MATERIAL_CONFIG.furniture.albedoBoost,
-    MATERIAL_CONFIG.furniture.albedoBoost,
-  );
-
-  mesh.material = pbrMat;
+  // PERBAIKAN UTAMA: Gunakan cached material
+  // Ini mencegah material baru dibuat terus-menerus yang menyebabkan perubahan lighting
+  const material = getOrCreateMaterial(texName, scene);
+  mesh.material = material;
 };
 
 export const autoScaleMesh = (
@@ -358,9 +410,6 @@ export const addDragBehavior = (
   let previousValidPosition = mesh.position.clone();
   let previousValidRotation = mesh.rotation.y;
 
-  // Simpan dimensi asli barang saat drag mulai agar tidak berubah-ubah saat diputar
-  let cachedDimensions = { width: 0, depth: 0 };
-
   dragBehavior.onDragStartObservable.add(() => {
     // === CRITICAL FIX ===
     // Matikan rotationQuaternion. Jika ini aktif, mesh.rotation.y tidak akan berfungsi.
@@ -370,9 +419,6 @@ export const addDragBehavior = (
       mesh.rotationQuaternion = null;
     }
     // ====================
-
-    // Cache dimensi lokal (Width = Sisi Panjang, Depth = Sisi Tebal)
-    cachedDimensions = getLocalDimensions(mesh);
 
     previousValidPosition = mesh.position.clone();
     previousValidRotation = mesh.rotation.y;
@@ -397,17 +443,26 @@ export const addDragBehavior = (
     // 1. Tentukan tembok
     const targetWall = determineClosestWall(pointerPos);
 
-    // 2. Hitung snap position menggunakan dimensi yang sudah di-cache
+    // 2. Tentukan rotasi target DULU
+    let targetRotation = 0;
+    if (targetWall === "back") targetRotation = Math.PI;
+    else if (targetWall === "front") targetRotation = 0;
+    else if (targetWall === "right") targetRotation = -Math.PI / 2;
+    else if (targetWall === "left") targetRotation = Math.PI / 2;
+
+    // 3. CRITICAL: Apply rotasi DULU sebelum hitung bounding box!
+    mesh.rotation.y = targetRotation;
+    mesh.computeWorldMatrix(true);
+
+    // 4. SEKARANG hitung snap position (bounding box sudah update!)
     const snapPos = getWallSnapPosition(
       targetWall,
       mesh,
       pointerPos,
-      cachedDimensions,
+      undefined, // Force recalculate dengan bounding box yang sudah update!
     );
 
-    // 3. Apply Rotasi & Posisi
-    // Karena quaternion sudah null, ini SEHARUSNYA memutar mesh secara visual
-    mesh.rotation.y = snapPos.rotation;
+    // 5. Apply Posisi (rotation sudah di-set di step 3)
     mesh.position.x = snapPos.x;
     mesh.position.z = snapPos.z;
 
@@ -456,7 +511,6 @@ export const addDragBehavior = (
     }
 
     if (hasCollision) {
-      console.log("Collision detected on drop, reverting...");
       mesh.position.copyFrom(previousValidPosition);
       mesh.rotation.y = previousValidRotation;
     }
@@ -466,9 +520,10 @@ export const addDragBehavior = (
       snapIndicator = null;
     }
 
-    console.log(
-      `Placed at Wall: ${determineClosestWall(mesh.position)} | Rot: ${mesh.rotation.y.toFixed(2)}`,
-    );
+    const finalWall = determineClosestWall(mesh.position);
+    const bounds = mesh.getHierarchyBoundingVectors(true);
+    const finalWidth = Math.abs(bounds.max.x - bounds.min.x);
+    const finalDepth = Math.abs(bounds.max.z - bounds.min.z);
 
     const canvas = scene.getEngine().getRenderingCanvas();
     if (canvas) canvas.style.cursor = "grab";
@@ -513,7 +568,8 @@ export const setupAutoHideWalls = (
     walls.forEach((w) => {
       if (!w.metadata) return;
       const cam = camera.position;
-      const offset = 10;
+      // const offset = 10;
+      const offset = 0;
 
       if (w.metadata.side === "back" && cam.z > w.position.z + offset)
         w.visibility = 0;
