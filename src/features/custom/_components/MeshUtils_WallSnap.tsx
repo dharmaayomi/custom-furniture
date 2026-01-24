@@ -1,5 +1,6 @@
 import * as BABYLON from "@babylonjs/core";
 import { CONFIG, MATERIAL_CONFIG } from "./RoomConfig";
+import { FurnitureTransform, useRoomStore } from "@/store/useRoomStore";
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -430,6 +431,9 @@ export const addDragBehavior = (
     previousValidPosition = mesh.position.clone();
     previousValidRotation = mesh.rotation.y;
 
+    const { captureCurrentState } = useRoomStore.getState();
+    captureCurrentState();
+    console.log("📸 Captured state BEFORE drag");
     // Detect current wall dari posisi
     const { rw, rd } = CONFIG;
     const pos = mesh.position;
@@ -555,9 +559,12 @@ export const addDragBehavior = (
   });
 
   dragBehavior.onDragEndObservable.add(() => {
+    console.log("🔴 DRAG END - Starting");
+
     const allFurniture = getAllFurniture(scene, mesh);
     const myBox = getMeshAABB(mesh);
     let hasCollision = false;
+
     for (const other of allFurniture) {
       if (checkAABBOverlap(myBox, getMeshAABB(other))) {
         hasCollision = true;
@@ -565,9 +572,47 @@ export const addDragBehavior = (
       }
     }
 
+    console.log("🔴 Collision:", hasCollision);
+
     if (hasCollision) {
       mesh.position.copyFrom(previousValidPosition);
       mesh.rotation.y = previousValidRotation;
+      console.log("❌ Reverted due to collision");
+    } else {
+      console.log("✅ No collision, saving transform...");
+
+      // ⭐ SAVE TRANSFORM WITH HISTORY
+      const { saveTransformToHistory } = useRoomStore.getState();
+
+      const transform: FurnitureTransform = {
+        modelName: mesh.name,
+        position: {
+          x: mesh.position.x,
+          y: mesh.position.y,
+          z: mesh.position.z,
+        },
+        rotation: mesh.rotation.y,
+      };
+
+      console.log("💾 Transform to save:", transform);
+
+      const allFurnitureMeshes = getAllFurniture(scene);
+      const meshIndex = allFurnitureMeshes.indexOf(mesh);
+
+      console.log(
+        "🔍 Mesh index:",
+        meshIndex,
+        "Total furniture:",
+        allFurnitureMeshes.length,
+      );
+
+      if (meshIndex === 0) {
+        saveTransformToHistory(0, transform, true);
+        console.log("💾 Saved MAIN model WITH HISTORY");
+      } else if (meshIndex > 0) {
+        saveTransformToHistory(meshIndex - 1, transform, false);
+        console.log(`💾 Saved ADDITIONAL ${meshIndex - 1} WITH HISTORY`);
+      }
     }
 
     if (snapIndicator) {

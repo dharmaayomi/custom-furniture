@@ -11,6 +11,7 @@ import {
   WallSnapPosition,
 } from "./MeshUtils_WallSnap";
 import { CONFIG } from "./RoomConfig";
+import { FurnitureTransform, useRoomStore } from "@/store/useRoomStore";
 
 /**
  * Load main model and setup (always on back wall, centered)
@@ -85,10 +86,38 @@ export const loadMainModel = async (
     );
     console.log("Wall: back");
     console.log("==================");
+    const { saveTransformToHistory } = useRoomStore.getState();
 
+    const initialTransform: FurnitureTransform = {
+      modelName: rootMesh.name,
+      position: {
+        x: rootMesh.position.x,
+        y: rootMesh.position.y,
+        z: rootMesh.position.z,
+      },
+      rotation: rootMesh.rotation.y,
+    };
+
+    saveTransformToHistory(0, initialTransform, true); // true = main model
+    console.log("💾 Main model initial position saved to history");
     // Add drag behavior
     addDragBehavior(rootMesh, scene);
+    setTimeout(() => {
+      const { saveTransformToHistory } = useRoomStore.getState();
 
+      const initialTransform: FurnitureTransform = {
+        modelName: rootMesh.name,
+        position: {
+          x: rootMesh.position.x,
+          y: rootMesh.position.y,
+          z: rootMesh.position.z,
+        },
+        rotation: rootMesh.rotation.y,
+      };
+
+      saveTransformToHistory(0, initialTransform, true);
+      console.log("💾 Main model initial position saved:", initialTransform);
+    }, 100);
     return rootMesh;
   } catch (error) {
     console.error("Error loading main model:", error);
@@ -271,9 +300,57 @@ export const loadAdditionalModel = async (
     );
     console.log("Final wall:", finalPosition.wall);
     console.log("========================\n");
+    const { saveTransformToHistory } = useRoomStore.getState();
+    const allFurnitureForIndex = getAllFurniture(scene);
+    const meshIndex = allFurnitureForIndex.indexOf(rootMesh);
 
+    const initialTransform: FurnitureTransform = {
+      modelName: rootMesh.name,
+      position: {
+        x: rootMesh.position.x,
+        y: rootMesh.position.y,
+        z: rootMesh.position.z,
+      },
+      rotation: rootMesh.rotation.y,
+    };
+
+    if (meshIndex === 0) {
+      saveTransformToHistory(0, initialTransform, true);
+      console.log("💾 Additional model saved as MAIN (index 0)");
+    } else {
+      saveTransformToHistory(meshIndex - 1, initialTransform, false);
+      console.log(
+        `💾 Additional model initial position saved (index ${meshIndex - 1})`,
+      );
+    }
     // Add drag behavior (will handle wall switching)
     addDragBehavior(rootMesh, scene);
+    setTimeout(() => {
+      const { saveTransformToHistory } = useRoomStore.getState();
+      const allFurnitureForIndex = getAllFurniture(scene);
+      const meshIndex = allFurnitureForIndex.indexOf(rootMesh);
+
+      const initialTransform: FurnitureTransform = {
+        modelName: rootMesh.name,
+        position: {
+          x: rootMesh.position.x,
+          y: rootMesh.position.y,
+          z: rootMesh.position.z,
+        },
+        rotation: rootMesh.rotation.y,
+      };
+
+      if (meshIndex === 0) {
+        saveTransformToHistory(0, initialTransform, true);
+        console.log("💾 Additional saved as MAIN (index 0):", initialTransform);
+      } else {
+        saveTransformToHistory(meshIndex - 1, initialTransform, false);
+        console.log(
+          `💾 Additional model saved (index ${meshIndex - 1}):`,
+          initialTransform,
+        );
+      }
+    }, 100);
   } catch (error) {
     console.error("Error loading additional model:", error);
   }

@@ -9,6 +9,7 @@ import {
   loadMainModel,
   updateAllTextures,
 } from "./ModelLoader_WallSnap";
+import { useRoomStore } from "@/store/useRoomStore";
 
 interface RoomCanvasProps {
   mainModel: string;
@@ -33,6 +34,7 @@ export const RoomCanvasThree = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<BABYLON.Scene | null>(null);
   const mainMeshRef = useRef<BABYLON.AbstractMesh | null>(null);
+  const present = useRoomStore((state) => state.present);
 
   // --- 1. INITIAL SCENE SETUP ---
   useEffect(() => {
@@ -132,6 +134,59 @@ export const RoomCanvasThree = ({
 
     updateAllTextures(scene, activeTexture, mainMeshRef.current);
   }, [activeTexture]);
+
+  // ⭐ --- 5. RESTORE POSITIONS SAAT UNDO/REDO ---
+  useEffect(() => {
+    console.log("🔄 RESTORE EFFECT TRIGGERED");
+
+    if (!sceneRef.current) {
+      console.log("⚠️ No scene ref");
+      return;
+    }
+
+    console.log("📦 Present state:", {
+      mainTransform: present.mainModelTransform,
+      additionalTransforms: present.additionalTransforms,
+    });
+
+    // Restore main model transform
+    if (present.mainModelTransform && mainMeshRef.current) {
+      const t = present.mainModelTransform;
+      console.log("📍 Restoring main model to:", t);
+      mainMeshRef.current.position.set(
+        t.position.x,
+        t.position.y,
+        t.position.z,
+      );
+      mainMeshRef.current.rotation.y = t.rotation;
+      console.log("✅ Main model restored");
+    } else {
+      console.log("⚠️ No main transform or mesh");
+    }
+
+    // Restore additional transforms
+    const additionalMeshes = getAdditionalMeshes(
+      sceneRef.current,
+      mainMeshRef.current,
+    );
+    console.log("🔍 Additional meshes found:", additionalMeshes.length);
+
+    present.additionalTransforms.forEach((transform, index) => {
+      const mesh = additionalMeshes[index];
+      if (mesh) {
+        console.log(`📍 Restoring mesh ${index} (${mesh.name}) to:`, transform);
+        mesh.position.set(
+          transform.position.x,
+          transform.position.y,
+          transform.position.z,
+        );
+        mesh.rotation.y = transform.rotation;
+        console.log(`✅ Mesh ${index} restored`);
+      } else {
+        console.log(`⚠️ No mesh at index ${index}`);
+      }
+    });
+  }, [present.mainModelTransform, present.additionalTransforms]);
 
   return (
     <canvas ref={canvasRef} className="h-full w-full touch-none outline-none" />

@@ -21,12 +21,19 @@ const calculateTotal = (
   return total;
 };
 
+export interface FurnitureTransform {
+  modelName: string;
+  position: { x: number; y: number; z: number };
+  rotation: number;
+}
 // --- 2. UPDATE INTERFACE ---
 interface RoomData {
   mainModel: string;
   activeTexture: string;
   additionalModels: string[];
   totalPrice: number; // Tambahkan field ini
+  mainModelTransform?: FurnitureTransform; // Posisi & rotasi main model
+  additionalTransforms: FurnitureTransform[];
 }
 
 interface RoomStore {
@@ -41,6 +48,18 @@ interface RoomStore {
   undo: () => void;
   redo: () => void;
   reset: () => void;
+
+  updateMainModelTransform: (transform: FurnitureTransform) => void;
+  updateAdditionalTransform: (
+    index: number,
+    transform: FurnitureTransform,
+  ) => void;
+  saveTransformToHistory: (
+    index: number,
+    transform: FurnitureTransform,
+    isMainModel: boolean,
+  ) => void; // ⭐ TAMBAH METHOD BARU
+  captureCurrentState: () => void; // Untuk save state saat drag end
 }
 
 // State Awal
@@ -52,6 +71,8 @@ const INITIAL_STATE: RoomData = {
   activeTexture: INITIAL_TEXTURE,
   additionalModels: [],
   totalPrice: calculateTotal(INITIAL_MAIN, [], INITIAL_TEXTURE),
+  mainModelTransform: undefined,
+  additionalTransforms: [],
 };
 
 export const useRoomStore = create<RoomStore>((set) => ({
@@ -117,17 +138,77 @@ export const useRoomStore = create<RoomStore>((set) => ({
         newModels,
         state.present.activeTexture,
       );
-
+      const newTransforms = [...state.present.additionalTransforms];
       const newPresent = {
         ...state.present,
         additionalModels: newModels,
         totalPrice: newPrice,
+        additionalTransforms: newTransforms, // ⭐ TAMBAH INI
       };
 
       return {
         past: [...state.past, state.present],
         present: newPresent,
         future: [],
+      };
+    }),
+  updateMainModelTransform: (transform) =>
+    set((state) => ({
+      present: {
+        ...state.present,
+        mainModelTransform: transform,
+      },
+    })),
+
+  updateAdditionalTransform: (index, transform) =>
+    set((state) => {
+      const newTransforms = [...state.present.additionalTransforms];
+      newTransforms[index] = transform;
+
+      return {
+        present: {
+          ...state.present,
+          additionalTransforms: newTransforms,
+        },
+      };
+    }),
+
+  saveTransformToHistory: (
+    index: number,
+    transform: FurnitureTransform,
+    isMainModel: boolean,
+  ) =>
+    set((state) => {
+      let newPresent: RoomData;
+
+      if (isMainModel) {
+        newPresent = {
+          ...state.present,
+          mainModelTransform: transform,
+        };
+      } else {
+        const newTransforms = [...state.present.additionalTransforms];
+        newTransforms[index] = transform;
+        newPresent = {
+          ...state.present,
+          additionalTransforms: newTransforms,
+        };
+      }
+
+      return {
+        past: [...state.past, state.present],
+        present: newPresent,
+        future: [],
+      };
+    }),
+
+  captureCurrentState: () =>
+    set((state) => {
+      console.log("📸 Capturing state:", state.present);
+      return {
+        past: [...state.past, state.present],
+        present: state.present, // ⭐ Keep current present
+        future: [], // Clear future
       };
     }),
 
