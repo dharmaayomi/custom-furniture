@@ -47,7 +47,8 @@ export const setupCamera = (
         const deltaY = scene.pointerY - lastPointerY;
         lastPointerY = scene.pointerY;
 
-        camera.target.y -= deltaY * 0.25;
+        // camera.target.y -= deltaY * 0.25;
+        camera.target.y -= deltaY * 0.08;
 
         camera.target.y = BABYLON.Scalar.Clamp(
           camera.target.y,

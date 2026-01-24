@@ -1,5 +1,6 @@
 export const ASSET_PRICES: Record<string, number> = {
   "wine_cabinet.glb": 2500000,
+  "cabinet-2.glb": 1800000,
   "cabinet-1.glb": 1800000,
   "cabinet.glb": 1500000,
   "chair-1.glb": 800000,
@@ -8,11 +9,11 @@ export const ASSET_PRICES: Record<string, number> = {
   "rakayolahkaliinibener.glb": 1500000,
   "ral-1.glb": 1500000,
   "restaurant_pub_wardrobe.glb": 2500000,
+  "cupboard.glb": 1900000,
+  "drawer-2.glb": 1900000,
 };
 
 export const TEXTURE_PRICES: Record<string, number> = {
-  // Textures are typically applied to existing items, so they don't add separate cost
-  // If you want texture upgrades to have a cost, uncomment and set values:
   // "fine-wood-texture.jpg": 150000,
   // "light-wood-texture.jpg": 150000,
   // "wood-texture.jpg": 100000,
@@ -56,6 +57,5 @@ export const calculateTotalPrice = (
   if (activeTexture) {
     total += getTexturePrice(activeTexture);
   }
-
   return total;
 };

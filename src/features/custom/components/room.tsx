@@ -24,6 +24,9 @@ import { useRoomStore } from "@/store/useRoomStore";
 
 const ASSETS_3D = [
   "wine_cabinet.glb",
+  "drawer-2.glb",
+  "cupboard.glb",
+  "cabinet-2.glb",
   "cabinet-1.glb",
   "cabinet.glb",
   "chair-1.glb",

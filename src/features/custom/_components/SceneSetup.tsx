@@ -28,7 +28,6 @@ const createDebugHelpers = (scene: BABYLON.Scene) => {
     { points },
     scene,
   );
-  lines.color = new BABYLON.Color3(1, 0, 0); // Red lines
   lines.isPickable = false;
 
   // Add text labels for walls
@@ -93,7 +92,8 @@ export const createScene = (
   engine: BABYLON.Engine,
 ) => {
   const scene = new BABYLON.Scene(engine);
-  scene.clearColor = new BABYLON.Color4(1, 1, 1, 1);
+  scene.clearColor = new BABYLON.Color4(0.96, 0.96, 0.96, 1);
+
   scene.environmentIntensity = 1.3;
 
   // Image Processing

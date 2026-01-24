@@ -21,8 +21,20 @@ const getProductName = (
       name: "Wine Cabinet",
       description: "Premium wine storage unit",
     },
+    "cupboard.glb": {
+      name: "Cupboard",
+      description: "Modern storage Cupboard",
+    },
+    "drawer-2.glb": {
+      name: "Cupboard",
+      description: "Modern storage Cupboard",
+    },
     "cabinet-1.glb": {
       name: "Cabinet",
+      description: "Modern storage cabinet",
+    },
+    "cabinet-2.glb": {
+      name: "Clean Cabinet",
       description: "Modern storage cabinet",
     },
     "restaurant_pub_wardrobe.glb": {

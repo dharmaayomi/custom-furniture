@@ -118,15 +118,26 @@ export const getAllFurniture = (
 // WALL DETERMINATION & SNAP LOGIC
 // ============================================================================
 
-export const determineClosestWall = (position: BABYLON.Vector3): WallSide => {
+const determineClosestWall = (
+  position: BABYLON.Vector3,
+): "back" | "front" | "right" | "left" => {
   const { rw, rd } = CONFIG;
+  const SNAP_THRESHOLD = 0.1; // <-- UBAH INI! Coba 0.2 - 0.5
 
-  const distToBack = Math.abs(rd / 2 - position.z);
-  const distToFront = Math.abs(-rd / 2 - position.z);
-  const distToRight = Math.abs(rw / 2 - position.x);
-  const distToLeft = Math.abs(-rw / 2 - position.x);
+  const distToBack = Math.abs(position.z - rd / 2);
+  const distToFront = Math.abs(position.z + rd / 2);
+  const distToRight = Math.abs(position.x - rw / 2);
+  const distToLeft = Math.abs(position.x + rw / 2);
 
   const minDist = Math.min(distToBack, distToFront, distToRight, distToLeft);
+
+  // CRITICAL: Hanya snap ke wall jika SANGAT dekat
+  // Ini mencegah snap terlalu cepat saat user masih jauh dari tembok
+  if (minDist > SNAP_THRESHOLD) {
+    // Kalau masih jauh dari semua tembok, tetap di wall sebelumnya
+    // Atau default ke wall tertentu
+    // Untuk sekarang, kita tetap return wall terdekat tapi dengan batasan
+  }
 
   if (minDist === distToBack) return "back";
   if (minDist === distToFront) return "front";
@@ -277,7 +288,7 @@ export const findAutoSnapPosition = (
   const targetBox = getMeshAABB(targetFurniture);
   const targetWall = determineClosestWall(targetFurniture.position);
   const { rw, rd } = CONFIG;
-  const gap = 2;
+  const gap = 0.001;
 
   let rot = 0;
   if (targetWall === "back") rot = Math.PI;
@@ -394,7 +405,6 @@ export const autoScaleMesh = (
 // ============================================================================
 // DRAG BEHAVIOR (FIXED ROTATION)
 // ============================================================================
-
 export const addDragBehavior = (
   mesh: BABYLON.AbstractMesh,
   scene: BABYLON.Scene,
@@ -409,19 +419,32 @@ export const addDragBehavior = (
   let snapIndicator: BABYLON.Mesh | null = null;
   let previousValidPosition = mesh.position.clone();
   let previousValidRotation = mesh.rotation.y;
+  let currentWall: WallSide | null = null;
 
   dragBehavior.onDragStartObservable.add(() => {
-    // === CRITICAL FIX ===
-    // Matikan rotationQuaternion. Jika ini aktif, mesh.rotation.y tidak akan berfungsi.
     if (mesh.rotationQuaternion) {
-      // Konversi rotasi saat ini ke Euler sebelum dimatikan (opsional, tapi aman)
       mesh.rotation = mesh.rotationQuaternion.toEulerAngles();
       mesh.rotationQuaternion = null;
     }
-    // ====================
 
     previousValidPosition = mesh.position.clone();
     previousValidRotation = mesh.rotation.y;
+
+    // Detect current wall dari posisi
+    const { rw, rd } = CONFIG;
+    const pos = mesh.position;
+
+    const distToBack = Math.abs(pos.z - rd / 2);
+    const distToFront = Math.abs(pos.z + rd / 2);
+    const distToRight = Math.abs(pos.x - rw / 2);
+    const distToLeft = Math.abs(pos.x + rw / 2);
+
+    const minDist = Math.min(distToBack, distToFront, distToRight, distToLeft);
+
+    if (minDist === distToBack) currentWall = "back";
+    else if (minDist === distToFront) currentWall = "front";
+    else if (minDist === distToRight) currentWall = "right";
+    else currentWall = "left";
 
     snapIndicator = BABYLON.MeshBuilder.CreateBox(
       "snapInd",
@@ -439,40 +462,72 @@ export const addDragBehavior = (
 
   dragBehavior.onDragObservable.add((event) => {
     const pointerPos = event.dragPlanePoint;
+    const { rw, rd } = CONFIG;
 
-    // 1. Tentukan tembok
-    const targetWall = determineClosestWall(pointerPos);
+    // ⭐ THRESHOLD DINAMIS
+    const SWITCH_THRESHOLD_PERCENT = 0.01; // 15%
+    const switchThreshold = Math.min(rw, rd) * SWITCH_THRESHOLD_PERCENT;
 
-    // 2. Tentukan rotasi target DULU
+    // Hitung jarak ke setiap tembok
+    const distToBack = Math.abs(pointerPos.z - rd / 2);
+    const distToFront = Math.abs(pointerPos.z + rd / 2);
+    const distToRight = Math.abs(pointerPos.x - rw / 2);
+    const distToLeft = Math.abs(pointerPos.x + rw / 2);
+
+    // Cari wall terdekat
+    const minDist = Math.min(distToBack, distToFront, distToRight, distToLeft);
+    let nearestWall: WallSide = "back";
+
+    if (minDist === distToBack) nearestWall = "back";
+    else if (minDist === distToFront) nearestWall = "front";
+    else if (minDist === distToRight) nearestWall = "right";
+    else nearestWall = "left";
+
+    // Tentukan target wall
+    let targetWall: WallSide = currentWall || nearestWall;
+
+    if (minDist < switchThreshold) {
+      if (nearestWall !== currentWall) {
+      }
+      targetWall = nearestWall;
+    }
+
+    // Update current wall
+    currentWall = targetWall;
+
+    // ⭐ CRITICAL FIX: Tentukan rotasi DULU sebelum hitung posisi
     let targetRotation = 0;
     if (targetWall === "back") targetRotation = Math.PI;
     else if (targetWall === "front") targetRotation = 0;
     else if (targetWall === "right") targetRotation = -Math.PI / 2;
     else if (targetWall === "left") targetRotation = Math.PI / 2;
 
-    // 3. CRITICAL: Apply rotasi DULU sebelum hitung bounding box!
+    // ⭐ FIX ROTASI GLITCH: Matikan quaternion dan set rotasi dengan bersih
+    if (mesh.rotationQuaternion) {
+      mesh.rotationQuaternion = null;
+    }
     mesh.rotation.y = targetRotation;
     mesh.computeWorldMatrix(true);
 
-    // 4. SEKARANG hitung snap position (bounding box sudah update!)
+    // ⭐ SNAP KE TEMBOK - Gunakan getWallSnapPosition
     const snapPos = getWallSnapPosition(
       targetWall,
       mesh,
       pointerPos,
-      undefined, // Force recalculate dengan bounding box yang sudah update!
+      undefined, // Force recalculate
     );
 
-    // 5. Apply Posisi (rotation sudah di-set di step 3)
+    // Apply posisi hasil snap (BUKAN posisi pointer!)
     mesh.position.x = snapPos.x;
     mesh.position.z = snapPos.z;
 
-    // Update indicator visual
+    // Update indicator
     if (snapIndicator) {
       snapIndicator.position = mesh.position.clone();
       snapIndicator.position.y += 50;
     }
 
-    // 4. Cek Collision
+    // Cek collision
     const allFurniture = getAllFurniture(scene, mesh);
     const myBox = getMeshAABB(mesh);
     let hasCollision = false;
@@ -519,11 +574,6 @@ export const addDragBehavior = (
       snapIndicator.dispose();
       snapIndicator = null;
     }
-
-    const finalWall = determineClosestWall(mesh.position);
-    const bounds = mesh.getHierarchyBoundingVectors(true);
-    const finalWidth = Math.abs(bounds.max.x - bounds.min.x);
-    const finalDepth = Math.abs(bounds.max.z - bounds.min.z);
 
     const canvas = scene.getEngine().getRenderingCanvas();
     if (canvas) canvas.style.cursor = "grab";

@@ -44,7 +44,7 @@ interface RoomStore {
 }
 
 // State Awal
-const INITIAL_MAIN = "wine_cabinet.glb";
+const INITIAL_MAIN = "";
 const INITIAL_TEXTURE = "";
 
 const INITIAL_STATE: RoomData = {

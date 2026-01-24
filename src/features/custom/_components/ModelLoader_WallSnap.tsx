@@ -68,7 +68,7 @@ export const loadMainModel = async (
 
     rootMesh.position.set(
       wallPos.x,
-      -boundsInfo.min.y, // Stick to floor
+      10 - boundsInfo.min.y, // Stick to floor 10 the height of the floor
       wallPos.z,
     );
     rootMesh.rotation.y = wallPos.rotation; // Face forward (rotation = 0)
@@ -233,7 +233,6 @@ export const loadAdditionalModel = async (
         }
       }
 
-      // Final call dengan posisi X yang sudah dipilih
       finalPosition = getWallSnapPosition(
         "back",
         rootMesh,
@@ -244,7 +243,7 @@ export const loadAdditionalModel = async (
     // Set final position and rotation
     rootMesh.position.set(
       finalPosition.x,
-      -boundsInfoOriginal.min.y, // Stick to floor
+      10 - boundsInfoOriginal.min.y, // Stick to floor
       finalPosition.z,
     );
     rootMesh.rotation.y = finalPosition.rotation; // Set correct rotation for wall

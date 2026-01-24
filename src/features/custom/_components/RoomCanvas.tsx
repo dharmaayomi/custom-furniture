@@ -64,19 +64,25 @@ export const RoomCanvasThree = ({
 
   // --- 2. LOAD MAIN MODEL ---
   useEffect(() => {
-    if (!sceneRef.current || !mainModel) return;
+    // Hapus "!mainModel" dari pengecekan awal
+    if (!sceneRef.current) return;
     const scene = sceneRef.current;
 
-    const load = async () => {
+    const updateMainModel = async () => {
+      // 1. Selalu hapus model lama jika ada (bahkan jika mainModel sekarang kosong)
       if (mainMeshRef.current) {
         mainMeshRef.current.dispose();
         mainMeshRef.current = null;
       }
-      const mesh = await loadMainModel(mainModel, activeTexture, scene);
-      mainMeshRef.current = mesh;
+
+      // 2. Hanya load model baru jika string mainModel TIDAK kosong
+      if (mainModel) {
+        const mesh = await loadMainModel(mainModel, activeTexture, scene);
+        mainMeshRef.current = mesh;
+      }
     };
 
-    load();
+    updateMainModel();
   }, [mainModel]);
 
   // --- 3. SYNC ADDITIONAL MODELS (FIX UNTUK UNDO/REDO) ---
