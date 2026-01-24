@@ -148,6 +148,14 @@ export const loadAdditionalModel = async (
     // Try to snap next to main furniture first (only left/right)
     if (mainMeshRef) {
       console.log("🎯 Trying to snap next to main furniture...");
+
+      if (rootMesh.rotationQuaternion) {
+        rootMesh.rotationQuaternion = null;
+      }
+      // ⭐ Set rotasi DULU sama dengan main furniture
+      rootMesh.rotation.y = mainMeshRef.rotation.y;
+      rootMesh.computeWorldMatrix(true);
+
       finalPosition = findAutoSnapPosition(
         mainMeshRef,
         width,
@@ -156,6 +164,9 @@ export const loadAdditionalModel = async (
       );
 
       if (finalPosition) {
+        // ⭐ OVERRIDE rotasi dari findAutoSnapPosition dengan rotasi main furniture
+        finalPosition.rotation = mainMeshRef.rotation.y;
+
         console.log(`✅ AUTO-SNAPPED next to main furniture`);
         console.log(
           `   Position: (${finalPosition.x.toFixed(1)}, ${finalPosition.z.toFixed(1)})`,
