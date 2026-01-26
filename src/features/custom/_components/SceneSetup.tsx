@@ -94,14 +94,14 @@ export const createScene = (
   const scene = new BABYLON.Scene(engine);
   scene.clearColor = new BABYLON.Color4(0.96, 0.96, 0.96, 1);
 
-  scene.environmentIntensity = 1.3;
+  // scene.environmentIntensity = 0.8;
 
-  // Image Processing
-  scene.imageProcessingConfiguration.exposure = 1.8;
-  scene.imageProcessingConfiguration.contrast = 1.1;
-  scene.imageProcessingConfiguration.toneMappingEnabled = true;
-  scene.imageProcessingConfiguration.toneMappingType =
-    BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+  // // Image Processing
+  // scene.imageProcessingConfiguration.exposure = 1.8;
+  // scene.imageProcessingConfiguration.contrast = 1.1;
+  // scene.imageProcessingConfiguration.toneMappingEnabled = true;
+  // scene.imageProcessingConfiguration.toneMappingType =
+  //   BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
 
   console.log("🎯 Scene initialized with Auto-Snap system");
 
@@ -109,7 +109,7 @@ export const createScene = (
   const camera = setupCamera(canvas, scene);
 
   // Setup lighting
-  const ceilingLamp = setupLighting(scene);
+  const { ceilingLamp } = setupLighting(scene);
 
   // Setup room (floor, walls, ceiling)
   const { walls, floorVinyl, ceiling } = setupRoom(scene);

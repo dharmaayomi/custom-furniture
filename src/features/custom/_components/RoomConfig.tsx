@@ -30,32 +30,33 @@ export const CAMERA_CONFIG = {
 
 export const LIGHTING_CONFIG = {
   ambient: {
-    intensity: 0.8,
+    intensity: 0.5,
     diffuse: [1, 0.95, 0.85] as const,
-    groundColor: [0.6, 0.55, 0.45] as const,
+    // groundColor: [0.6, 0.55, 0.45] as const,
+    groundColor: [0.3, 0.3, 0.3] as const,
   },
   ceilingLamp: {
-    intensity: 1.5,
-    diffuse: [1, 0.92, 0.78] as const,
-    range: 2000,
+    intensity: 2.5,
+    diffuse: [1, 0.92, 0.8] as const,
+    range: 2500,
   },
   mainSpot: {
-    intensity: 5.0,
+    intensity: 7.0,
     diffuse: [1, 0.95, 0.85] as const,
     range: 800,
-    angle: Math.PI / 2.5,
-    exponent: 2,
+    angle: Math.PI / 6,
+    exponent: 8,
   },
 } as const;
 
 export const MATERIAL_CONFIG = {
   interior: {
     color: [0.95, 0.94, 0.92] as const,
-    roughness: 0.9,
+    roughness: 0.4,
     metallic: 0,
   },
   floor: {
-    roughness: 0.5,
+    roughness: 0.4,
     metallic: 0,
   },
   furniture: {

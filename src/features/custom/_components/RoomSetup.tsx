@@ -20,9 +20,11 @@ export const setupRoom = (scene: BABYLON.Scene) => {
   floorBase.position.y = (floorThickness - vinylThickness) / 2;
 
   const floorBaseMat = new BABYLON.PBRMaterial("floorBaseMat", scene);
-  floorBaseMat.albedoColor = new BABYLON.Color3(0.75, 0.65, 0.55);
+  floorBaseMat.albedoColor = new BABYLON.Color3(0.95, 0.94, 0.92);
   floorBaseMat.roughness = 0.7;
   floorBaseMat.metallic = 0;
+  floorBaseMat.directIntensity = 2; // TAMBAHKAN
+  floorBaseMat.environmentIntensity = 0.5; // TAMBAHKAN
   floorBase.material = floorBaseMat;
 
   // Floor Vinyl
@@ -36,6 +38,8 @@ export const setupRoom = (scene: BABYLON.Scene) => {
   const floorVinylMat = new BABYLON.PBRMaterial("floorVinylMat", scene);
   floorVinylMat.roughness = MATERIAL_CONFIG.floor.roughness;
   floorVinylMat.metallic = MATERIAL_CONFIG.floor.metallic;
+  floorVinylMat.directIntensity = 1.5; // TAMBAHKAN
+  floorVinylMat.environmentIntensity = 0.5; // TAMBAHKAN
 
   // Get texture path based on room type
   const texturePath = TEXTURE_PATHS[type] || TEXTURE_PATHS.kitchen;
@@ -56,9 +60,11 @@ export const setupRoom = (scene: BABYLON.Scene) => {
   ceiling.position.y = wallHeight - floorThickness / 2;
 
   const ceilingMat = new BABYLON.PBRMaterial("ceilingMat", scene);
-  ceilingMat.albedoColor = new BABYLON.Color3(0.96, 0.96, 0.96);
-  ceilingMat.roughness = 0.95;
+  ceilingMat.albedoColor = new BABYLON.Color3(0.95, 0.94, 0.92);
+  ceilingMat.roughness = 0.65;
   ceilingMat.metallic = 0;
+  ceilingMat.directIntensity = 2.0; // TAMBAHKAN
+  ceilingMat.environmentIntensity = 0.3; // TAMBAHKAN
   ceiling.material = ceilingMat;
   ceiling.metadata = { side: "ceiling" };
 
@@ -68,6 +74,7 @@ export const setupRoom = (scene: BABYLON.Scene) => {
   wallMat.albedoColor = interiorColor;
   wallMat.roughness = MATERIAL_CONFIG.interior.roughness;
   wallMat.metallic = MATERIAL_CONFIG.interior.metallic;
+  wallMat.directIntensity = 2.0;
   wallMat.backFaceCulling = false;
 
   const walls: BABYLON.Mesh[] = [];

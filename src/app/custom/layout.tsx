@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: "BBPersona",
 };
 
-export default function RootLayout({
+export default function CustomLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
