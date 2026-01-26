@@ -110,7 +110,7 @@ export const ListProductPanel = ({
 
   return (
     <div
-      className={`fixed top-0 right-0 z-51 h-full w-80 bg-white ${
+      className={`fixed top-0 right-0 z-51 h-full w-80 bg-white shadow-md ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
     >

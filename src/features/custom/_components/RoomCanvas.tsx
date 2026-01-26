@@ -10,6 +10,8 @@ import {
   updateAllTextures,
 } from "./ModelLoader_WallSnap";
 import { useRoomStore } from "@/store/useRoomStore";
+import { setupAutoHideWalls } from "./MeshUtils_WallSnap";
+import { setupRoom } from "./RoomSetup";
 
 interface RoomCanvasProps {
   mainModel: string;
@@ -35,35 +37,99 @@ export const RoomCanvasThree = ({
   const sceneRef = useRef<BABYLON.Scene | null>(null);
   const mainMeshRef = useRef<BABYLON.AbstractMesh | null>(null);
   const present = useRoomStore((state) => state.present);
+  const { roomConfig } = present;
+  const shadowGenRef = useRef<BABYLON.ShadowGenerator | null>(null);
+  const cameraRef = useRef<BABYLON.ArcRotateCamera | null>(null);
+  const roomMeshesRef = useRef<{
+    walls: BABYLON.Mesh[];
+    floorVinyl: BABYLON.Mesh;
+    ceiling: BABYLON.Mesh;
+    floorBase: BABYLON.Mesh;
+  } | null>(null);
 
   // --- 1. INITIAL SCENE SETUP ---
+  // useEffect(() => {
+  //   if (!canvasRef.current) return;
+  //   const canvas = canvasRef.current;
+  //   const engine = new BABYLON.Engine(canvas, true);
+
+  //   const scene = createScene(canvas, engine);
+  //   sceneRef.current = scene;
+
+  //   engine.runRenderLoop(() => {
+  //     scene.render();
+  //   });
+
+  //   const handleResize = () => engine.resize();
+  //   window.addEventListener("resize", handleResize);
+
+  //   const resizeObserver = new ResizeObserver(() => engine.resize());
+  //   if (canvas.parentElement) {
+  //     resizeObserver.observe(canvas.parentElement);
+  //   }
+
+  //   return () => {
+  //     window.removeEventListener("resize", handleResize);
+  //     resizeObserver.disconnect();
+  //     engine.dispose();
+  //   };
+  // }, []);
   useEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
     const engine = new BABYLON.Engine(canvas, true);
 
-    const scene = createScene(canvas, engine);
+    // Ambil references dari createScene yang sudah dimodifikasi
+    const { scene, shadowGen, camera } = createScene(canvas, engine);
+
     sceneRef.current = scene;
+    shadowGenRef.current = shadowGen;
+    cameraRef.current = camera as any;
 
     engine.runRenderLoop(() => {
       scene.render();
     });
-
     const handleResize = () => engine.resize();
     window.addEventListener("resize", handleResize);
 
-    const resizeObserver = new ResizeObserver(() => engine.resize());
-    if (canvas.parentElement) {
-      resizeObserver.observe(canvas.parentElement);
-    }
-
     return () => {
       window.removeEventListener("resize", handleResize);
-      resizeObserver.disconnect();
       engine.dispose();
     };
   }, []);
 
+  useEffect(() => {
+    if (!sceneRef.current || !shadowGenRef.current || !cameraRef.current)
+      return;
+
+    const scene = sceneRef.current;
+    const shadowGen = shadowGenRef.current;
+
+    // Bersihkan mesh lama
+    if (roomMeshesRef.current) {
+      roomMeshesRef.current.walls.forEach((w) => w.dispose());
+      roomMeshesRef.current.floorVinyl.dispose();
+      roomMeshesRef.current.ceiling.dispose();
+      roomMeshesRef.current.floorBase.dispose();
+
+      // Remove from shadow caster
+      shadowGen.removeShadowCaster(roomMeshesRef.current.ceiling);
+      roomMeshesRef.current.walls.forEach((w) =>
+        shadowGen.removeShadowCaster(w),
+      );
+    }
+
+    // Buat ruangan baru dengan config dari store
+    const newRoomMeshes = setupRoom(scene, roomConfig);
+    roomMeshesRef.current = newRoomMeshes;
+
+    // Setup ulang shadow dan auto-hide
+    shadowGen.addShadowCaster(newRoomMeshes.ceiling);
+    newRoomMeshes.walls.forEach((w) => shadowGen.addShadowCaster(w));
+
+    // Panggil ulang logika auto-hide walls
+    setupAutoHideWalls(scene, newRoomMeshes.walls, cameraRef.current);
+  }, [roomConfig]); // Trigger saat config berubah
   // --- 2. LOAD MAIN MODEL ---
   useEffect(() => {
     // Hapus "!mainModel" dari pengecekan awal

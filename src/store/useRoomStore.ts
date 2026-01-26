@@ -21,6 +21,13 @@ const calculateTotal = (
   return total;
 };
 
+export interface RoomConfig {
+  width: number; // rw
+  depth: number; // rd
+  height: number; // wallHeight
+  wallColor: string; // Hex color
+  floorTexture: string; // Texture path
+}
 export interface FurnitureTransform {
   modelName: string;
   position: { x: number; y: number; z: number };
@@ -34,6 +41,7 @@ interface RoomData {
   totalPrice: number; // Tambahkan field ini
   mainModelTransform?: FurnitureTransform; // Posisi & rotasi main model
   additionalTransforms: FurnitureTransform[];
+  roomConfig: RoomConfig;
 }
 
 interface RoomStore {
@@ -44,6 +52,8 @@ interface RoomStore {
   setMainModel: (model: string) => void;
   setActiveTexture: (texture: string) => void;
   addAdditionalModel: (model: string) => void;
+
+  updateRoomConfig: (config: Partial<RoomConfig>) => void;
 
   undo: () => void;
   redo: () => void;
@@ -65,6 +75,13 @@ interface RoomStore {
 // State Awal
 const INITIAL_MAIN = "";
 const INITIAL_TEXTURE = "";
+const INITIAL_ROOM_CONFIG: RoomConfig = {
+  width: 600,
+  depth: 500,
+  height: 300,
+  wallColor: "#F2F0EB",
+  floorTexture: "/assets/texture/wood-texture.jpg",
+};
 
 const INITIAL_STATE: RoomData = {
   mainModel: INITIAL_MAIN,
@@ -73,6 +90,7 @@ const INITIAL_STATE: RoomData = {
   totalPrice: calculateTotal(INITIAL_MAIN, [], INITIAL_TEXTURE),
   mainModelTransform: undefined,
   additionalTransforms: [],
+  roomConfig: INITIAL_ROOM_CONFIG,
 };
 
 export const useRoomStore = create<RoomStore>((set) => ({
@@ -145,6 +163,18 @@ export const useRoomStore = create<RoomStore>((set) => ({
         totalPrice: newPrice,
         additionalTransforms: newTransforms, // ⭐ TAMBAH INI
       };
+
+      return {
+        past: [...state.past, state.present],
+        present: newPresent,
+        future: [],
+      };
+    }),
+
+  updateRoomConfig: (config) =>
+    set((state) => {
+      const newConfig = { ...state.present.roomConfig, ...config };
+      const newPresent = { ...state.present, roomConfig: newConfig };
 
       return {
         past: [...state.past, state.present],

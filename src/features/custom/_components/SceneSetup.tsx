@@ -87,6 +87,52 @@ const createDebugHelpers = (scene: BABYLON.Scene) => {
 /**
  * Create and initialize the complete scene with auto-snap system
  */
+// export const createScene = (
+//   canvas: HTMLCanvasElement,
+//   engine: BABYLON.Engine,
+// ) => {
+//   const scene = new BABYLON.Scene(engine);
+//   scene.clearColor = new BABYLON.Color4(0.96, 0.96, 0.96, 1);
+
+//   // scene.environmentIntensity = 0.8;
+
+//   // // Image Processing
+//   // scene.imageProcessingConfiguration.exposure = 1.8;
+//   // scene.imageProcessingConfiguration.contrast = 1.1;
+//   // scene.imageProcessingConfiguration.toneMappingEnabled = true;
+//   // scene.imageProcessingConfiguration.toneMappingType =
+//   //   BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+
+//   console.log("🎯 Scene initialized with Auto-Snap system");
+
+//   // Setup camera (fixed smooth camera)
+//   const camera = setupCamera(canvas, scene);
+
+//   // Setup lighting
+//   const { ceilingLamp } = setupLighting(scene);
+
+//   // Setup room (floor, walls, ceiling)
+//   const { walls, floorVinyl, ceiling } = setupRoom(scene);
+
+//   // Setup shadow generator
+//   const shadowGen = new BABYLON.ShadowGenerator(2048, ceilingLamp);
+//   shadowGen.useBlurExponentialShadowMap = true;
+//   shadowGen.blurKernel = 64;
+//   shadowGen.setDarkness(0.35);
+//   shadowGen.addShadowCaster(ceiling);
+
+//   // Setup pointer interactions
+//   setupPointerInteractions(scene, canvas);
+
+//   // Setup auto-hide walls
+//   setupAutoHideWalls(scene, walls, camera);
+
+//   // Add debug helpers
+//   createDebugHelpers(scene);
+
+//   return scene;
+// };
+
 export const createScene = (
   canvas: HTMLCanvasElement,
   engine: BABYLON.Engine,
@@ -94,41 +140,24 @@ export const createScene = (
   const scene = new BABYLON.Scene(engine);
   scene.clearColor = new BABYLON.Color4(0.96, 0.96, 0.96, 1);
 
-  // scene.environmentIntensity = 0.8;
-
-  // // Image Processing
-  // scene.imageProcessingConfiguration.exposure = 1.8;
-  // scene.imageProcessingConfiguration.contrast = 1.1;
-  // scene.imageProcessingConfiguration.toneMappingEnabled = true;
-  // scene.imageProcessingConfiguration.toneMappingType =
-  //   BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
-
-  console.log("🎯 Scene initialized with Auto-Snap system");
-
-  // Setup camera (fixed smooth camera)
+  // Setup camera
   const camera = setupCamera(canvas, scene);
 
   // Setup lighting
   const { ceilingLamp } = setupLighting(scene);
 
-  // Setup room (floor, walls, ceiling)
-  const { walls, floorVinyl, ceiling } = setupRoom(scene);
-
-  // Setup shadow generator
+  // Setup shadow generator (Tanpa menambahkan ceiling dulu)
   const shadowGen = new BABYLON.ShadowGenerator(2048, ceilingLamp);
   shadowGen.useBlurExponentialShadowMap = true;
-  shadowGen.blurKernel = 64;
-  shadowGen.setDarkness(0.35);
-  shadowGen.addShadowCaster(ceiling);
+  shadowGen.blurKernel = 30;
+  shadowGen.setDarkness(0.15);
 
   // Setup pointer interactions
   setupPointerInteractions(scene, canvas);
 
-  // Setup auto-hide walls
-  setupAutoHideWalls(scene, walls, camera);
+  // Debug helpers (bisa dibuat ulang nanti jika dimensi berubah, atau dihapus)
+  // createDebugHelpers(scene); // Opsional: matikan dulu atau update agar dinamis
 
-  // Add debug helpers
-  createDebugHelpers(scene);
-
-  return scene;
+  // RETURN object references
+  return { scene, camera, shadowGen };
 };

@@ -1,7 +1,10 @@
 import { useRoomStore } from "@/store/useRoomStore";
 import { CornerUpLeft, CornerUpRight, Ruler, Wrench } from "lucide-react";
 
-export const FooterCustom = () => {
+interface FooterCustomProps {
+  onCustomizeClick: () => void;
+}
+export const FooterCustom = ({ onCustomizeClick }: FooterCustomProps) => {
   const { undo, redo, past, future } = useRoomStore();
   const canUndo = past.length > 0;
   const canRedo = future.length > 0;
@@ -15,7 +18,7 @@ export const FooterCustom = () => {
       </div>
 
       {/* Customize button */}
-      <div className="pointer-events-auto">
+      <div className="pointer-events-auto" onClick={onCustomizeClick}>
         <div className="flex cursor-pointer items-center gap-2 rounded-full bg-gray-900 px-4 py-2">
           <Wrench className="text-white" />
           <p className="text-sm font-semibold text-white">Customize Room</p>
