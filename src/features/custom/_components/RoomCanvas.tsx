@@ -10,7 +10,7 @@ import {
   updateAllTextures,
 } from "./ModelLoader_WallSnap";
 import { useRoomStore } from "@/store/useRoomStore";
-import { setupAutoHideWalls } from "./MeshUtils_WallSnap";
+import { setupAutoHideWalls, updateRoomDimensions } from "./MeshUtils_WallSnap";
 import { setupRoom } from "./RoomSetup";
 
 interface RoomCanvasProps {
@@ -254,6 +254,41 @@ export const RoomCanvasThree = ({
     });
   }, [present.mainModelTransform, present.additionalTransforms]);
 
+  useEffect(() => {
+    if (!sceneRef.current || !shadowGenRef.current || !cameraRef.current)
+      return;
+
+    const scene = sceneRef.current;
+    const shadowGen = shadowGenRef.current;
+
+    // Bersihkan mesh lama
+    if (roomMeshesRef.current) {
+      roomMeshesRef.current.walls.forEach((w) => w.dispose());
+      roomMeshesRef.current.floorVinyl.dispose();
+      roomMeshesRef.current.ceiling.dispose();
+      roomMeshesRef.current.floorBase.dispose();
+
+      // Remove from shadow caster
+      shadowGen.removeShadowCaster(roomMeshesRef.current.ceiling);
+      roomMeshesRef.current.walls.forEach((w) =>
+        shadowGen.removeShadowCaster(w),
+      );
+    }
+
+    // Buat ruangan baru dengan config dari store
+    const newRoomMeshes = setupRoom(scene, roomConfig);
+    roomMeshesRef.current = newRoomMeshes;
+
+    // Setup ulang shadow dan auto-hide
+    shadowGen.addShadowCaster(newRoomMeshes.ceiling);
+    newRoomMeshes.walls.forEach((w) => shadowGen.addShadowCaster(w));
+
+    // Panggil ulang logika auto-hide walls
+    setupAutoHideWalls(scene, newRoomMeshes.walls, cameraRef.current);
+
+    // ⭐ TAMBAH INI - Reposisi furniture setelah room berubah
+    updateRoomDimensions(scene);
+  }, [roomConfig]); // Trigger saat config berubah
   return (
     <canvas ref={canvasRef} className="h-full w-full touch-none outline-none" />
   );

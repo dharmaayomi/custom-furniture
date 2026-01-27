@@ -1,18 +1,18 @@
+import { FurnitureTransform, useRoomStore } from "@/store/useRoomStore";
 import * as BABYLON from "@babylonjs/core";
+import "@babylonjs/loaders/glTF";
 import {
-  applyTextureToMesh,
-  addDragBehavior,
-  autoScaleMesh,
-  getMeshAABB,
-  getAllFurniture,
-  findAutoSnapPosition,
-  getWallSnapPosition,
-  type WallSide,
   WallSnapPosition,
+  addDragBehavior,
+  applyTextureToMesh,
+  autoScaleMesh,
+  findAutoSnapPosition,
+  getAllFurniture,
+  getMeshAABB,
+  getWallSnapPosition,
   updateRoomDimensions,
 } from "./MeshUtils_WallSnap";
 import { CONFIG } from "./RoomConfig";
-import { FurnitureTransform, useRoomStore } from "@/store/useRoomStore";
 
 /**
  * Load main model and setup (always on back wall, centered)
@@ -24,14 +24,13 @@ export const loadMainModel = async (
 ): Promise<BABYLON.AbstractMesh | null> => {
   try {
     updateRoomDimensions();
-    const result = await BABYLON.SceneLoader.ImportMeshAsync(
-      "",
-      "/assets/3d/",
-      modelName,
+    const container = await BABYLON.LoadAssetContainerAsync(
+      "/assets/3d/" + modelName,
       scene,
     );
 
-    const meshes = result.meshes;
+    container.addAllToScene();
+    const meshes = container.meshes;
     if (meshes.length === 0) return null;
 
     const rootMesh = meshes[0];
@@ -69,11 +68,7 @@ export const loadMainModel = async (
       new BABYLON.Vector3(0, 0, 0),
     );
 
-    rootMesh.position.set(
-      wallPos.x,
-      10 - boundsInfo.min.y, // Stick to floor 10 the height of the floor
-      wallPos.z,
-    );
+    rootMesh.position.set(wallPos.x, 10 - boundsInfo.min.y, wallPos.z);
     rootMesh.rotation.y = wallPos.rotation; // Face forward (rotation = 0)
 
     console.log(
@@ -139,14 +134,14 @@ export const loadAdditionalModel = async (
 ): Promise<void> => {
   try {
     updateRoomDimensions();
-    const result = await BABYLON.SceneLoader.ImportMeshAsync(
-      "",
-      "/assets/3d/",
-      modelName,
+    const container = await BABYLON.LoadAssetContainerAsync(
+      "/assets/3d/" + modelName,
       scene,
     );
 
-    const meshes = result.meshes;
+    container.addAllToScene();
+    const meshes = container.meshes;
+
     if (meshes.length === 0) return;
 
     const rootMesh = meshes[0];

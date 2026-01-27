@@ -1,3 +1,5 @@
+import { updateRoomDimensions } from "@/features/custom/_components/MeshUtils_WallSnap";
+import { CONFIG } from "@/features/custom/_components/RoomConfig";
 import { ASSET_PRICES, TEXTURE_PRICES } from "@/lib/price";
 import { create } from "zustand";
 
@@ -175,6 +177,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
     set((state) => {
       const newConfig = { ...state.present.roomConfig, ...config };
       const newPresent = { ...state.present, roomConfig: newConfig };
+      updateRoomDimensions();
 
       return {
         past: [...state.past, state.present],

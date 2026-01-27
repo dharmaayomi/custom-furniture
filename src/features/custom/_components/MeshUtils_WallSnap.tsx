@@ -27,7 +27,7 @@ export interface WallSnapPosition {
 // ============================================================================
 // DYNAMIC ROOM DIMENSIONS - TAMBAHAN BARU
 // ============================================================================
-export const updateRoomDimensions = () => {
+export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
   const { roomConfig } = useRoomStore.getState().present;
   CONFIG.rw = roomConfig.width;
   CONFIG.rd = roomConfig.depth;
@@ -36,6 +36,46 @@ export const updateRoomDimensions = () => {
     width: CONFIG.rw,
     depth: CONFIG.rd,
   });
+
+  if (scene) {
+    const allFurniture = getAllFurniture(scene);
+
+    allFurniture.forEach((mesh) => {
+      const pos = mesh.position;
+      const rw = CONFIG.rw;
+      const rd = CONFIG.rd;
+
+      const distToBack = Math.abs(pos.z - rd / 2);
+      const distToFront = Math.abs(pos.z + rd / 2);
+      const distToRight = Math.abs(pos.x - rw / 2);
+      const distToLeft = Math.abs(pos.x + rw / 2);
+
+      const minDist = Math.min(
+        distToBack,
+        distToFront,
+        distToRight,
+        distToLeft,
+      );
+
+      let currentWall: WallSide = "back";
+      if (minDist === distToBack) currentWall = "back";
+      else if (minDist === distToFront) currentWall = "front";
+      else if (minDist === distToRight) currentWall = "right";
+      else currentWall = "left";
+
+      const newPos = getWallSnapPosition(
+        currentWall,
+        mesh,
+        new BABYLON.Vector3(pos.x, 0, pos.z),
+      );
+
+      mesh.position.x = newPos.x;
+      mesh.position.z = newPos.z;
+      mesh.computeWorldMatrix(true);
+    });
+
+    console.log("🔄 All furniture repositioned");
+  }
 };
 
 // ============================================================================
@@ -135,7 +175,9 @@ export const getAllFurniture = (
 const determineClosestWall = (
   position: BABYLON.Vector3,
 ): "back" | "front" | "right" | "left" => {
-  const { rw, rd } = CONFIG;
+  const { roomConfig } = useRoomStore.getState().present;
+  const rw = roomConfig.width;
+  const rd = roomConfig.depth;
   const SNAP_THRESHOLD = 0.1; // <-- UBAH INI! Coba 0.2 - 0.5
 
   const distToBack = Math.abs(position.z - rd / 2);
@@ -276,7 +318,9 @@ export const findAutoSnapPosition = (
 ): WallSnapPosition | null => {
   const targetBox = getMeshAABB(targetFurniture);
   const targetWall = determineClosestWall(targetFurniture.position);
-  const { rw, rd } = CONFIG;
+  const { roomConfig } = useRoomStore.getState().present;
+  const rw = roomConfig.width;
+  const rd = roomConfig.depth;
   const gap = 0.001;
 
   let rot = 0;
@@ -458,7 +502,9 @@ export const addDragBehavior = (
 
   dragBehavior.onDragObservable.add((event) => {
     const pointerPos = event.dragPlanePoint;
-    const { rw, rd } = CONFIG;
+    const { roomConfig } = useRoomStore.getState().present;
+    const rw = roomConfig.width;
+    const rd = roomConfig.depth;
 
     // ⭐ THRESHOLD DINAMIS
     const SWITCH_THRESHOLD_PERCENT = 0.01; // 15%
@@ -523,30 +569,57 @@ export const addDragBehavior = (
       snapIndicator.position.y += 50;
     }
 
-    // Cek collision
+    // Cek collision (updated)
+    mesh.computeWorldMatrix(true);
+
     const allFurniture = getAllFurniture(scene, mesh);
-    const myBox = getMeshAABB(mesh);
-    let hasCollision = false;
+    const myBoxAtTarget = getMeshAABB(mesh);
+    let collidingFurniture: BABYLON.AbstractMesh | null = null;
 
     for (const other of allFurniture) {
-      if (checkAABBOverlap(myBox, getMeshAABB(other))) {
-        hasCollision = true;
+      if (checkAABBOverlap(myBoxAtTarget, getMeshAABB(other))) {
+        collidingFurniture = other;
         break;
       }
     }
 
-    if (hasCollision) {
+    if (collidingFurniture) {
+      const otherBox = getMeshAABB(collidingFurniture);
+      const dragDirection = pointerPos.x - previousValidPosition.x;
+
+      let targetX: number;
+      if (dragDirection > 0) {
+        targetX = otherBox.maxX + myBoxAtTarget.width / 2 + 2;
+      } else {
+        targetX = otherBox.minX - myBoxAtTarget.width / 2 - 2;
+      }
+
+      const newSnapPos = getWallSnapPosition(
+        targetWall,
+        mesh,
+        new BABYLON.Vector3(targetX, 0, pointerPos.z),
+      );
+
+      mesh.position.x = newSnapPos.x;
+      mesh.position.z = newSnapPos.z;
+
       if (snapIndicator && snapIndicator.material) {
         (snapIndicator.material as BABYLON.StandardMaterial).emissiveColor =
-          BABYLON.Color3.Red();
+          BABYLON.Color3.Yellow();
       }
     } else {
       previousValidPosition.copyFrom(mesh.position);
       previousValidRotation = mesh.rotation.y;
+
       if (snapIndicator && snapIndicator.material) {
         (snapIndicator.material as BABYLON.StandardMaterial).emissiveColor =
           BABYLON.Color3.Green();
       }
+    }
+
+    if (snapIndicator) {
+      snapIndicator.position = mesh.position.clone();
+      snapIndicator.position.y += 50;
     }
   });
 

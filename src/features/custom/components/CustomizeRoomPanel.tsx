@@ -1,13 +1,16 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useRoomStore } from "@/store/useRoomStore";
+import * as BABYLON from "@babylonjs/core";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { X } from "lucide-react";
+import { updateRoomDimensions } from "../_components/MeshUtils_WallSnap";
 
 interface CustomizeRoomPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  scene: BABYLON.Scene | null;
 }
 
 const FLOOR_TEXTURES = [
@@ -23,10 +26,15 @@ const FLOOR_TEXTURES = [
 export const CustomizeRoomPanel = ({
   isOpen,
   onClose,
+  scene,
 }: CustomizeRoomPanelProps) => {
   const { present, updateRoomConfig } = useRoomStore();
   const { roomConfig } = present;
-
+  useEffect(() => {
+    if (scene) {
+      updateRoomDimensions(scene); // Pass scene untuk reposisi
+    }
+  }, [roomConfig.width, roomConfig.depth, scene]);
   if (!isOpen) return null;
 
   return (
