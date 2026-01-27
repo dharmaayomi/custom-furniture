@@ -1,5 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
-import { CONFIG, MATERIAL_CONFIG } from "./RoomConfig";
+import { CONFIG, MATERIAL_CONFIG, ROOM_DIMENSIONS } from "./RoomConfig";
 import { FurnitureTransform, useRoomStore } from "@/store/useRoomStore";
 
 // ============================================================================
@@ -32,10 +32,10 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
   CONFIG.rw = roomConfig.width;
   CONFIG.rd = roomConfig.depth;
 
-  console.log("📐 Room dimensions updated:", {
-    width: CONFIG.rw,
-    depth: CONFIG.rd,
-  });
+  // console.log("📐 Room dimensions updated:", {
+  //   width: CONFIG.rw,
+  //   depth: CONFIG.rd,
+  // });
 
   if (scene) {
     const allFurniture = getAllFurniture(scene);
@@ -74,7 +74,7 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
       mesh.computeWorldMatrix(true);
     });
 
-    console.log("🔄 All furniture repositioned");
+    // console.log("🔄 All furniture repositioned");
   }
 };
 
@@ -467,7 +467,7 @@ export const addDragBehavior = (
 
     const { captureCurrentState } = useRoomStore.getState();
     captureCurrentState();
-    console.log("📸 Captured state BEFORE drag");
+    // console.log("📸 Captured state BEFORE drag");
     // Detect current wall dari posisi
     const { roomConfig } = useRoomStore.getState().present;
     const rw = roomConfig.width;
@@ -624,7 +624,7 @@ export const addDragBehavior = (
   });
 
   dragBehavior.onDragEndObservable.add(() => {
-    console.log("🔴 DRAG END - Starting");
+    // console.log("🔴 DRAG END - Starting");
 
     const allFurniture = getAllFurniture(scene, mesh);
     const myBox = getMeshAABB(mesh);
@@ -637,16 +637,16 @@ export const addDragBehavior = (
       }
     }
 
-    console.log("🔴 Collision:", hasCollision);
+    // console.log("🔴 Collision:", hasCollision);
 
     if (hasCollision) {
       mesh.position.copyFrom(previousValidPosition);
       mesh.rotation.y = previousValidRotation;
-      console.log("❌ Reverted due to collision");
+      // console.log("❌ Reverted due to collision");
     } else {
-      console.log("✅ No collision, saving transform...");
+      // console.log("✅ No collision, saving transform...");
 
-      // ⭐ SAVE TRANSFORM WITH HISTORY
+      // SAVE TRANSFORM WITH HISTORY
       const { saveTransformToHistory } = useRoomStore.getState();
 
       const transform: FurnitureTransform = {
@@ -659,24 +659,24 @@ export const addDragBehavior = (
         rotation: mesh.rotation.y,
       };
 
-      console.log("💾 Transform to save:", transform);
+      // console.log("💾 Transform to save:", transform);
 
       const allFurnitureMeshes = getAllFurniture(scene);
       const meshIndex = allFurnitureMeshes.indexOf(mesh);
 
-      console.log(
-        "🔍 Mesh index:",
-        meshIndex,
-        "Total furniture:",
-        allFurnitureMeshes.length,
-      );
+      // console.log(
+      //   "🔍 Mesh index:",
+      //   meshIndex,
+      //   "Total furniture:",
+      //   allFurnitureMeshes.length,
+      // );
 
       if (meshIndex === 0) {
         saveTransformToHistory(0, transform, true);
-        console.log("💾 Saved MAIN model WITH HISTORY");
+        // console.log("💾 Saved MAIN model WITH HISTORY");
       } else if (meshIndex > 0) {
         saveTransformToHistory(meshIndex - 1, transform, false);
-        console.log(`💾 Saved ADDITIONAL ${meshIndex - 1} WITH HISTORY`);
+        // console.log(`💾 Saved ADDITIONAL ${meshIndex - 1} WITH HISTORY`);
       }
     }
 
@@ -724,12 +724,26 @@ export const setupAutoHideWalls = (
   walls: BABYLON.Mesh[],
   camera: BABYLON.ArcRotateCamera,
 ) => {
+  const { roomConfig } = useRoomStore.getState().present;
+  const rw = roomConfig.width;
+  const wallThickness = ROOM_DIMENSIONS.wallThickness;
+
   scene.registerBeforeRender(() => {
     walls.forEach((w) => {
       if (!w.metadata) return;
       const cam = camera.position;
       // const offset = 10;
       const offset = 0;
+      if (w.metadata.side === "back" || w.metadata.side === "front") {
+        const isViewedFromFrontBack = Math.abs(cam.z) > Math.abs(cam.x);
+        const isViewedFromLeftRight = Math.abs(cam.x) > Math.abs(cam.z);
+
+        if (isViewedFromFrontBack || isViewedFromLeftRight) {
+          w.scaling.x = rw / (rw + wallThickness * 2);
+        } else {
+          w.scaling.x = 1;
+        }
+      }
 
       if (w.metadata.side === "back" && cam.z > w.position.z + offset)
         w.visibility = 0;

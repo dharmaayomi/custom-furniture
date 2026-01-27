@@ -90,7 +90,7 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   // Back
   createWall(
     "wall_back",
-    rw,
+    rw + wallThickness * 2,
     wallThickness,
     0,
     rd / 2 + wallThickness / 2,
@@ -99,7 +99,7 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   // Front
   createWall(
     "wall_front",
-    rw,
+    rw + wallThickness * 2,
     wallThickness,
     0,
     -rd / 2 - wallThickness / 2,
@@ -123,6 +123,9 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
     0,
     "right",
   );
+  ceiling.material = wallMat;
+  floorBase.material = wallMat;
+
   ceiling.material = wallMat;
   floorBase.material = wallMat;
 

@@ -183,7 +183,7 @@ export const RoomCanvasThree = ({
         for (let i = 0; i < diff; i++) {
           const meshToRemove = currentMeshes[currentMeshes.length - 1 - i];
           if (meshToRemove) {
-            console.log("🗑️ Removing mesh:", meshToRemove.name);
+            // console.log("🗑️ Removing mesh:", meshToRemove.name);
             meshToRemove.dispose();
           }
         }
@@ -203,31 +203,31 @@ export const RoomCanvasThree = ({
 
   // ⭐ --- 5. RESTORE POSITIONS SAAT UNDO/REDO ---
   useEffect(() => {
-    console.log("🔄 RESTORE EFFECT TRIGGERED");
+    // console.log("🔄 RESTORE EFFECT TRIGGERED");
 
     if (!sceneRef.current) {
-      console.log("⚠️ No scene ref");
+      // console.log("⚠️ No scene ref");
       return;
     }
 
-    console.log("📦 Present state:", {
-      mainTransform: present.mainModelTransform,
-      additionalTransforms: present.additionalTransforms,
-    });
+    // console.log("📦 Present state:", {
+    //   mainTransform: present.mainModelTransform,
+    //   additionalTransforms: present.additionalTransforms,
+    // });
 
     // Restore main model transform
     if (present.mainModelTransform && mainMeshRef.current) {
       const t = present.mainModelTransform;
-      console.log("📍 Restoring main model to:", t);
+      // console.log("📍 Restoring main model to:", t);
       mainMeshRef.current.position.set(
         t.position.x,
         t.position.y,
         t.position.z,
       );
       mainMeshRef.current.rotation.y = t.rotation;
-      console.log("✅ Main model restored");
+      // console.log("✅ Main model restored");
     } else {
-      console.log("⚠️ No main transform or mesh");
+      // console.log("⚠️ No main transform or mesh");
     }
 
     // Restore additional transforms
@@ -235,21 +235,21 @@ export const RoomCanvasThree = ({
       sceneRef.current,
       mainMeshRef.current,
     );
-    console.log("🔍 Additional meshes found:", additionalMeshes.length);
+    // console.log("🔍 Additional meshes found:", additionalMeshes.length);
 
     present.additionalTransforms.forEach((transform, index) => {
       const mesh = additionalMeshes[index];
       if (mesh) {
-        console.log(`📍 Restoring mesh ${index} (${mesh.name}) to:`, transform);
+        // console.log(`📍 Restoring mesh ${index} (${mesh.name}) to:`, transform);
         mesh.position.set(
           transform.position.x,
           transform.position.y,
           transform.position.z,
         );
         mesh.rotation.y = transform.rotation;
-        console.log(`✅ Mesh ${index} restored`);
+        // console.log(`✅ Mesh ${index} restored`);
       } else {
-        console.log(`⚠️ No mesh at index ${index}`);
+        // console.log(`⚠️ No mesh at index ${index}`);
       }
     });
   }, [present.mainModelTransform, present.additionalTransforms]);
@@ -275,18 +275,14 @@ export const RoomCanvasThree = ({
       );
     }
 
-    // Buat ruangan baru dengan config dari store
     const newRoomMeshes = setupRoom(scene, roomConfig);
     roomMeshesRef.current = newRoomMeshes;
 
-    // Setup ulang shadow dan auto-hide
     shadowGen.addShadowCaster(newRoomMeshes.ceiling);
     newRoomMeshes.walls.forEach((w) => shadowGen.addShadowCaster(w));
 
-    // Panggil ulang logika auto-hide walls
     setupAutoHideWalls(scene, newRoomMeshes.walls, cameraRef.current);
 
-    // ⭐ TAMBAH INI - Reposisi furniture setelah room berubah
     updateRoomDimensions(scene);
   }, [roomConfig]); // Trigger saat config berubah
   return (
