@@ -59,7 +59,7 @@ export const setupCamera = (
     }
   });
 
-  // ===== Smooth zoom in (tetap sama kayak punya kamu) =====
+  // ===== Smooth zoom in =====
   const zoomInAnimation = new BABYLON.Animation(
     "cameraZoomIn",
     "radius",
@@ -70,7 +70,7 @@ export const setupCamera = (
 
   zoomInAnimation.setKeys([
     { frame: 0, value: 600 },
-    { frame: 90, value: 150 },
+    { frame: 90, value: 200 },
   ]);
 
   const easing = new BABYLON.CubicEase();

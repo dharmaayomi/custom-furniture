@@ -10,13 +10,14 @@ export const CONFIG = {
 export const ROOM_DIMENSIONS = {
   wallHeight: 300,
   wallThickness: 10,
-  floorThickness: 9,
-  vinylThickness: 1,
+  floorThickness: 9.7,
+  vinylThickness: 0.3,
 } as const;
 
 export const CAMERA_CONFIG = {
   alpha: -Math.PI / 2,
-  beta: Math.PI / 2.2,
+  // beta: Math.PI / 2.2,
+  beta: Math.PI / 1.2,
   radius: 600,
   targetY: 140,
   wheelPrecision: 0.2,

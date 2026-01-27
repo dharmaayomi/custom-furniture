@@ -1,11 +1,7 @@
 import * as BABYLON from "@babylonjs/core";
 import { setupCamera } from "./CameraSetup";
 import { setupLighting } from "./LightingSetup";
-import { setupRoom } from "./RoomSetup";
-import {
-  setupPointerInteractions,
-  setupAutoHideWalls,
-} from "./MeshUtils_WallSnap";
+import { setupPointerInteractions } from "./MeshUtils_WallSnap";
 import { CONFIG } from "./RoomConfig";
 
 /**

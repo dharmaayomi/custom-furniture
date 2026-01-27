@@ -16,7 +16,8 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
     floorTexture: floorTexturePath,
   } = config;
   const { wallThickness, floorThickness, vinylThickness } = ROOM_DIMENSIONS;
-
+  const totalWidth = rw + wallThickness * 2;
+  const totalDepth = rd + wallThickness * 2;
   // --- 1. FLOOR BASE ---
   const floorBase = BABYLON.MeshBuilder.CreateBox(
     "floorBase",
@@ -25,12 +26,6 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   );
   floorBase.position.y = (floorThickness - vinylThickness) / 2;
   floorBase.receiveShadows = true;
-
-  const floorBaseMat = new BABYLON.PBRMaterial("floorBaseMat", scene);
-  floorBaseMat.albedoColor = hexToColor3("#F2F0EB");
-  floorBaseMat.roughness = 0.5;
-  floorBaseMat.metallic = 0;
-  floorBase.material = floorBaseMat;
 
   // --- 2. FLOOR VINYL (Dynamic Texture) ---
   const floorVinyl = BABYLON.MeshBuilder.CreateBox(
@@ -64,7 +59,7 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
 
   // --- 4. WALLS (Dynamic Color) ---
   const wallMat = new BABYLON.PBRMaterial("wallMat", scene);
-  wallMat.albedoColor = hexToColor3(wallColor); // Gunakan warna dari config
+  wallMat.albedoColor = hexToColor3(wallColor);
   wallMat.roughness = MATERIAL_CONFIG.interior.roughness;
   wallMat.metallic = MATERIAL_CONFIG.interior.metallic;
   wallMat.directIntensity = 2.0;
@@ -95,7 +90,7 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   // Back
   createWall(
     "wall_back",
-    rw + wallThickness * 2,
+    rw,
     wallThickness,
     0,
     rd / 2 + wallThickness / 2,
@@ -104,46 +99,32 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   // Front
   createWall(
     "wall_front",
-    rw + wallThickness * 2,
+    rw,
     wallThickness,
     0,
     -rd / 2 - wallThickness / 2,
     "front",
   );
-  // Left
+
   createWall(
     "wall_left",
     wallThickness,
-    wallThickness,
+    rd,
     -rw / 2 - wallThickness / 2,
     0,
     "left",
-  ).scaling.z = rd / wallThickness; // Scale Z agar sesuai depth
-
-  const leftWall = BABYLON.MeshBuilder.CreateBox(
-    "wall_left",
-    { width: wallThickness, height: wallHeight, depth: rd },
-    scene,
   );
-  leftWall.position.set(-rw / 2 - wallThickness / 2, wallHeight / 2, 0);
-  leftWall.material = wallMat;
-  leftWall.metadata = { side: "left" };
-  leftWall.receiveShadows = true;
-  walls.push(leftWall);
 
-  // Right
-  const rightWall = BABYLON.MeshBuilder.CreateBox(
+  createWall(
     "wall_right",
-    { width: wallThickness, height: wallHeight, depth: rd },
-    scene,
+    wallThickness,
+    rd,
+    rw / 2 + wallThickness / 2,
+    0,
+    "right",
   );
-  rightWall.position.set(rw / 2 + wallThickness / 2, wallHeight / 2, 0);
-  rightWall.material = wallMat;
-  rightWall.metadata = { side: "right" };
-  rightWall.receiveShadows = true;
-  walls.push(rightWall);
-
   ceiling.material = wallMat;
+  floorBase.material = wallMat;
 
   walls.push(ceiling);
   return { walls, floorVinyl, ceiling, floorBase };

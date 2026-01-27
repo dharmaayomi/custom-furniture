@@ -9,6 +9,7 @@ import {
   getWallSnapPosition,
   type WallSide,
   WallSnapPosition,
+  updateRoomDimensions,
 } from "./MeshUtils_WallSnap";
 import { CONFIG } from "./RoomConfig";
 import { FurnitureTransform, useRoomStore } from "@/store/useRoomStore";
@@ -22,6 +23,7 @@ export const loadMainModel = async (
   scene: BABYLON.Scene,
 ): Promise<BABYLON.AbstractMesh | null> => {
   try {
+    updateRoomDimensions();
     const result = await BABYLON.SceneLoader.ImportMeshAsync(
       "",
       "/assets/3d/",
@@ -136,6 +138,7 @@ export const loadAdditionalModel = async (
   mainMeshRef: BABYLON.AbstractMesh | null,
 ): Promise<void> => {
   try {
+    updateRoomDimensions();
     const result = await BABYLON.SceneLoader.ImportMeshAsync(
       "",
       "/assets/3d/",

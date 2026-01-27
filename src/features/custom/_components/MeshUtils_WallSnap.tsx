@@ -25,10 +25,23 @@ export interface WallSnapPosition {
 }
 
 // ============================================================================
+// DYNAMIC ROOM DIMENSIONS - TAMBAHAN BARU
+// ============================================================================
+export const updateRoomDimensions = () => {
+  const { roomConfig } = useRoomStore.getState().present;
+  CONFIG.rw = roomConfig.width;
+  CONFIG.rd = roomConfig.depth;
+
+  console.log("📐 Room dimensions updated:", {
+    width: CONFIG.rw,
+    depth: CONFIG.rd,
+  });
+};
+
+// ============================================================================
 // MATERIAL CACHE - FIX UNTUK MASALAH LIGHTING
 // ============================================================================
 
-// Cache untuk material agar tidak dibuat ulang setiap kali
 const materialCache = new Map<string, BABYLON.PBRMaterial>();
 
 /**
@@ -146,40 +159,15 @@ const determineClosestWall = (
   return "left";
 };
 
-/**
- * Mendapatkan dimensi LOKAL (Width & Depth asli) dari mesh.
- * Kita asumsikan saat load rotasi 0, Width = X, Depth = Z.
- * Fungsi ini mencoba "menebak" dimensi asli meskipun barang sedang miring.
- */
-const getLocalDimensions = (mesh: BABYLON.AbstractMesh) => {
-  // Pastikan quaternion mati dulu agar rotasi Euler valid
-  if (mesh.rotationQuaternion) mesh.rotationQuaternion = null;
-
-  const currentRot = mesh.rotation.y;
-  // Cek apakah barang sedang miring (90 atau 270 derajat)
-  // Gunakan toleransi karena float tidak presisi
-  const isSideways =
-    Math.abs(Math.abs(currentRot) - Math.PI / 2) < 0.2 ||
-    Math.abs(Math.abs(currentRot) - Math.PI * 1.5) < 0.2;
-
-  const bounds = mesh.getHierarchyBoundingVectors(true);
-  const worldWidth = Math.abs(bounds.max.x - bounds.min.x);
-  const worldDepth = Math.abs(bounds.max.z - bounds.min.z);
-
-  // Jika miring, berarti Width Dunia = Depth Asli, dan sebaliknya
-  if (isSideways) {
-    return { width: worldDepth, depth: worldWidth };
-  }
-  return { width: worldWidth, depth: worldDepth };
-};
-
 export const getWallSnapPosition = (
   wall: WallSide,
   mesh: BABYLON.AbstractMesh,
   pointerPos: BABYLON.Vector3,
-  fixedDims?: { width: number; depth: number }, // Optional: dimensi fix jika sudah diketahui
+  fixedDims?: { width: number; depth: number },
 ): WallSnapPosition => {
-  const { rw, rd } = CONFIG;
+  const { roomConfig } = useRoomStore.getState().present;
+  const rw = roomConfig.width;
+  const rd = roomConfig.depth;
 
   // JARAK FURNITURE KE TEMBOK (dalam satuan babylon unit)
   // 0 = menempel ke tembok
@@ -423,6 +411,8 @@ export const addDragBehavior = (
   let currentWall: WallSide | null = null;
 
   dragBehavior.onDragStartObservable.add(() => {
+    updateRoomDimensions();
+
     if (mesh.rotationQuaternion) {
       mesh.rotation = mesh.rotationQuaternion.toEulerAngles();
       mesh.rotationQuaternion = null;
@@ -435,7 +425,9 @@ export const addDragBehavior = (
     captureCurrentState();
     console.log("📸 Captured state BEFORE drag");
     // Detect current wall dari posisi
-    const { rw, rd } = CONFIG;
+    const { roomConfig } = useRoomStore.getState().present;
+    const rw = roomConfig.width;
+    const rd = roomConfig.depth;
     const pos = mesh.position;
 
     const distToBack = Math.abs(pos.z - rd / 2);

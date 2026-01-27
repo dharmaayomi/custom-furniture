@@ -48,13 +48,13 @@ export const HeaderCustom = ({
         {/* left button */}
         <div className="pointer-events-auto flex items-center gap-2 sm:gap-4">
           <div
-            className="cursor-pointer rounded-full bg-gray-100 p-3 md:p-4"
+            className="cursor-pointer rounded-full bg-gray-100 p-3 shadow-md md:p-4"
             onClick={onMenuClick}
           >
             <Menu className="h-4 w-4 md:h-6 md:w-6" />
           </div>
           <Button
-            className="hidden cursor-pointer items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-xs font-semibold text-black hover:text-white md:flex"
+            className="hidden cursor-pointer items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-xs font-semibold text-black shadow-md hover:text-white md:flex"
             onClick={handleSaveClick}
           >
             <Save />
@@ -65,7 +65,7 @@ export const HeaderCustom = ({
         {/* right button */}
         <div className="pointer-events-auto flex items-center gap-4">
           <div
-            className="cursor-pointer rounded-full bg-gray-100 p-2"
+            className="cursor-pointer rounded-full bg-gray-100 p-2 shadow-md"
             onClick={onListClick}
           >
             <ListOrdered className="h-4 w-4" />

@@ -77,7 +77,7 @@ const INITIAL_MAIN = "";
 const INITIAL_TEXTURE = "";
 const INITIAL_ROOM_CONFIG: RoomConfig = {
   width: 600,
-  depth: 500,
+  depth: 400,
   height: 300,
   wallColor: "#F2F0EB",
   floorTexture: "/assets/texture/wood-texture.jpg",
