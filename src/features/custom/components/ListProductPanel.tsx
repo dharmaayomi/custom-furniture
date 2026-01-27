@@ -21,9 +21,25 @@ const getProductName = (
       name: "Wine Cabinet",
       description: "Premium wine storage unit",
     },
+    "cupboard.glb": {
+      name: "Cupboard",
+      description: "Modern storage Cupboard",
+    },
+    "drawer-2.glb": {
+      name: "Cupboard",
+      description: "Modern storage Cupboard",
+    },
     "cabinet-1.glb": {
       name: "Cabinet",
       description: "Modern storage cabinet",
+    },
+    "cabinet-2.glb": {
+      name: "Clean Cabinet",
+      description: "Modern storage cabinet",
+    },
+    "restaurant_pub_wardrobe.glb": {
+      name: "Cabinet",
+      description: "Modern Pub Wardrobe",
     },
     "cabinet.glb": {
       name: "Storage Cabinet",
@@ -42,6 +58,10 @@ const getProductName = (
       description: "Decorative element",
     },
     "rakayolahkaliinibener.glb": {
+      name: "Storage Cabinet",
+      description: "storage cabinet",
+    },
+    "rak-1.glb": {
       name: "Storage Cabinet",
       description: "storage cabinet",
     },
@@ -90,7 +110,7 @@ export const ListProductPanel = ({
 
   return (
     <div
-      className={`fixed top-0 right-0 z-51 h-full w-80 bg-white ${
+      className={`fixed top-0 right-0 z-51 h-full w-80 bg-white shadow-md ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
     >

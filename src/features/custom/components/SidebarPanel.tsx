@@ -150,7 +150,7 @@ export const SidebarPanel = ({
   return (
     <div
       // className={`fixed top-0 right-0 z-50 h-full w-80 bg-white shadow-2xl transition-transform duration-500 ease-in-out ${
-      className={`fixed top-0 right-0 z-50 h-full w-80 bg-white ${
+      className={`fixed top-0 right-0 z-50 h-full w-80 bg-white shadow-md ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
     >

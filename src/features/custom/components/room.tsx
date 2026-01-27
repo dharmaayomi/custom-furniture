@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FooterCustom } from "./FooterCustom";
 import { HeaderCustom } from "./HeaderCustom";
-
+import { calculateTotalPrice, formatPrice } from "@/lib/price";
+import { useRoomStore } from "@/store/useRoomStore";
 import { Tool, ToolType } from "@/types/toolType";
 import {
   DoorClosed,
@@ -13,26 +14,29 @@ import {
   Package,
   PaintBucket,
 } from "lucide-react";
-import { RoomCanvasOne } from "./CanvasOne";
+import { RoomCanvasThree } from "../_components/RoomCanvas";
+import { CustomizeRoomPanel } from "./CustomizeRoomPanel";
 import { FloatingToolPanel } from "./FloatingPanel";
+import { ListProductPanel } from "./ListProductPanel";
 import { MenuModal } from "./MenuModal";
 import { SidebarPanel } from "./SidebarPanel";
-import { RoomCanvasTwo } from "./CanvasTwo";
-import { calculateTotalPrice, formatPrice } from "@/lib/price";
-import { ListProductPanel } from "./ListProductPanel";
-import { is } from "zod/v4/locales";
-import { RoomCanvasThree } from "../_components/RoomCanvas";
-import { RoomCanvas } from "./RoomCanvas";
 
 const ASSETS_3D = [
   "wine_cabinet.glb",
+  "drawer-2.glb",
+  "cupboard.glb",
+  "cabinet-2.glb",
   "cabinet-1.glb",
   "cabinet.glb",
   "chair-1.glb",
   "man.glb",
   "wall_cupboard.glb",
+  "rak-1.glb",
   "rakayolahkaliinibener.glb",
+  "restaurant_pub_wardrobe.glb",
 ];
+
+type ActivePanel = "sidebar" | "productList" | "customize" | "home" | null;
 
 const ASSETS_TEXTURE = [
   "fine-wood-texture.jpg",
@@ -47,11 +51,28 @@ export const RoomPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProductListOpen, setIsProductListOpen] = useState(false);
-  const [selectedTool, setSelectedTool] = useState<ToolType>(null);
   const [showHomeSidebar, setShowHomeSidebar] = useState(false);
-  const [mainModel, setMainModel] = useState("wine_cabinet.glb");
-  const [activeTexture, setActiveTexture] = useState("");
-  const [additionalModels, setAdditionalModels] = useState<string[]>([]); // Array untuk barang tambahan
+  const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
+
+  const [activePanel, setActivePanel] = useState<ActivePanel>(null);
+  const [selectedTool, setSelectedTool] = useState<ToolType>(null);
+
+  // const [mainModel, setMainModel] = useState("wine_cabinet.glb");
+  // const [activeTexture, setActiveTexture] = useState("");
+  // const [additionalModels, setAdditionalModels] = useState<string[]>([]);
+  const isAnyPanelOpen = activePanel !== null;
+
+  const {
+    present,
+    setMainModel,
+    setActiveTexture,
+    addAdditionalModel,
+    undo,
+    redo,
+    past,
+    future,
+  } = useRoomStore();
+  const { mainModel, activeTexture, additionalModels } = present;
   const tools: Tool[] = [
     {
       id: "furniture",
@@ -88,22 +109,56 @@ export const RoomPage = () => {
     { id: "grid", icon: Grid, label: "Lantai", category: "View" },
   ];
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        e.preventDefault();
+        undo();
+      }
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        (e.key === "y" || (e.shiftKey && e.key === "Z"))
+      ) {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo]);
+
+  // const handleToolClick = (toolId: ToolType) => {
+  //   if (isProductListOpen) {
+  //     setIsProductListOpen(false);
+  //   }
+  //   if (showHomeSidebar) {
+  //     setShowHomeSidebar(false);
+  //   }
+  //   if (selectedTool === toolId && isSidebarOpen) {
+  //     setIsSidebarOpen(false);
+  //     setSelectedTool(null);
+  //   } else {
+  //     setIsSidebarOpen(true);
+  //     setSelectedTool(toolId);
+  //   }
+  // };
+
   const handleToolClick = (toolId: ToolType) => {
-    if (isProductListOpen) {
-      setIsProductListOpen(false);
-    }
-
-    if (showHomeSidebar) {
-      setShowHomeSidebar(false);
-    }
-
-    if (selectedTool === toolId && isSidebarOpen) {
-      setIsSidebarOpen(false);
-      setSelectedTool(null);
+    if (activePanel === "sidebar" && selectedTool === toolId) {
+      closePanel();
     } else {
-      setIsSidebarOpen(true);
       setSelectedTool(toolId);
+      openPanel("sidebar");
     }
+  };
+
+  const openPanel = (panel: ActivePanel) => {
+    setActivePanel(panel);
+  };
+
+  const closePanel = () => {
+    setActivePanel(null);
+    setSelectedTool(null);
   };
 
   const closeSidebar = () => {
@@ -112,32 +167,32 @@ export const RoomPage = () => {
     setShowHomeSidebar(false);
   };
 
+  // const handleHomeClick = () => {
+  //   if (isProductListOpen) {
+  //     setIsProductListOpen(false);
+  //   }
+  //   setShowHomeSidebar(!showHomeSidebar);
+  //   if (showHomeSidebar) {
+  //     setIsSidebarOpen(false);
+  //     setSelectedTool(null);
+  //   } else {
+  //     setIsSidebarOpen(false);
+  //     setSelectedTool(null);
+  //   }
+  // };
+
   const handleHomeClick = () => {
-    if (isProductListOpen) {
-      setIsProductListOpen(false);
-    }
-
-    setShowHomeSidebar(!showHomeSidebar);
-    if (showHomeSidebar) {
-      setIsSidebarOpen(false);
-      setSelectedTool(null);
-    } else {
-      setIsSidebarOpen(false);
-      setSelectedTool(null);
-    }
+    openPanel(activePanel === "home" ? null : "home");
   };
-  const handleListClick = () => {
-    // Toggle product list
-    const newState = !isProductListOpen;
-    setIsProductListOpen(newState);
 
-    // Jika product list dibuka, tutup sidebar dan home sidebar
-    if (newState) {
-      setIsSidebarOpen(false);
-      setSelectedTool(null);
-      setShowHomeSidebar(false);
-    }
+  const handleOpenProductList = () => {
+    openPanel("productList");
   };
+
+  const handleCustomizeClick = () => {
+    openPanel("customize");
+  };
+
   const closeProductList = () => {
     setIsProductListOpen(false);
   };
@@ -149,10 +204,15 @@ export const RoomPage = () => {
         onClose={() => setIsMenuOpen(false)}
         isLoggedIn={false}
       />
-
+      <CustomizeRoomPanel
+        // isOpen={isCustomizeOpen}
+        isOpen={activePanel === "customize"}
+        onClose={closePanel}
+      />
       <ListProductPanel
-        isOpen={isProductListOpen}
-        onClose={closeProductList}
+        // isOpen={isProductListOpen}
+        isOpen={activePanel === "productList"}
+        onClose={closePanel}
         mainModel={mainModel}
         additionalModels={additionalModels}
         totalPrice={calculateTotalPrice(
@@ -164,11 +224,14 @@ export const RoomPage = () => {
 
       <div
         className="relative min-w-0 flex-1 bg-gray-200"
+        // style={{
+        //   marginRight:
+        //     isSidebarOpen || showHomeSidebar || isProductListOpen
+        //       ? "320px"
+        //       : "0",
+        // }}
         style={{
-          marginRight:
-            isSidebarOpen || showHomeSidebar || isProductListOpen
-              ? "320px"
-              : "0",
+          marginRight: isAnyPanelOpen ? "320px" : "0",
         }}
       >
         {/* Header */}
@@ -176,7 +239,8 @@ export const RoomPage = () => {
           <div className="pointer-events-auto">
             <HeaderCustom
               onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
-              onListClick={() => setIsProductListOpen(!isProductListOpen)}
+              // onListClick={() => setIsProductListOpen(!isProductListOpen)}
+              onListClick={handleOpenProductList}
               totalPrice={calculateTotalPrice(
                 mainModel,
                 additionalModels,
@@ -211,7 +275,7 @@ export const RoomPage = () => {
         {/* Footer */}
         <div className="pointer-events-none absolute bottom-0 left-0 z-40 w-full">
           <div className="pointer-events-auto">
-            <FooterCustom />
+            <FooterCustom onCustomizeClick={handleCustomizeClick} />
           </div>
         </div>
       </div>
@@ -225,17 +289,19 @@ export const RoomPage = () => {
         onClose={closeSidebar}
       /> */}
       <SidebarPanel
-        isOpen={isSidebarOpen || showHomeSidebar}
-        showHomeSidebar={showHomeSidebar}
+        isOpen={activePanel === "sidebar" || activePanel === "home"}
+        // showHomeSidebar={showHomeSidebar}
+        showHomeSidebar={activePanel === "home"}
         selectedTool={selectedTool}
         tools={tools}
         onClose={closeSidebar}
         assetList3D={ASSETS_3D}
         assetListTexture={ASSETS_TEXTURE}
         onSelectMainModel={(model) => setMainModel(model)}
-        onAddAdditionalModel={(model) =>
-          setAdditionalModels([...additionalModels, model])
-        }
+        // onAddAdditionalModel={(model) =>
+        //   setAdditionalModels([...additionalModels, model])
+        // }
+        onAddAdditionalModel={addAdditionalModel}
         onSelectTexture={(tex) => setActiveTexture(tex)}
       />
     </div>

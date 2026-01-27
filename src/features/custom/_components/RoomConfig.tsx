@@ -10,28 +10,17 @@ export const CONFIG = {
 export const ROOM_DIMENSIONS = {
   wallHeight: 300,
   wallThickness: 10,
-  floorThickness: 9,
-  vinylThickness: 1,
+  floorThickness: 9.7,
+  vinylThickness: 0.3,
 } as const;
-
-// export const CAMERA_CONFIG = {
-//   alpha: -Math.PI / 2,
-//   beta: Math.PI / 2.1,
-//   radius: 600,
-//   targetY: 140,
-//   wheelPrecision: 1.0,
-//   lowerBetaLimit: 0.001,
-//   upperBetaLimit: Math.PI / 2.05,
-//   lowerRadiusLimit: 90,
-//   upperRadiusLimit: 1500,
-// } as const;
 
 export const CAMERA_CONFIG = {
   alpha: -Math.PI / 2,
-  beta: Math.PI / 2.2,
+  // beta: Math.PI / 2.2,
+  beta: Math.PI / 1.2,
   radius: 600,
   targetY: 140,
-  wheelPrecision: 1.0,
+  wheelPrecision: 0.2,
   lowerBetaLimit: 0.2,
   upperBetaLimit: Math.PI / 2.02,
   lowerRadiusLimit: 90,
@@ -42,32 +31,33 @@ export const CAMERA_CONFIG = {
 
 export const LIGHTING_CONFIG = {
   ambient: {
-    intensity: 0.8,
+    intensity: 0.5,
     diffuse: [1, 0.95, 0.85] as const,
-    groundColor: [0.6, 0.55, 0.45] as const,
+    // groundColor: [0.6, 0.55, 0.45] as const,
+    groundColor: [0.3, 0.3, 0.3] as const,
   },
   ceilingLamp: {
-    intensity: 5.5,
-    diffuse: [1, 0.92, 0.78] as const,
-    range: 2000,
+    intensity: 2.5,
+    diffuse: [1, 0.92, 0.8] as const,
+    range: 2500,
   },
   mainSpot: {
-    intensity: 8.0,
+    intensity: 7.0,
     diffuse: [1, 0.95, 0.85] as const,
     range: 800,
-    angle: Math.PI / 2.5,
-    exponent: 2,
+    angle: Math.PI / 6,
+    exponent: 8,
   },
 } as const;
 
 export const MATERIAL_CONFIG = {
   interior: {
     color: [0.95, 0.94, 0.92] as const,
-    roughness: 0.9,
+    roughness: 0.4,
     metallic: 0,
   },
   floor: {
-    roughness: 0.5,
+    roughness: 0.4,
     metallic: 0,
   },
   furniture: {
