@@ -21,6 +21,14 @@ const getProductName = (
       name: "Wine Cabinet",
       description: "Premium wine storage unit",
     },
+    "wooden_cupboard.glb": {
+      name: "Wooden Cupboard",
+      description: "Wooden storage unit",
+    },
+    "bismillah.glb": {
+      name: "Bismillah",
+      description: "Bismillah",
+    },
     "lemaritest.glb": {
       name: "TEST BENER",
       description: "test",

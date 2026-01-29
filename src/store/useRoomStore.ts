@@ -45,6 +45,7 @@ interface RoomData {
   mainModelTransform?: FurnitureTransform; // Posisi & rotasi main model
   additionalTransforms: FurnitureTransform[];
   roomConfig: RoomConfig;
+  showHuman: boolean;
 }
 
 interface RoomStore {
@@ -78,15 +79,16 @@ interface RoomStore {
     isMainModel: boolean,
   ) => void;
   captureCurrentState: () => void;
+  toggleHuman: () => void;
 }
 
 // State Awal
 const INITIAL_MAIN = "";
 const INITIAL_TEXTURE = "";
 const INITIAL_ROOM_CONFIG: RoomConfig = {
-  width: 600,
-  depth: 400,
-  height: 300,
+  width: 620,
+  depth: 420,
+  height: 320,
   wallColor: "#F2F0EB",
   floorTexture: "/assets/texture/wood-texture.jpg",
 };
@@ -99,6 +101,7 @@ const INITIAL_STATE: RoomData = {
   mainModelTransform: undefined,
   additionalTransforms: [],
   roomConfig: INITIAL_ROOM_CONFIG,
+  showHuman: false,
 };
 
 export const useRoomStore = create<RoomStore>((set) => ({
@@ -155,6 +158,12 @@ export const useRoomStore = create<RoomStore>((set) => ({
       };
     }),
 
+  toggleHuman: () =>
+    set((state) => ({
+      present: { ...state.present, showHuman: !state.present.showHuman },
+      // Gunakan update silent atau capture history tergantung keinginan Anda
+    })),
+
   addAdditionalModel: (model) =>
     set((state) => {
       const currentPresent = state.present;
@@ -171,7 +180,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
         ...currentPresent.additionalTransforms,
         {
           modelName: uniqueId,
-          position: { x: 0, y: 0, z: 0 }, // Placeholder, nanti di-update silent
+          position: { x: 0, y: 0, z: 0 },
           rotation: 0,
         },
       ];
@@ -206,6 +215,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
         future: [],
       };
     }),
+
   updateMainModelTransform: (transform) =>
     set((state) => ({
       present: {

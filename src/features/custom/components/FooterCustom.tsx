@@ -12,7 +12,8 @@ interface FooterCustomProps {
   onCustomizeClick: () => void;
 }
 export const FooterCustom = ({ onCustomizeClick }: FooterCustomProps) => {
-  const { undo, redo, past, future } = useRoomStore();
+  const { undo, redo, past, future, present, toggleHuman } = useRoomStore();
+  const isHumanActive = present.showHuman;
   const canUndo = past.length > 0;
   const canRedo = future.length > 0;
   return (
@@ -22,8 +23,15 @@ export const FooterCustom = ({ onCustomizeClick }: FooterCustomProps) => {
         <div className="cursor-pointer rounded-full bg-slate-900 p-3">
           <Moon className="h-5 w-5 text-white" />
         </div>
-        <div className="cursor-pointer rounded-full bg-slate-900 p-3">
-          <Columns2 className="h-5 w-5 text-white" />
+        <div
+          onClick={toggleHuman}
+          className={`cursor-pointer rounded-full p-3 transition-colors ${
+            isHumanActive
+              ? "bg-white text-slate-900"
+              : "bg-slate-900 text-white"
+          }`}
+        >
+          <Columns2 className="h-5 w-5" />
         </div>
         <div className="cursor-pointer rounded-full bg-slate-900 p-3">
           <Ruler className="h-5 w-5 text-white" />

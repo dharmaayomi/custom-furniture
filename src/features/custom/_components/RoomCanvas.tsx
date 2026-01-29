@@ -42,6 +42,8 @@ export const RoomCanvasThree = ({
   const mainMeshRef = useRef<BABYLON.AbstractMesh | null>(null);
   const present = useRoomStore((state) => state.present);
   const presentRef = useRef(present);
+  const showHuman = useRoomStore((state) => state.present.showHuman);
+  const humanRef = useRef<any>(null);
 
   useEffect(() => {
     presentRef.current = present;
@@ -91,6 +93,41 @@ export const RoomCanvasThree = ({
       engine.dispose();
     };
   }, []);
+
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    const handleHuman = async () => {
+      // Hapus jika sudah ada
+      if (humanRef.current) {
+        humanRef.current.dispose();
+        humanRef.current = null;
+      }
+
+      if (showHuman) {
+        let spawnPos = new BABYLON.Vector3(0, 0, 0);
+
+        if (mainMeshRef.current) {
+          // 1. Ambil bounding box untuk tahu lebar lemari
+          const boundingInfo =
+            mainMeshRef.current.getHierarchyBoundingVectors(true);
+          const width = boundingInfo.max.x - boundingInfo.min.x;
+          const depth = boundingInfo.max.z - boundingInfo.min.z;
+
+          // 2. Spawn di depan lemari
+          spawnPos = mainMeshRef.current.position
+            .clone()
+            .add(new BABYLON.Vector3(width / 2 + 60, 0, 20));
+        }
+
+        const human = await HumanHelper(scene, spawnPos);
+        humanRef.current = human;
+      }
+    };
+
+    handleHuman();
+  }, [showHuman]);
 
   useEffect(() => {
     if (!sceneRef.current || !shadowGenRef.current || !cameraRef.current)

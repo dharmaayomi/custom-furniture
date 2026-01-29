@@ -52,7 +52,7 @@ export const CustomizeRoomPanel = ({
           <h3 className="font-semibold text-gray-700">Dimensions</h3>
 
           <div className="space-y-2">
-            <Label>Width (cm): {roomConfig.width}</Label>
+            <Label>Width (cm): {roomConfig.width - 20}</Label>
             <Slider
               value={[roomConfig.width]}
               min={300}
@@ -64,7 +64,7 @@ export const CustomizeRoomPanel = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Depth (cm): {roomConfig.depth}</Label>
+            <Label>Depth (cm): {roomConfig.depth - 20}</Label>
             <Slider
               value={[roomConfig.depth]}
               min={300}
@@ -75,10 +75,10 @@ export const CustomizeRoomPanel = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Height (cm): {roomConfig.height}</Label>
+            <Label>Height (cm): {roomConfig.height - 20}</Label>
             <Slider
               value={[roomConfig.height]}
-              min={280}
+              min={290}
               max={500}
               step={10}
               onValueChange={([val]) => updateRoomConfig({ height: val })}
