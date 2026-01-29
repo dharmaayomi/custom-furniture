@@ -35,6 +35,7 @@ export interface FurnitureTransform {
   position: { x: number; y: number; z: number };
   rotation: number;
 }
+
 // --- 2. UPDATE INTERFACE ---
 interface RoomData {
   mainModel: string;
@@ -70,8 +71,13 @@ interface RoomStore {
     index: number,
     transform: FurnitureTransform,
     isMainModel: boolean,
-  ) => void; // ⭐ TAMBAH METHOD BARU
-  captureCurrentState: () => void; // Untuk save state saat drag end
+  ) => void;
+  updateTransformSilent: (
+    index: number,
+    transform: FurnitureTransform,
+    isMainModel: boolean,
+  ) => void;
+  captureCurrentState: () => void;
 }
 
 // State Awal
@@ -151,25 +157,40 @@ export const useRoomStore = create<RoomStore>((set) => ({
 
   addAdditionalModel: (model) =>
     set((state) => {
-      const newModels = [...state.present.additionalModels, model];
+      const currentPresent = state.present;
+      const uniqueId = `${model}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const newModels = [...currentPresent.additionalModels, uniqueId];
 
+      const extractModelName = (id: string) => {
+        const parts = id.split("_");
+        return parts.slice(0, -2).join("_");
+      };
+
+      // const newTransforms = [...state.present.additionalTransforms];
+      const newTransforms = [
+        ...currentPresent.additionalTransforms,
+        {
+          modelName: uniqueId,
+          position: { x: 0, y: 0, z: 0 }, // Placeholder, nanti di-update silent
+          rotation: 0,
+        },
+      ];
       const newPrice = calculateTotal(
         state.present.mainModel,
-        newModels,
+        newModels.map(extractModelName),
         state.present.activeTexture,
       );
-      const newTransforms = [...state.present.additionalTransforms];
       const newPresent = {
-        ...state.present,
+        ...currentPresent,
         additionalModels: newModels,
         totalPrice: newPrice,
-        additionalTransforms: newTransforms, // ⭐ TAMBAH INI
+        additionalTransforms: newTransforms,
       };
 
       return {
-        past: [...state.past, state.present],
+        past: [...state.past, currentPresent],
         present: newPresent,
-        future: [],
+        future: state.future,
       };
     }),
 
@@ -242,6 +263,32 @@ export const useRoomStore = create<RoomStore>((set) => ({
         past: [...state.past, state.present],
         present: state.present, // ⭐ Keep current present
         future: [], // Clear future
+      };
+    }),
+
+  updateTransformSilent: (index, transform, isMainModel) =>
+    set((state) => {
+      let newPresent;
+
+      if (isMainModel) {
+        newPresent = {
+          ...state.present,
+          mainModelTransform: transform,
+        };
+      } else {
+        const newTransforms = [...state.present.additionalTransforms];
+        newTransforms[index] = transform;
+        newPresent = {
+          ...state.present,
+          additionalTransforms: newTransforms,
+        };
+      }
+
+      // Return state tanpa mengubah 'past'
+      return {
+        past: state.past,
+        present: newPresent,
+        future: state.future,
       };
     }),
 

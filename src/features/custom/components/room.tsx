@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { FooterCustom } from "./FooterCustom";
+import * as BABYLON from "@babylonjs/core";
+
 import { HeaderCustom } from "./HeaderCustom";
 import { calculateTotalPrice, formatPrice } from "@/lib/price";
 import { useRoomStore } from "@/store/useRoomStore";
@@ -47,19 +49,12 @@ const ASSETS_TEXTURE = [
   "texture-of-dry-concrete-wall.jpg",
 ];
 export const RoomPage = () => {
-  const [cameraSystem, setCameraSystem] = useState<any>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isProductListOpen, setIsProductListOpen] = useState(false);
   const [showHomeSidebar, setShowHomeSidebar] = useState(false);
-  const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
-
+  const [scene, setScene] = useState<BABYLON.Scene | null>(null);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
   const [selectedTool, setSelectedTool] = useState<ToolType>(null);
-
-  // const [mainModel, setMainModel] = useState("wine_cabinet.glb");
-  // const [activeTexture, setActiveTexture] = useState("");
-  // const [additionalModels, setAdditionalModels] = useState<string[]>([]);
   const isAnyPanelOpen = activePanel !== null;
 
   const {
@@ -69,8 +64,6 @@ export const RoomPage = () => {
     addAdditionalModel,
     undo,
     redo,
-    past,
-    future,
   } = useRoomStore();
   const { mainModel, activeTexture, additionalModels } = present;
   const tools: Tool[] = [
@@ -127,22 +120,6 @@ export const RoomPage = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undo, redo]);
 
-  // const handleToolClick = (toolId: ToolType) => {
-  //   if (isProductListOpen) {
-  //     setIsProductListOpen(false);
-  //   }
-  //   if (showHomeSidebar) {
-  //     setShowHomeSidebar(false);
-  //   }
-  //   if (selectedTool === toolId && isSidebarOpen) {
-  //     setIsSidebarOpen(false);
-  //     setSelectedTool(null);
-  //   } else {
-  //     setIsSidebarOpen(true);
-  //     setSelectedTool(toolId);
-  //   }
-  // };
-
   const handleToolClick = (toolId: ToolType) => {
     if (activePanel === "sidebar" && selectedTool === toolId) {
       closePanel();
@@ -167,20 +144,6 @@ export const RoomPage = () => {
     setShowHomeSidebar(false);
   };
 
-  // const handleHomeClick = () => {
-  //   if (isProductListOpen) {
-  //     setIsProductListOpen(false);
-  //   }
-  //   setShowHomeSidebar(!showHomeSidebar);
-  //   if (showHomeSidebar) {
-  //     setIsSidebarOpen(false);
-  //     setSelectedTool(null);
-  //   } else {
-  //     setIsSidebarOpen(false);
-  //     setSelectedTool(null);
-  //   }
-  // };
-
   const handleHomeClick = () => {
     openPanel(activePanel === "home" ? null : "home");
   };
@@ -193,10 +156,6 @@ export const RoomPage = () => {
     openPanel("customize");
   };
 
-  const closeProductList = () => {
-    setIsProductListOpen(false);
-  };
-
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-100">
       <MenuModal
@@ -206,6 +165,7 @@ export const RoomPage = () => {
       />
       <CustomizeRoomPanel
         // isOpen={isCustomizeOpen}
+        scene={scene}
         isOpen={activePanel === "customize"}
         onClose={closePanel}
       />
@@ -239,7 +199,6 @@ export const RoomPage = () => {
           <div className="pointer-events-auto">
             <HeaderCustom
               onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
-              // onListClick={() => setIsProductListOpen(!isProductListOpen)}
               onListClick={handleOpenProductList}
               totalPrice={calculateTotalPrice(
                 mainModel,
@@ -259,6 +218,7 @@ export const RoomPage = () => {
             mainModel={mainModel}
             activeTexture={activeTexture}
             additionalModels={additionalModels}
+            onSceneReady={setScene}
           />
         </div>
 

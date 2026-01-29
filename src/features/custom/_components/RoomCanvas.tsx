@@ -12,11 +12,13 @@ import {
 import { useRoomStore } from "@/store/useRoomStore";
 import { setupAutoHideWalls, updateRoomDimensions } from "./MeshUtils_WallSnap";
 import { setupRoom } from "./RoomSetup";
+import { useDebounceValue } from "usehooks-ts";
 
 interface RoomCanvasProps {
   mainModel: string;
   activeTexture: string;
   additionalModels: string[];
+  onSceneReady?: (scene: BABYLON.Scene) => void;
 }
 
 const getAdditionalMeshes = (
@@ -32,11 +34,18 @@ export const RoomCanvasThree = ({
   mainModel,
   activeTexture,
   additionalModels,
+  onSceneReady,
 }: RoomCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<BABYLON.Scene | null>(null);
   const mainMeshRef = useRef<BABYLON.AbstractMesh | null>(null);
   const present = useRoomStore((state) => state.present);
+  const presentRef = useRef(present);
+
+  useEffect(() => {
+    presentRef.current = present;
+  }, [present]);
+
   const { roomConfig } = present;
   const shadowGenRef = useRef<BABYLON.ShadowGenerator | null>(null);
   const cameraRef = useRef<BABYLON.ArcRotateCamera | null>(null);
@@ -46,34 +55,10 @@ export const RoomCanvasThree = ({
     ceiling: BABYLON.Mesh;
     floorBase: BABYLON.Mesh;
   } | null>(null);
-
+  const [debouncedRoomConfig] = useDebounceValue(roomConfig, 150);
+  const [debouncedActiveTexture] = useDebounceValue(activeTexture, 150);
   // --- 1. INITIAL SCENE SETUP ---
-  // useEffect(() => {
-  //   if (!canvasRef.current) return;
-  //   const canvas = canvasRef.current;
-  //   const engine = new BABYLON.Engine(canvas, true);
 
-  //   const scene = createScene(canvas, engine);
-  //   sceneRef.current = scene;
-
-  //   engine.runRenderLoop(() => {
-  //     scene.render();
-  //   });
-
-  //   const handleResize = () => engine.resize();
-  //   window.addEventListener("resize", handleResize);
-
-  //   const resizeObserver = new ResizeObserver(() => engine.resize());
-  //   if (canvas.parentElement) {
-  //     resizeObserver.observe(canvas.parentElement);
-  //   }
-
-  //   return () => {
-  //     window.removeEventListener("resize", handleResize);
-  //     resizeObserver.disconnect();
-  //     engine.dispose();
-  //   };
-  // }, []);
   useEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
@@ -85,6 +70,14 @@ export const RoomCanvasThree = ({
     sceneRef.current = scene;
     shadowGenRef.current = shadowGen;
     cameraRef.current = camera as any;
+
+    if (onSceneReady) {
+      onSceneReady(scene);
+    }
+
+    engine.runRenderLoop(() => {
+      scene.render();
+    });
 
     engine.runRenderLoop(() => {
       scene.render();
@@ -104,6 +97,7 @@ export const RoomCanvasThree = ({
 
     const scene = sceneRef.current;
     const shadowGen = shadowGenRef.current;
+    const camera = cameraRef.current;
 
     // Bersihkan mesh lama
     if (roomMeshesRef.current) {
@@ -112,27 +106,26 @@ export const RoomCanvasThree = ({
       roomMeshesRef.current.ceiling.dispose();
       roomMeshesRef.current.floorBase.dispose();
 
-      // Remove from shadow caster
       shadowGen.removeShadowCaster(roomMeshesRef.current.ceiling);
       roomMeshesRef.current.walls.forEach((w) =>
         shadowGen.removeShadowCaster(w),
       );
     }
 
-    // Buat ruangan baru dengan config dari store
-    const newRoomMeshes = setupRoom(scene, roomConfig);
-    roomMeshesRef.current = newRoomMeshes;
+    const newRoomMeshes = setupRoom(scene, debouncedRoomConfig);
+    scene.executeWhenReady(() => {
+      roomMeshesRef.current = newRoomMeshes;
 
-    // Setup ulang shadow dan auto-hide
-    shadowGen.addShadowCaster(newRoomMeshes.ceiling);
-    newRoomMeshes.walls.forEach((w) => shadowGen.addShadowCaster(w));
+      shadowGen.addShadowCaster(newRoomMeshes.ceiling);
+      newRoomMeshes.walls.forEach((w) => shadowGen.addShadowCaster(w));
 
-    // Panggil ulang logika auto-hide walls
-    setupAutoHideWalls(scene, newRoomMeshes.walls, cameraRef.current);
-  }, [roomConfig]); // Trigger saat config berubah
+      setupAutoHideWalls(scene, newRoomMeshes.walls, camera);
+      updateRoomDimensions(scene);
+    });
+  }, [debouncedRoomConfig]);
+
   // --- 2. LOAD MAIN MODEL ---
   useEffect(() => {
-    // Hapus "!mainModel" dari pengecekan awal
     if (!sceneRef.current) return;
     const scene = sceneRef.current;
 
@@ -144,9 +137,22 @@ export const RoomCanvasThree = ({
       }
 
       // 2. Hanya load model baru jika string mainModel TIDAK kosong
+
       if (mainModel) {
-        const mesh = await loadMainModel(mainModel, activeTexture, scene);
+        const savedTransform = presentRef.current.mainModelTransform;
+        const mesh = await loadMainModel(
+          mainModel,
+          activeTexture,
+          scene,
+          savedTransform,
+        );
         mainMeshRef.current = mesh;
+        // Restore posisi main model jika ada di store (untuk undo/redo)
+        // const t = presentRef.current.mainModelTransform;
+        // if (t && mesh) {
+        //   mesh.position.set(t.position.x, t.position.y, t.position.z);
+        //   mesh.rotation.y = t.rotation;
+        // }
       }
     };
 
@@ -161,45 +167,88 @@ export const RoomCanvasThree = ({
     const syncModels = async () => {
       const currentMeshes = getAdditionalMeshes(scene, mainMeshRef.current);
 
-      // KASUS A: Store lebih banyak -> TAMBAH mesh
-      if (additionalModels.length > currentMeshes.length) {
-        const indexToAdd = currentMeshes.length;
-        const modelToLoad = additionalModels[indexToAdd];
+      console.log("🔄 Syncing models...");
+      console.log("📦 Store has:", additionalModels);
+      console.log(
+        "🎭 Scene has:",
+        currentMeshes.map((m) => m.name),
+      );
 
-        if (modelToLoad) {
+      //   // ✅ STEP 1: Buat map dari mesh yang ada di scene
+      //   const sceneMeshMap = new Map<string, BABYLON.AbstractMesh>();
+      //   currentMeshes.forEach((m) => sceneMeshMap.set(m.name, m));
+
+      //   // ✅ STEP 2: Hapus mesh yang TIDAK ada di store
+      //   currentMeshes.forEach((mesh) => {
+      //     if (!additionalModels.includes(mesh.name)) {
+      //       console.log("🗑️ Removing mesh:", mesh.name);
+      //       mesh.dispose();
+      //     }
+      //   });
+
+      //   // ✅ STEP 3: Tambah mesh yang ada di store tapi BELUM di scene
+      //   for (let i = 0; i < additionalModels.length; i++) {
+      //     const uniqueId = additionalModels[i];
+      //     // ✅ Extract actual model filename dari unique ID
+      //     const parts = uniqueId.split("_");
+      //     const modelName = parts.slice(0, -2).join("_");
+      //     if (!sceneMeshMap.has(uniqueId)) {
+      //       // ✅ Check by unique ID
+      //       console.log("➕ Loading mesh:", uniqueId);
+      //       await loadAdditionalModel(
+      //         modelName,
+      //         activeTexture,
+      //         scene,
+      //         mainMeshRef.current,
+      //       );
+      //     }
+      //   }
+
+      //   console.log("✅ Sync complete");
+      // };
+      currentMeshes.forEach((mesh) => {
+        if (!additionalModels.includes(mesh.name)) {
+          mesh.dispose();
+        }
+      });
+
+      // Load Mesh baru atau Sync Mesh yang hilang
+      // Kita iterasi berdasarkan index di additionalModels untuk mencocokkan dengan transforms
+      for (let i = 0; i < additionalModels.length; i++) {
+        const uniqueId = additionalModels[i];
+
+        // Cek apakah mesh sudah ada di scene
+        const existingMesh = scene.getMeshByName(uniqueId);
+
+        if (!existingMesh) {
+          // Extract nama file asli
+          const parts = uniqueId.split("_");
+          const modelName = parts.slice(0, -2).join("_");
+
+          // AMBIL TRANSFORM DARI STORE BERDASARKAN INDEX
+          // Pastikan additionalTransforms di store sinkron dengan additionalModels array
+          const savedTransform = presentRef.current.additionalTransforms[i];
+
           await loadAdditionalModel(
-            modelToLoad,
+            modelName,
             activeTexture,
             scene,
             mainMeshRef.current,
+            savedTransform, // <-- Kirim data history
           );
         }
       }
-      // KASUS B: Scene lebih banyak -> HAPUS mesh (UNDO)
-      else if (currentMeshes.length > additionalModels.length) {
-        const diff = currentMeshes.length - additionalModels.length;
-
-        // Hapus mesh dari belakang (LIFO)
-        for (let i = 0; i < diff; i++) {
-          const meshToRemove = currentMeshes[currentMeshes.length - 1 - i];
-          if (meshToRemove) {
-            // console.log("🗑️ Removing mesh:", meshToRemove.name);
-            meshToRemove.dispose();
-          }
-        }
-      }
     };
-
     syncModels();
-  }, [additionalModels.length]); // Trigger saat jumlah berubah
+  }, [additionalModels]); // Trigger saat jumlah berubah
 
   // --- 4. UPDATE TEXTURE ---
   useEffect(() => {
-    if (!sceneRef.current || !activeTexture) return;
+    if (!sceneRef.current || !debouncedActiveTexture) return;
     const scene = sceneRef.current;
 
-    updateAllTextures(scene, activeTexture, mainMeshRef.current);
-  }, [activeTexture]);
+    updateAllTextures(scene, debouncedActiveTexture, mainMeshRef.current);
+  }, [debouncedActiveTexture]);
 
   // ⭐ --- 5. RESTORE POSITIONS SAAT UNDO/REDO ---
   useEffect(() => {
@@ -254,37 +303,6 @@ export const RoomCanvasThree = ({
     });
   }, [present.mainModelTransform, present.additionalTransforms]);
 
-  useEffect(() => {
-    if (!sceneRef.current || !shadowGenRef.current || !cameraRef.current)
-      return;
-
-    const scene = sceneRef.current;
-    const shadowGen = shadowGenRef.current;
-
-    // Bersihkan mesh lama
-    if (roomMeshesRef.current) {
-      roomMeshesRef.current.walls.forEach((w) => w.dispose());
-      roomMeshesRef.current.floorVinyl.dispose();
-      roomMeshesRef.current.ceiling.dispose();
-      roomMeshesRef.current.floorBase.dispose();
-
-      // Remove from shadow caster
-      shadowGen.removeShadowCaster(roomMeshesRef.current.ceiling);
-      roomMeshesRef.current.walls.forEach((w) =>
-        shadowGen.removeShadowCaster(w),
-      );
-    }
-
-    const newRoomMeshes = setupRoom(scene, roomConfig);
-    roomMeshesRef.current = newRoomMeshes;
-
-    shadowGen.addShadowCaster(newRoomMeshes.ceiling);
-    newRoomMeshes.walls.forEach((w) => shadowGen.addShadowCaster(w));
-
-    setupAutoHideWalls(scene, newRoomMeshes.walls, cameraRef.current);
-
-    updateRoomDimensions(scene);
-  }, [roomConfig]); // Trigger saat config berubah
   return (
     <canvas ref={canvasRef} className="h-full w-full touch-none outline-none" />
   );
