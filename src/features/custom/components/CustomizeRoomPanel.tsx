@@ -78,7 +78,7 @@ export const CustomizeRoomPanel = ({
             <Label>Height (cm): {roomConfig.height}</Label>
             <Slider
               value={[roomConfig.height]}
-              min={240}
+              min={280}
               max={500}
               step={10}
               onValueChange={([val]) => updateRoomConfig({ height: val })}

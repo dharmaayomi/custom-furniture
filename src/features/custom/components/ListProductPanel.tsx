@@ -21,6 +21,14 @@ const getProductName = (
       name: "Wine Cabinet",
       description: "Premium wine storage unit",
     },
+    "lemaritest.glb": {
+      name: "TEST BENER",
+      description: "test",
+    },
+    "test.glb": {
+      name: "test",
+      description: "test",
+    },
     "cupboard.glb": {
       name: "Cupboard",
       description: "Modern storage Cupboard",
@@ -53,10 +61,7 @@ const getProductName = (
       name: "Wall Cupboard",
       description: "Wall-mounted storage",
     },
-    "man.glb": {
-      name: "Decoration",
-      description: "Decorative element",
-    },
+
     "rakayolahkaliinibener.glb": {
       name: "Storage Cabinet",
       description: "storage cabinet",

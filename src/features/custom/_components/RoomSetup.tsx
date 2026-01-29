@@ -1,4 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
+import earcut from "earcut";
 import { ROOM_DIMENSIONS, MATERIAL_CONFIG, TEXTURE_PATHS } from "./RoomConfig";
 import { RoomConfig } from "@/store/useRoomStore";
 
@@ -6,6 +7,9 @@ import { RoomConfig } from "@/store/useRoomStore";
 const hexToColor3 = (hex: string) => {
   return BABYLON.Color3.FromHexString(hex);
 };
+if (typeof window !== "undefined") {
+  (window as any).earcut = earcut;
+}
 
 const materialCache = new Map<string, BABYLON.PBRMaterial>();
 const textureCache = new Map<string, BABYLON.Texture>();

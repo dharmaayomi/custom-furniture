@@ -46,7 +46,7 @@ export const loadMainModel = async (
     });
 
     // Auto scale
-    const scaleFactor = autoScaleMesh(rootMesh, 80);
+    const scaleFactor = autoScaleMesh(rootMesh, 240);
 
     // Calculate dimensions after scaling
     rootMesh.computeWorldMatrix(true);
@@ -167,7 +167,7 @@ export const loadAdditionalModel = async (
     });
 
     // Auto scale
-    autoScaleMesh(rootMesh, 80);
+    autoScaleMesh(rootMesh, 240);
 
     // Calculate dimensions after scaling
     rootMesh.computeWorldMatrix(true);
@@ -385,6 +385,7 @@ export const loadAdditionalModel = async (
 /**
  * Update texture on all furniture meshes
  */
+
 export const updateAllTextures = (
   scene: BABYLON.Scene,
   activeTexture: string,

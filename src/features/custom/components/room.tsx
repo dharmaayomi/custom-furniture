@@ -25,13 +25,14 @@ import { SidebarPanel } from "./SidebarPanel";
 
 const ASSETS_3D = [
   "wine_cabinet.glb",
+  "lemaritest.glb",
+  "test.glb",
   "drawer-2.glb",
   "cupboard.glb",
   "cabinet-2.glb",
   "cabinet-1.glb",
   "cabinet.glb",
   "chair-1.glb",
-  "man.glb",
   "wall_cupboard.glb",
   "rak-1.glb",
   "rakayolahkaliinibener.glb",

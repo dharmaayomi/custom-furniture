@@ -13,6 +13,7 @@ import { useRoomStore } from "@/store/useRoomStore";
 import { setupAutoHideWalls, updateRoomDimensions } from "./MeshUtils_WallSnap";
 import { setupRoom } from "./RoomSetup";
 import { useDebounceValue } from "usehooks-ts";
+import { HumanHelper } from "./HumanHelper";
 
 interface RoomCanvasProps {
   mainModel: string;
@@ -78,10 +79,10 @@ export const RoomCanvasThree = ({
     engine.runRenderLoop(() => {
       scene.render();
     });
-
-    engine.runRenderLoop(() => {
-      scene.render();
-    });
+    // HumanHelper(scene, new BABYLON.Vector3(0, 0, 0));
+    // engine.runRenderLoop(() => {
+    //   scene.render();
+    // });
     const handleResize = () => engine.resize();
     window.addEventListener("resize", handleResize);
 
@@ -147,12 +148,6 @@ export const RoomCanvasThree = ({
           savedTransform,
         );
         mainMeshRef.current = mesh;
-        // Restore posisi main model jika ada di store (untuk undo/redo)
-        // const t = presentRef.current.mainModelTransform;
-        // if (t && mesh) {
-        //   mesh.position.set(t.position.x, t.position.y, t.position.z);
-        //   mesh.rotation.y = t.rotation;
-        // }
       }
     };
 
@@ -174,38 +169,6 @@ export const RoomCanvasThree = ({
         currentMeshes.map((m) => m.name),
       );
 
-      //   // ✅ STEP 1: Buat map dari mesh yang ada di scene
-      //   const sceneMeshMap = new Map<string, BABYLON.AbstractMesh>();
-      //   currentMeshes.forEach((m) => sceneMeshMap.set(m.name, m));
-
-      //   // ✅ STEP 2: Hapus mesh yang TIDAK ada di store
-      //   currentMeshes.forEach((mesh) => {
-      //     if (!additionalModels.includes(mesh.name)) {
-      //       console.log("🗑️ Removing mesh:", mesh.name);
-      //       mesh.dispose();
-      //     }
-      //   });
-
-      //   // ✅ STEP 3: Tambah mesh yang ada di store tapi BELUM di scene
-      //   for (let i = 0; i < additionalModels.length; i++) {
-      //     const uniqueId = additionalModels[i];
-      //     // ✅ Extract actual model filename dari unique ID
-      //     const parts = uniqueId.split("_");
-      //     const modelName = parts.slice(0, -2).join("_");
-      //     if (!sceneMeshMap.has(uniqueId)) {
-      //       // ✅ Check by unique ID
-      //       console.log("➕ Loading mesh:", uniqueId);
-      //       await loadAdditionalModel(
-      //         modelName,
-      //         activeTexture,
-      //         scene,
-      //         mainMeshRef.current,
-      //       );
-      //     }
-      //   }
-
-      //   console.log("✅ Sync complete");
-      // };
       currentMeshes.forEach((mesh) => {
         if (!additionalModels.includes(mesh.name)) {
           mesh.dispose();
@@ -258,11 +221,6 @@ export const RoomCanvasThree = ({
       // console.log("⚠️ No scene ref");
       return;
     }
-
-    // console.log("📦 Present state:", {
-    //   mainTransform: present.mainModelTransform,
-    //   additionalTransforms: present.additionalTransforms,
-    // });
 
     // Restore main model transform
     if (present.mainModelTransform && mainMeshRef.current) {

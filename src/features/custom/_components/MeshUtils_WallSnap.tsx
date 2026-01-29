@@ -506,7 +506,7 @@ export const addDragBehavior = (
     const rw = roomConfig.width;
     const rd = roomConfig.depth;
 
-    // ⭐ THRESHOLD DINAMIS
+    //  THRESHOLD DINAMIS
     const SWITCH_THRESHOLD_PERCENT = 0.01; // 15%
     const switchThreshold = Math.min(rw, rd) * SWITCH_THRESHOLD_PERCENT;
 
@@ -537,21 +537,21 @@ export const addDragBehavior = (
     // Update current wall
     currentWall = targetWall;
 
-    // ⭐ CRITICAL FIX: Tentukan rotasi DULU sebelum hitung posisi
+    //  CRITICAL FIX: Tentukan rotasi DULU sebelum hitung posisi
     let targetRotation = 0;
     if (targetWall === "back") targetRotation = Math.PI;
     else if (targetWall === "front") targetRotation = 0;
     else if (targetWall === "right") targetRotation = -Math.PI / 2;
     else if (targetWall === "left") targetRotation = Math.PI / 2;
 
-    // ⭐ FIX ROTASI GLITCH: Matikan quaternion dan set rotasi dengan bersih
+    //  FIX ROTASI GLITCH: Matikan quaternion dan set rotasi dengan bersih
     if (mesh.rotationQuaternion) {
       mesh.rotationQuaternion = null;
     }
     mesh.rotation.y = targetRotation;
     mesh.computeWorldMatrix(true);
 
-    // ⭐ SNAP KE TEMBOK - Gunakan getWallSnapPosition
+    //  SNAP KE TEMBOK - Gunakan getWallSnapPosition
     const snapPos = getWallSnapPosition(
       targetWall,
       mesh,

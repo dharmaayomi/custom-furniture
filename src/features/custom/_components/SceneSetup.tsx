@@ -151,9 +151,6 @@ export const createScene = (
   // Setup pointer interactions
   setupPointerInteractions(scene, canvas);
 
-  // Debug helpers (bisa dibuat ulang nanti jika dimensi berubah, atau dihapus)
-  // createDebugHelpers(scene); // Opsional: matikan dulu atau update agar dinamis
-
   // RETURN object references
   return { scene, camera, shadowGen };
 };
