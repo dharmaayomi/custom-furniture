@@ -126,14 +126,23 @@ const getOrCreateMaterial = (
 export const getMeshAABB = (mesh: BABYLON.AbstractMesh): BoundingBox => {
   mesh.computeWorldMatrix(true);
 
-  // Pastikan hanya menghitung mesh yang terlihat (isVisible)
+  //  2. PAKSA refresh bounding info dulu
+  mesh.refreshBoundingInfo(true, true);
+
+  //  3. Update bounding untuk semua children
+  mesh.getChildMeshes().forEach((child) => {
+    child.computeWorldMatrix(true);
+    child.refreshBoundingInfo(true, true);
+  });
+
+  //  4. SEKARANG baru ambil bounding yang sudah di-refresh
   const bounds = mesh.getHierarchyBoundingVectors(
     true,
     (node) => node.isVisible,
   );
 
   return {
-    minX: bounds.min.x, // Gunakan nilai asli, jangan dihitung manual dari position
+    minX: bounds.min.x,
     maxX: bounds.max.x,
     minZ: bounds.min.z,
     maxZ: bounds.max.z,
@@ -487,55 +496,41 @@ export const addDragBehavior = (
   mesh: BABYLON.AbstractMesh,
   scene: BABYLON.Scene,
 ) => {
-  // const pointerDragBehavior = new BABYLON.PointerDragBehavior({
-  //   dragPlaneNormal: new BABYLON.Vector3(0, 1, 0),
-  // });
-
-  // // 2. PENTING: Agar seluruh ujung/bagian model bisa di-klik untuk drag
-  // pointerDragBehavior.dragDeltaRatio = 0.5;
-  // pointerDragBehavior.moveAttached = true;
-
-  // // 3. Tambahkan ke mesh root
-  // mesh.addBehavior(pointerDragBehavior);
-
-  // // 4. VALIDASI AREA KLIK:
-  // mesh.getChildMeshes().forEach((child) => {
-  //   child.isPickable = true;
-  //   // Memastikan pointer drag mengenali child sebagai bagian dari satu kesatuan
-  //   child.actionManager = mesh.actionManager;
-  // });
-
-  // pointerDragBehavior.onDragStartObservable.add(() => {
-  //   // Logika highlight yang kita bahas sebelumnya bisa ditaruh di sini
-  //   console.log("Drag dimulai dari bagian mana saja pada model");
-  // });
-
   const dragBehavior = new BABYLON.PointerDragBehavior({
     dragPlaneNormal: new BABYLON.Vector3(0, 1, 0),
   });
-  // dragBehavior.options.dragButtons = [0, 1, 2];
-  // YANG EMNIHHHHHH
-  dragBehavior.moveAttached = false;
-  dragBehavior.updateDragPlane = true;
 
+  dragBehavior.moveAttached = false;
+  dragBehavior.validateDrag = () => true;
+  dragBehavior.useObjectOrientationForDragging = false;
+
+  //  SIMPLE APPROACH: Bikin mesh DAN children pickable
+  // Babylon.js akan otomatis detect parent yang punya behavior
+  mesh.isPickable = true;
   mesh.getChildMeshes().forEach((child) => {
     child.isPickable = true;
   });
-  dragBehavior.options.dragPlaneNormal = new BABYLON.Vector3(0, 1, 0);
-  dragBehavior.validateDrag = () => true;
 
-  dragBehavior.useObjectOrientationForDragging = false;
+  //  Attach behavior LANGSUNG ke root mesh
+  mesh.addBehavior(dragBehavior);
 
-  // ----------------------------------------------------
-
+  // State tracking
   let previousValidPosition = mesh.position.clone();
   let previousValidRotation = mesh.rotation.y;
   let currentWall: WallSide | null = null;
 
+  // ==================== DRAG START ====================
   dragBehavior.onDragStartObservable.add(() => {
     updateRoomDimensions();
 
-    dragBehavior.attachedNode = mesh;
+    const furnitureY = mesh.position.y;
+    const dragPlane = BABYLON.Plane.FromPositionAndNormal(
+      new BABYLON.Vector3(0, furnitureY, 0), // Plane di tinggi furniture
+      new BABYLON.Vector3(0, 1, 0), // Normal ke atas
+    );
+
+    // Override drag plane behavior
+    (dragBehavior as any).currentDraggingPlane = dragPlane;
 
     const hl = scene.getHighlightLayerByName("hl1");
     if (hl) {
@@ -544,6 +539,7 @@ export const addDragBehavior = (
         hl.addMesh(m as BABYLON.Mesh, BABYLON.Color3.FromHexString("#f59e0b"));
       });
     }
+
     if (mesh.rotationQuaternion) {
       mesh.rotation = mesh.rotationQuaternion.toEulerAngles();
       mesh.rotationQuaternion = null;
@@ -554,6 +550,7 @@ export const addDragBehavior = (
 
     const { captureCurrentState } = useRoomStore.getState();
     captureCurrentState();
+
     // Detect current wall dari posisi
     const { roomConfig } = useRoomStore.getState().present;
     const rw = roomConfig.width;
@@ -576,13 +573,14 @@ export const addDragBehavior = (
     if (canvas) canvas.style.cursor = "grabbing";
   });
 
+  // ==================== DRAG (MOVING) ====================
   dragBehavior.onDragObservable.add((event) => {
     const pointerPos = event.dragPlanePoint;
     const { roomConfig } = useRoomStore.getState().present;
     const rw = roomConfig.width;
     const rd = roomConfig.depth;
 
-    //  THRESHOLD DINAMIS
+    // THRESHOLD DINAMIS
     const SWITCH_THRESHOLD_PERCENT = 0.01;
     const switchThreshold = Math.min(rw, rd) * SWITCH_THRESHOLD_PERCENT;
 
@@ -605,88 +603,125 @@ export const addDragBehavior = (
     let targetWall: WallSide = currentWall || nearestWall;
 
     if (minDist < switchThreshold) {
-      if (nearestWall !== currentWall) {
-      }
       targetWall = nearestWall;
     }
 
     // Update current wall
     currentWall = targetWall;
 
-    //  CRITICAL FIX: Tentukan rotasi DULU sebelum hitung posisi
+    // Tentukan rotasi target
     let targetRotation = 0;
     if (targetWall === "back") targetRotation = Math.PI;
     else if (targetWall === "front") targetRotation = 0;
     else if (targetWall === "right") targetRotation = -Math.PI / 2;
     else if (targetWall === "left") targetRotation = Math.PI / 2;
 
-    //  FIX ROTASI GLITCH: Matikan quaternion dan set rotasi dengan bersih
+    //  STEP 1: SIMPAN posisi & rotasi current
+    const savedPosition = mesh.position.clone();
+    const savedRotation = mesh.rotation.y;
+
+    //  STEP 2: SIMULASI posisi baru
     if (mesh.rotationQuaternion) {
       mesh.rotationQuaternion = null;
     }
     mesh.rotation.y = targetRotation;
     mesh.computeWorldMatrix(true);
 
-    //  SNAP KE TEMBOK - Gunakan getWallSnapPosition
-    const snapPos = getWallSnapPosition(
-      targetWall,
-      mesh,
-      pointerPos,
-      undefined,
-    );
+    const snapPos = getWallSnapPosition(targetWall, mesh, pointerPos);
 
-    // Apply posisi hasil snap (BUKAN posisi pointer!)
+    const originalY = mesh.position.y;
     mesh.position.x = snapPos.x;
     mesh.position.z = snapPos.z;
-
-    // Cek collision (updated)
+    mesh.position.y = originalY;
     mesh.computeWorldMatrix(true);
 
+    //  STEP 3: CEK collision dengan posisi simulasi
     const allFurniture = getAllFurniture(scene, mesh);
-    const myBoxAtTarget = getMeshAABB(mesh);
-    let collidingFurniture: BABYLON.AbstractMesh | null = null;
+    const myBox = getMeshAABB(mesh);
 
+    let collidingFurniture: BABYLON.AbstractMesh | null = null;
     for (const other of allFurniture) {
-      if (checkAABBOverlap(myBoxAtTarget, getMeshAABB(other))) {
+      const otherBox = getMeshAABB(other);
+      if (checkAABBOverlap(myBox, otherBox)) {
         collidingFurniture = other;
         break;
       }
     }
 
+    //  STEP 4: Handle collision
     if (collidingFurniture) {
+      // Revert ke posisi saved dulu
+      mesh.position.copyFrom(savedPosition);
+      mesh.rotation.y = savedRotation;
+      mesh.computeWorldMatrix(true);
+
+      // Hitung posisi "push away"
       const otherBox = getMeshAABB(collidingFurniture);
       const dragDirection = pointerPos.x - previousValidPosition.x;
 
-      let targetX: number;
+      let safeX: number;
       if (dragDirection > 0) {
-        targetX = otherBox.maxX + myBoxAtTarget.width / 2 + 2;
+        // Geser ke kanan dari furniture lain
+        safeX = otherBox.maxX + myBox.width / 2 + 2;
       } else {
-        targetX = otherBox.minX - myBoxAtTarget.width / 2 - 2;
+        // Geser ke kiri dari furniture lain
+        safeX = otherBox.minX - myBox.width / 2 - 2;
       }
 
-      const newSnapPos = getWallSnapPosition(
+      // Set rotasi lagi untuk safe position
+      mesh.rotation.y = targetRotation;
+      mesh.computeWorldMatrix(true);
+
+      // Test posisi safe
+      const safePushPos = getWallSnapPosition(
         targetWall,
         mesh,
-        new BABYLON.Vector3(targetX, 0, pointerPos.z),
+        new BABYLON.Vector3(safeX, 0, snapPos.z),
       );
 
-      mesh.position.x = newSnapPos.x;
-      mesh.position.z = newSnapPos.z;
+      mesh.position.x = safePushPos.x;
+      mesh.position.z = safePushPos.z;
+      mesh.position.y = originalY;
+      mesh.computeWorldMatrix(true);
+
+      // Validasi final: cek lagi apakah masih overlap
+      const finalBox = getMeshAABB(mesh);
+      let stillHasCollision = false;
+
+      for (const other of allFurniture) {
+        const otherBox = getMeshAABB(other);
+        if (checkAABBOverlap(finalBox, otherBox)) {
+          stillHasCollision = true;
+          break;
+        }
+      }
+
+      if (stillHasCollision) {
+        // Masih collision, kembalikan ke posisi valid terakhir
+        mesh.position.copyFrom(previousValidPosition);
+        mesh.rotation.y = previousValidRotation;
+        mesh.computeWorldMatrix(true);
+      } else {
+        // Aman, update previous valid
+        previousValidPosition.copyFrom(mesh.position);
+        previousValidRotation = mesh.rotation.y;
+      }
     } else {
+      // Tidak ada collision, posisi aman
       previousValidPosition.copyFrom(mesh.position);
       previousValidRotation = mesh.rotation.y;
     }
   });
 
+  // ==================== DRAG END ====================
   dragBehavior.onDragEndObservable.add(() => {
-    // console.log("🔴 DRAG END - Starting");
-
     const allFurniture = getAllFurniture(scene, mesh);
     const myBox = getMeshAABB(mesh);
     let hasCollision = false;
 
     for (const other of allFurniture) {
-      if (checkAABBOverlap(myBox, getMeshAABB(other))) {
+      const otherBox = getMeshAABB(other);
+      if (checkAABBOverlap(myBox, otherBox)) {
         hasCollision = true;
         break;
       }
@@ -695,6 +730,7 @@ export const addDragBehavior = (
     if (hasCollision) {
       mesh.position.copyFrom(previousValidPosition);
       mesh.rotation.y = previousValidRotation;
+      mesh.computeWorldMatrix(true);
     } else {
       // SAVE TRANSFORM WITH HISTORY
       const { saveTransformToHistory } = useRoomStore.getState();
@@ -709,17 +745,8 @@ export const addDragBehavior = (
         rotation: mesh.rotation.y,
       };
 
-      // console.log("💾 Transform to save:", transform);
-
       const allFurnitureMeshes = getAllFurniture(scene);
       const meshIndex = allFurnitureMeshes.indexOf(mesh);
-
-      // console.log(
-      //   "🔍 Mesh index:",
-      //   meshIndex,
-      //   "Total furniture:",
-      //   allFurnitureMeshes.length,
-      // );
 
       if (meshIndex === 0) {
         saveTransformToHistory(0, transform, true);
@@ -728,11 +755,15 @@ export const addDragBehavior = (
       }
     }
 
+    // Clear highlight
+    const hl = scene.getHighlightLayerByName("hl1");
+    if (hl) {
+      hl.removeAllMeshes();
+    }
+
     const canvas = scene.getEngine().getRenderingCanvas();
     if (canvas) canvas.style.cursor = "grab";
   });
-
-  mesh.addBehavior(dragBehavior);
 };
 
 // ============================================================================
@@ -747,17 +778,22 @@ export const setupPointerInteractions = (
     if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE) {
       const pick = scene.pick(scene.pointerX, scene.pointerY);
 
-      // Jika sedang dragging, jangan timpa kursor
+      //  Jangan override cursor saat drag
       if (canvas.getAttribute("data-visual-cue") === "dragged") return;
 
       if (pick.hit && pick.pickedMesh) {
         let target = pick.pickedMesh;
 
-        // Mencari root furniture agar hitbox konsisten
-        while (target.parent && target.metadata !== "furniture") {
+        //  Traverse ke atas sampai ketemu furniture root
+        // ATAU sampai ga ada parent lagi
+        while (target.parent) {
+          if (target.metadata === "furniture") {
+            break; // Ketemu furniture root, stop
+          }
           target = target.parent as BABYLON.AbstractMesh;
         }
 
+        //  Cek lagi setelah traverse
         if (target.metadata === "furniture") {
           canvas.style.cursor = "grab";
           canvas.setAttribute("data-visual-cue", "hover");
