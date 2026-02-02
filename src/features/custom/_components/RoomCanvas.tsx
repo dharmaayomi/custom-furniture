@@ -14,6 +14,7 @@ import { setupAutoHideWalls, updateRoomDimensions } from "./MeshUtils_WallSnap";
 import { setupRoom } from "./RoomSetup";
 import { useDebounceValue } from "usehooks-ts";
 import { HumanHelper } from "./HumanHelper";
+import { on } from "events";
 
 interface RoomCanvasProps {
   mainModel: string;
@@ -44,6 +45,7 @@ export const RoomCanvasThree = ({
   const presentRef = useRef(present);
   const showHuman = useRoomStore((state) => state.present.showHuman);
   const humanRef = useRef<any>(null);
+  const hlRef = useRef<BABYLON.HighlightLayer | null>(null);
 
   useEffect(() => {
     presentRef.current = present;
@@ -65,12 +67,38 @@ export const RoomCanvasThree = ({
   useEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
-    const engine = new BABYLON.Engine(canvas, true);
+    // const engine = new BABYLON.Engine(canvas, true);
+    const engine = new BABYLON.Engine(canvas, true, {
+      adaptToDeviceRatio: true,
+    });
 
     // Ambil references dari createScene yang sudah dimodifikasi
-    const { scene, shadowGen, camera } = createScene(canvas, engine);
+    const { scene, shadowGen, camera, hl } = createScene(canvas, engine);
 
     sceneRef.current = scene;
+    hlRef.current = hl;
+    scene.onPointerDown = (evt, pickResult) => {
+      if (pickResult.hit && pickResult.pickedMesh) {
+        let targetMesh = pickResult.pickedMesh;
+
+        while (targetMesh.parent && targetMesh.metadata !== "furniture") {
+          targetMesh = targetMesh.parent as BABYLON.AbstractMesh;
+        }
+
+        if (targetMesh.metadata === "furniture") {
+          hl.removeAllMeshes();
+
+          targetMesh.getChildMeshes().forEach((m) => {
+            hl.addMesh(
+              m as BABYLON.Mesh,
+              BABYLON.Color3.FromHexString("#f59e0b"),
+            );
+          });
+        } else {
+          hl.removeAllMeshes();
+        }
+      }
+    };
     shadowGenRef.current = shadowGen;
     cameraRef.current = camera as any;
 
@@ -85,21 +113,25 @@ export const RoomCanvasThree = ({
     // engine.runRenderLoop(() => {
     //   scene.render();
     // });
-    const handleResize = () => engine.resize();
+
+    const handleResize = () => {
+      engine.resize();
+    };
     window.addEventListener("resize", handleResize);
 
+    // 4. SATU Fungsi Cleanup (Gabungkan semua di sini)
     return () => {
       window.removeEventListener("resize", handleResize);
       engine.dispose();
     };
-  }, []);
+  }, [onSceneReady]);
 
+  // human helper
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
 
     const handleHuman = async () => {
-      // Hapus jika sudah ada
       if (humanRef.current) {
         humanRef.current.dispose();
         humanRef.current = null;
@@ -129,6 +161,7 @@ export const RoomCanvasThree = ({
     handleHuman();
   }, [showHuman]);
 
+  // update room dimension
   useEffect(() => {
     if (!sceneRef.current || !shadowGenRef.current || !cameraRef.current)
       return;
@@ -199,13 +232,6 @@ export const RoomCanvasThree = ({
     const syncModels = async () => {
       const currentMeshes = getAdditionalMeshes(scene, mainMeshRef.current);
 
-      console.log("🔄 Syncing models...");
-      console.log("📦 Store has:", additionalModels);
-      console.log(
-        "🎭 Scene has:",
-        currentMeshes.map((m) => m.name),
-      );
-
       currentMeshes.forEach((mesh) => {
         if (!additionalModels.includes(mesh.name)) {
           mesh.dispose();
@@ -250,7 +276,7 @@ export const RoomCanvasThree = ({
     updateAllTextures(scene, debouncedActiveTexture, mainMeshRef.current);
   }, [debouncedActiveTexture]);
 
-  // ⭐ --- 5. RESTORE POSITIONS SAAT UNDO/REDO ---
+  //  --- 5. RESTORE POSITIONS SAAT UNDO/REDO ---
   useEffect(() => {
     // console.log("🔄 RESTORE EFFECT TRIGGERED");
 
@@ -296,6 +322,9 @@ export const RoomCanvasThree = ({
         // console.log(`⚠️ No mesh at index ${index}`);
       }
     });
+    if (hlRef.current) {
+      hlRef.current.removeAllMeshes();
+    }
   }, [present.mainModelTransform, present.additionalTransforms]);
 
   return (

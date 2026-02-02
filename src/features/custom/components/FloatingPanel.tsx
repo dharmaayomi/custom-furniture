@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Tool, ToolType } from "@/types/toolType";
 import { Home } from "lucide-react";
+import { useState } from "react";
 
 interface FloatingToolPanelProps {
   tools: Tool[];
@@ -25,6 +26,8 @@ export const FloatingToolPanel = ({
   onToolClick,
   onHomeClick,
 }: FloatingToolPanelProps) => {
+  const [previousState, setPreviousState] = useState(null);
+
   return (
     <TooltipProvider>
       <div

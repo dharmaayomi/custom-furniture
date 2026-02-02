@@ -32,11 +32,6 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
   CONFIG.rw = roomConfig.width;
   CONFIG.rd = roomConfig.depth;
 
-  // console.log("📐 Room dimensions updated:", {
-  //   width: CONFIG.rw,
-  //   depth: CONFIG.rd,
-  // });
-
   if (scene) {
     const allFurniture = getAllFurniture(scene);
 
@@ -73,7 +68,6 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
       mesh.position.z = newPos.z;
       mesh.computeWorldMatrix(true);
     });
-
     // console.log("🔄 All furniture repositioned");
   }
 };
@@ -131,18 +125,41 @@ const getOrCreateMaterial = (
 
 export const getMeshAABB = (mesh: BABYLON.AbstractMesh): BoundingBox => {
   // Force update world matrix untuk menjamin bounding box akurat setelah rotasi
+  // mesh.computeWorldMatrix(true);
+  // const bounds = mesh.getHierarchyBoundingVectors(true);
+  // const children = mesh.getChildMeshes(false, (node) => {
+  //   return node instanceof BABYLON.AbstractMesh && node.isVisible;
+  // });
+
+  // // Jika tidak ada child, gunakan mesh itu sendiri
+  // const bounds = mesh.getHierarchyBoundingVectors(true, (node) => {
+  //   return node.isVisible; // HANYA hitung yang terlihat
+  // });
+  // const width = bounds.max.x - bounds.min.x;
+  // const depth = bounds.max.z - bounds.min.z;
+
+  // return {
+  //   minX: mesh.position.x - width / 2,
+  //   maxX: mesh.position.x + width / 2,
+  //   minZ: mesh.position.z - depth / 2,
+  //   maxZ: mesh.position.z + depth / 2,
+  //   width,
+  //   depth,
   mesh.computeWorldMatrix(true);
-  const bounds = mesh.getHierarchyBoundingVectors(true);
-  const width = bounds.max.x - bounds.min.x;
-  const depth = bounds.max.z - bounds.min.z;
+
+  // Pastikan hanya menghitung mesh yang terlihat (isVisible)
+  const bounds = mesh.getHierarchyBoundingVectors(
+    true,
+    (node) => node.isVisible,
+  );
 
   return {
-    minX: mesh.position.x - width / 2,
-    maxX: mesh.position.x + width / 2,
-    minZ: mesh.position.z - depth / 2,
-    maxZ: mesh.position.z + depth / 2,
-    width,
-    depth,
+    minX: bounds.min.x, // Gunakan nilai asli, jangan dihitung manual dari position
+    maxX: bounds.max.x,
+    minZ: bounds.min.z,
+    maxZ: bounds.max.z,
+    width: bounds.max.x - bounds.min.x,
+    depth: bounds.max.z - bounds.min.z,
   };
 };
 
@@ -442,6 +459,31 @@ export const addDragBehavior = (
   mesh: BABYLON.AbstractMesh,
   scene: BABYLON.Scene,
 ) => {
+  const pointerDragBehavior = new BABYLON.PointerDragBehavior({
+    dragPlaneNormal: new BABYLON.Vector3(0, 1, 0),
+  });
+
+  // // 2. PENTING: Agar seluruh ujung/bagian model bisa di-klik untuk drag
+  pointerDragBehavior.dragDeltaRatio = 0.5;
+  pointerDragBehavior.moveAttached = true;
+
+  // // 3. Tambahkan ke mesh root
+  // mesh.addBehavior(pointerDragBehavior);
+
+  // // 4. VALIDASI AREA KLIK:
+  // // Jika model GLB memiliki banyak child meshes, kita harus memastikan
+  // // semua child tersebut mengirimkan event klik ke parent-nya.
+  mesh.getChildMeshes().forEach((child) => {
+    child.isPickable = true;
+    //   // Memastikan pointer drag mengenali child sebagai bagian dari satu kesatuan
+    child.actionManager = mesh.actionManager;
+  });
+
+  pointerDragBehavior.onDragStartObservable.add(() => {
+    // Logika highlight yang kita bahas sebelumnya bisa ditaruh di sini
+    console.log("Drag dimulai dari bagian mana saja pada model");
+  });
+
   const dragBehavior = new BABYLON.PointerDragBehavior({
     dragPlaneNormal: new BABYLON.Vector3(0, 1, 0),
   });
@@ -456,7 +498,13 @@ export const addDragBehavior = (
 
   dragBehavior.onDragStartObservable.add(() => {
     updateRoomDimensions();
-
+    const hl = scene.getHighlightLayerByName("hl1");
+    if (hl) {
+      hl.removeAllMeshes();
+      mesh.getChildMeshes().forEach((m) => {
+        hl.addMesh(m as BABYLON.Mesh, BABYLON.Color3.FromHexString("#f59e0b"));
+      });
+    }
     if (mesh.rotationQuaternion) {
       mesh.rotation = mesh.rotationQuaternion.toEulerAngles();
       mesh.rotationQuaternion = null;
@@ -505,9 +553,10 @@ export const addDragBehavior = (
     const { roomConfig } = useRoomStore.getState().present;
     const rw = roomConfig.width;
     const rd = roomConfig.depth;
-
+    mesh.showBoundingBox = true;
+    mesh.getChildMeshes().forEach((m) => (m.showBoundingBox = true));
     //  THRESHOLD DINAMIS
-    const SWITCH_THRESHOLD_PERCENT = 0.01; // 15%
+    const SWITCH_THRESHOLD_PERCENT = 0.01;
     const switchThreshold = Math.min(rw, rd) * SWITCH_THRESHOLD_PERCENT;
 
     // Hitung jarak ke setiap tembok
@@ -703,17 +752,28 @@ export const setupPointerInteractions = (
   scene.onPointerObservable.add((pointerInfo) => {
     if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE) {
       const pick = scene.pick(scene.pointerX, scene.pointerY);
-      if (canvas.getAttribute("data-visual-cue") !== "dragged") {
-        if (pick.hit && pick.pickedMesh) {
-          const isFurniture =
-            pick.pickedMesh.metadata === "furniture" ||
-            (pick.pickedMesh.parent &&
-              pick.pickedMesh.parent.metadata === "furniture");
 
-          canvas.style.cursor = isFurniture ? "grab" : "default";
+      // Jika sedang dragging, jangan timpa kursor
+      if (canvas.getAttribute("data-visual-cue") === "dragged") return;
+
+      if (pick.hit && pick.pickedMesh) {
+        let target = pick.pickedMesh;
+
+        // Mencari root furniture agar hitbox konsisten
+        while (target.parent && target.metadata !== "furniture") {
+          target = target.parent as BABYLON.AbstractMesh;
+        }
+
+        if (target.metadata === "furniture") {
+          canvas.style.cursor = "grab";
+          canvas.setAttribute("data-visual-cue", "hover"); // Tambah cue hover
         } else {
           canvas.style.cursor = "default";
+          canvas.setAttribute("data-visual-cue", "none"); // Reset cue
         }
+      } else {
+        canvas.style.cursor = "default";
+        canvas.setAttribute("data-visual-cue", "none");
       }
     }
   });

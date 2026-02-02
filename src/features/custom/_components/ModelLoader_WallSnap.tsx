@@ -74,8 +74,6 @@ export const loadMainModel = async (
         savedTransform.position.z,
       );
       rootMesh.rotation.y = savedTransform.rotation;
-
-      // TIDAK PERLU updateTransformSilent karena data sudah ada di store
     } else {
       // KASUS 2: MODEL BARU (Auto Snap)
       console.log("✨ New Main Model Auto-Snap...");
@@ -90,7 +88,6 @@ export const loadMainModel = async (
       rootMesh.rotation.y = wallPos.rotation;
 
       // UPDATE STORE LANGSUNG (TANPA SETTIMEOUT)
-      // Agar saat user menambah model berikutnya, posisi ini sudah tersimpan
       const { updateTransformSilent } = useRoomStore.getState();
 
       const initialTransform: FurnitureTransform = {
@@ -105,6 +102,11 @@ export const loadMainModel = async (
 
       updateTransformSilent(0, initialTransform, true);
     }
+    // DEBUGGING: Visualisasikan Bounding Box
+    // rootMesh.showBoundingBox = true;
+    // rootMesh.getChildMeshes().forEach((m) => {
+    //   m.showBoundingBox = true;
+    // });
 
     // Add drag behavior
 
@@ -220,7 +222,7 @@ export const loadAdditionalModel = async (
         if (rootMesh.rotationQuaternion) {
           rootMesh.rotationQuaternion = null;
         }
-        // ⭐ Set rotasi DULU sama dengan main furniture
+        //  Set rotasi DULU sama dengan main furniture
         rootMesh.rotation.y = mainMeshRef.rotation.y;
         rootMesh.computeWorldMatrix(true);
 
@@ -232,7 +234,7 @@ export const loadAdditionalModel = async (
         );
 
         if (finalPosition) {
-          // ⭐ OVERRIDE rotasi dari findAutoSnapPosition dengan rotasi main furniture
+          //  OVERRIDE rotasi dari findAutoSnapPosition dengan rotasi main furniture
           finalPosition.rotation = mainMeshRef.rotation.y;
 
           console.log(`✅ AUTO-SNAPPED next to main furniture`);
@@ -328,10 +330,10 @@ export const loadAdditionalModel = async (
       // Set final position and rotation
       rootMesh.position.set(
         finalPosition.x,
-        10 - boundsInfoOriginal.min.y, // Stick to floor
+        10 - boundsInfoOriginal.min.y,
         finalPosition.z,
       );
-      rootMesh.rotation.y = finalPosition.rotation; // Set correct rotation for wall
+      rootMesh.rotation.y = finalPosition.rotation;
 
       console.log(
         "Final position:",
@@ -374,6 +376,11 @@ export const loadAdditionalModel = async (
         );
       }
     }
+    // DEBUGGING: Visualisasikan Bounding Box
+    // rootMesh.showBoundingBox = true;
+    // rootMesh.getChildMeshes().forEach((m) => {
+    //   m.showBoundingBox = true;
+    // });
 
     // Add drag behavior (will handle wall switching)
     addDragBehavior(rootMesh, scene);

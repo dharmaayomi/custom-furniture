@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { Tool, ToolType } from "@/types/toolType";
+import { useState } from "react";
 
 interface SidebarPanelProps {
   isOpen: boolean;
@@ -27,6 +28,8 @@ export const SidebarPanel = ({
   onAddAdditionalModel,
   onSelectTexture,
 }: SidebarPanelProps) => {
+  const [previousState, setPreviousState] = useState(null);
+
   const renderToolSidebar = () => {
     const tool = tools.find((t) => t.id === selectedTool);
     if (!tool) return null;
@@ -149,8 +152,7 @@ export const SidebarPanel = ({
 
   return (
     <div
-      // className={`fixed top-0 right-0 z-50 h-full w-80 bg-white shadow-2xl transition-transform duration-500 ease-in-out ${
-      className={`fixed top-0 right-0 z-50 h-full w-80 bg-white shadow-md ${
+      className={`fixed top-0 right-0 z-51 h-full w-80 bg-white shadow-md ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
     >

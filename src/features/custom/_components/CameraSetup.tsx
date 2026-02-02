@@ -15,6 +15,9 @@ export const setupCamera = (
   );
 
   camera.attachControl(canvas, true);
+
+  camera.mapPanning = true;
+  camera.useAutoRotationBehavior = false;
   scene.activeCamera = camera;
 
   // ===== Limits =====
@@ -48,13 +51,13 @@ export const setupCamera = (
         lastPointerY = scene.pointerY;
 
         // camera.target.y -= deltaY * 0.25;
-        camera.target.y -= deltaY * 0.08;
+        // camera.target.y -= deltaY * 0.08;
 
-        camera.target.y = BABYLON.Scalar.Clamp(
-          camera.target.y,
-          CAMERA_CONFIG.minTargetY,
-          CAMERA_CONFIG.maxTargetY,
-        );
+        // camera.target.y = BABYLON.Scalar.Clamp(
+        //   camera.target.y,
+        //   CAMERA_CONFIG.minTargetY,
+        //   CAMERA_CONFIG.maxTargetY,
+        // );
         break;
     }
   });
@@ -79,6 +82,10 @@ export const setupCamera = (
 
   camera.animations.push(zoomInAnimation);
   scene.beginAnimation(camera, 0, 90, false);
+
+  // scene.getEngine().onResizeObservable.add(() => {
+  //   camera.aspectRatio = canvas.clientWidth / canvas.clientHeight;
+  // });
 
   return camera;
 };

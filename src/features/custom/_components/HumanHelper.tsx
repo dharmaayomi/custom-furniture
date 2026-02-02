@@ -13,9 +13,8 @@ export const HumanHelper = async (
   position: BABYLON.Vector3 = new BABYLON.Vector3(0, 0, 0),
 ): Promise<HumanHelperResult | null> => {
   try {
-    const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(
-      "/assets/3d/",
-      "human-model.glb",
+    const container = await BABYLON.LoadAssetContainerAsync(
+      "/assets/3d/" + "human-model.glb",
       scene,
     );
 
@@ -64,10 +63,9 @@ export const HumanHelper = async (
       },
       scene,
     );
-    heightLine.color = new BABYLON.Color3(0.2, 0.2, 0.2); // ✨ Abu-abu gelap
+    heightLine.color = new BABYLON.Color3(0.2, 0.2, 0.2);
     heightLine.parent = rootMesh;
 
-    // ✨ TICK MARKS - Lebih kecil dan subtle
     const createTick = (yOffset: number) => {
       const tick = BABYLON.MeshBuilder.CreateLines(
         `tick_${yOffset}`,
@@ -79,7 +77,7 @@ export const HumanHelper = async (
         },
         scene,
       );
-      tick.color = new BABYLON.Color3(0.2, 0.2, 0.2); // ✨ Abu-abu gelap
+      tick.color = new BABYLON.Color3(0.2, 0.2, 0.2);
       tick.parent = rootMesh;
       return tick;
     };
@@ -87,7 +85,6 @@ export const HumanHelper = async (
     createTick(0);
     createTick(actualHeight);
 
-    // ✨ LABEL TINGGI - Lebih kecil dan subtle
     const planeWidth = 30;
     const planeHeight = 15;
     const heightLabel = BABYLON.MeshBuilder.CreatePlane(
@@ -116,7 +113,7 @@ export const HumanHelper = async (
     ctx.clearRect(0, 0, 256, 128);
 
     // Background lebih subtle
-    ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; // ✨ Putih semi-transparent
+    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
     ctx.fillRect(10, 30, 236, 68);
 
     // Border
@@ -126,7 +123,7 @@ export const HumanHelper = async (
 
     // Text
     ctx.font = "bold 40px Arial";
-    ctx.fillStyle = "#333333"; // ✨ Abu-abu gelap
+    ctx.fillStyle = "#333333";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(`${Math.round(actualHeight)} cm`, 128, 64);
@@ -140,13 +137,9 @@ export const HumanHelper = async (
     labelMat.backFaceCulling = false;
     heightLabel.material = labelMat;
 
-    // ✨ HAPUS ARROW - Ini yang bikin "corong kuning" mengganggu!
-    // createArrow(actualHeight + 4, 1);
-    // createArrow(-4, -1);
-
     // Cast shadow
     rootMesh.getChildMeshes().forEach((mesh) => {
-      mesh.receiveShadows = true;
+      mesh.receiveShadows = false;
     });
 
     const dispose = () => {
@@ -183,3 +176,195 @@ export const setupHumanInRoom = async (
 
   return human;
 };
+// export const HumanHelper = async (
+//   scene: BABYLON.Scene,
+//   position: BABYLON.Vector3 = new BABYLON.Vector3(0, 0, 0),
+// ): Promise<HumanHelperResult | null> => {
+//   try {
+//     const container = await BABYLON.LoadAssetContainerAsync(
+//       "/assets/3d/" + "human-model.glb",
+//       scene,
+//     );
+
+//     container.addAllToScene();
+//     const rootMesh = container.meshes[0];
+
+//     // ✨ Tambahkan metadata agar bisa di-detect
+//     rootMesh.metadata = "human";
+//     rootMesh.name = "human-model";
+
+//     // Scaling - 170cm FIXED (tidak berubah meski room berubah)
+//     const boundingInfo = rootMesh.getHierarchyBoundingVectors(true);
+//     const modelHeight = boundingInfo.max.y - boundingInfo.min.y;
+
+//     const targetHeight = 170; // cm - FIXED HEIGHT
+//     const scaleFactor = targetHeight / modelHeight;
+//     rootMesh.scaling = new BABYLON.Vector3(
+//       scaleFactor,
+//       scaleFactor,
+//       scaleFactor,
+//     );
+
+//     rootMesh.computeWorldMatrix(true);
+//     const scaledBounding = rootMesh.getHierarchyBoundingVectors(true);
+//     const actualHeight = scaledBounding.max.y - scaledBounding.min.y;
+
+//     console.log("👤 HUMAN SCALE:");
+//     console.log("   Height: 170 cm (FIXED)");
+//     console.log("   Scale factor:", scaleFactor.toFixed(3));
+
+//     rootMesh.position = new BABYLON.Vector3(
+//       position.x,
+//       10 - scaledBounding.min.y,
+//       position.z,
+//     );
+
+//     const floorY = 10;
+//     const offsetX = 30;
+
+//     // Garis tinggi - LOKAL
+//     const heightLine = BABYLON.MeshBuilder.CreateLines(
+//       "heightLine",
+//       {
+//         points: [
+//           new BABYLON.Vector3(offsetX, floorY - rootMesh.position.y, 0),
+//           new BABYLON.Vector3(
+//             offsetX,
+//             floorY - rootMesh.position.y + actualHeight,
+//             0,
+//           ),
+//         ],
+//       },
+//       scene,
+//     );
+//     heightLine.color = new BABYLON.Color3(1, 0, 0);
+//     heightLine.parent = rootMesh;
+
+//     // Tick marks
+//     const createTick = (yOffset: number) => {
+//       const tick = BABYLON.MeshBuilder.CreateLines(
+//         `tick_${yOffset}`,
+//         {
+//           points: [
+//             new BABYLON.Vector3(
+//               offsetX - 5,
+//               floorY - rootMesh.position.y + yOffset,
+//               0,
+//             ),
+//             new BABYLON.Vector3(
+//               offsetX + 5,
+//               floorY - rootMesh.position.y + yOffset,
+//               0,
+//             ),
+//           ],
+//         },
+//         scene,
+//       );
+//       tick.color = new BABYLON.Color3(1, 0, 0);
+//       tick.parent = rootMesh;
+//       return tick;
+//     };
+
+//     createTick(0);
+//     createTick(actualHeight);
+
+//     // Label
+//     const planeWidth = 50;
+//     const planeHeight = 20;
+//     const heightLabel = BABYLON.MeshBuilder.CreatePlane(
+//       "heightLabel",
+//       { width: planeWidth, height: planeHeight },
+//       scene,
+//     );
+//     heightLabel.position = new BABYLON.Vector3(
+//       offsetX,
+//       floorY - rootMesh.position.y + actualHeight + 15,
+//       0,
+//     );
+//     heightLabel.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+//     heightLabel.parent = rootMesh;
+
+//     // Dynamic texture
+//     const dynamicTexture = new BABYLON.DynamicTexture(
+//       "heightText",
+//       { width: 512, height: 256 },
+//       scene,
+//       false,
+//     );
+//     dynamicTexture.hasAlpha = true;
+
+//     const ctx = dynamicTexture.getContext() as CanvasRenderingContext2D;
+//     ctx.clearRect(0, 0, 512, 256);
+
+//     ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+//     ctx.fillRect(20, 60, 472, 136);
+
+//     ctx.strokeStyle = "rgba(255, 0, 0, 0.8)";
+//     ctx.lineWidth = 4;
+//     ctx.strokeRect(20, 60, 472, 136);
+
+//     ctx.font = "bold 60px Arial";
+//     ctx.fillStyle = "#000000";
+//     ctx.textAlign = "center";
+//     ctx.textBaseline = "middle";
+//     ctx.fillText(`170 cm`, 256, 128); // FIXED 170cm
+
+//     dynamicTexture.update();
+
+//     const labelMat = new BABYLON.StandardMaterial("labelMat", scene);
+//     labelMat.diffuseTexture = dynamicTexture;
+//     labelMat.emissiveTexture = dynamicTexture;
+//     labelMat.emissiveColor = new BABYLON.Color3(1, 1, 1);
+//     labelMat.opacityTexture = dynamicTexture;
+//     labelMat.backFaceCulling = false;
+//     labelMat.disableLighting = true;
+//     heightLabel.material = labelMat;
+
+//     rootMesh.getChildMeshes().forEach((mesh) => {
+//       mesh.receiveShadows = false;
+//     });
+
+//     // Arrow
+//     const arrow = BABYLON.MeshBuilder.CreateLines(
+//       "arrow",
+//       {
+//         points: [
+//           new BABYLON.Vector3(
+//             offsetX,
+//             floorY - rootMesh.position.y + actualHeight + 5,
+//             0,
+//           ),
+//           new BABYLON.Vector3(
+//             10,
+//             floorY - rootMesh.position.y + actualHeight,
+//             0,
+//           ),
+//         ],
+//       },
+//       scene,
+//     );
+//     arrow.color = new BABYLON.Color3(1, 0, 0);
+//     arrow.parent = rootMesh;
+
+//     const dispose = () => {
+//       container.dispose();
+//       heightLine.dispose();
+//       heightLabel.dispose();
+//       arrow.dispose();
+//       dynamicTexture.dispose();
+//       labelMat.dispose();
+//     };
+
+//     console.log("✅ Human created at:", rootMesh.position);
+
+//     return {
+//       rootMesh,
+//       heightLabel,
+//       heightLine,
+//       dispose,
+//     };
+//   } catch (error) {
+//     console.error("Error loading human model:", error);
+//     return null;
+//   }
+// };

@@ -1,5 +1,6 @@
 import { updateRoomDimensions } from "@/features/custom/_components/MeshUtils_WallSnap";
 import { CONFIG } from "@/features/custom/_components/RoomConfig";
+import * as BABYLON from "@babylonjs/core";
 import { ASSET_PRICES, TEXTURE_PRICES } from "@/lib/price";
 import { create } from "zustand";
 
@@ -62,7 +63,8 @@ interface RoomStore {
   undo: () => void;
   redo: () => void;
   reset: () => void;
-
+  shadowGenerator: BABYLON.ShadowGenerator | null;
+  setShadowGenerator: (generator: BABYLON.ShadowGenerator | null) => void;
   updateMainModelTransform: (transform: FurnitureTransform) => void;
   updateAdditionalTransform: (
     index: number,
@@ -83,12 +85,12 @@ interface RoomStore {
 }
 
 // State Awal
-const INITIAL_MAIN = "";
+const INITIAL_MAIN = "lemaritest.glb";
 const INITIAL_TEXTURE = "";
 const INITIAL_ROOM_CONFIG: RoomConfig = {
   width: 620,
   depth: 420,
-  height: 320,
+  height: 300,
   wallColor: "#F2F0EB",
   floorTexture: "/assets/texture/wood-texture.jpg",
 };
@@ -134,7 +136,9 @@ export const useRoomStore = create<RoomStore>((set) => ({
         future: [],
       };
     }),
+  shadowGenerator: null,
 
+  setShadowGenerator: (generator) => set({ shadowGenerator: generator }),
   setActiveTexture: (texture) =>
     set((state) => {
       if (state.present.activeTexture === texture) return state;

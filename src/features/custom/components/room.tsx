@@ -22,6 +22,7 @@ import { FloatingToolPanel } from "./FloatingPanel";
 import { ListProductPanel } from "./ListProductPanel";
 import { MenuModal } from "./MenuModal";
 import { SidebarPanel } from "./SidebarPanel";
+import { set } from "zod";
 
 const ASSETS_3D = [
   "wine_cabinet.glb",
@@ -145,6 +146,7 @@ export const RoomPage = () => {
     setIsSidebarOpen(false);
     setSelectedTool(null);
     setShowHomeSidebar(false);
+    setActivePanel(null);
   };
 
   const handleHomeClick = () => {
