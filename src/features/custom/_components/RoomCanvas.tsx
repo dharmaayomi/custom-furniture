@@ -62,6 +62,7 @@ export const RoomCanvasThree = ({
   } | null>(null);
   const [debouncedRoomConfig] = useDebounceValue(roomConfig, 150);
   const [debouncedActiveTexture] = useDebounceValue(activeTexture, 150);
+
   // --- 1. INITIAL SCENE SETUP ---
 
   useEffect(() => {
@@ -70,6 +71,7 @@ export const RoomCanvasThree = ({
     // const engine = new BABYLON.Engine(canvas, true);
     const engine = new BABYLON.Engine(canvas, true, {
       adaptToDeviceRatio: true,
+      preserveDrawingBuffer: true,
     });
 
     // Ambil references dari createScene yang sudah dimodifikasi
@@ -109,18 +111,35 @@ export const RoomCanvasThree = ({
     engine.runRenderLoop(() => {
       scene.render();
     });
-    // HumanHelper(scene, new BABYLON.Vector3(0, 0, 0));
-    // engine.runRenderLoop(() => {
-    //   scene.render();
-    // });
 
     const handleResize = () => {
-      engine.resize();
-    };
-    window.addEventListener("resize", handleResize);
+      // Pastikan canvas dan engine resize dengan benar
+      if (canvas && engine) {
+        // Update ukuran canvas secara eksplisit
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
 
-    // 4. SATU Fungsi Cleanup (Gabungkan semua di sini)
+        // Resize engine
+        engine.resize();
+
+        // Force update camera projection matrix
+        if (camera) {
+          camera.getProjectionMatrix(true); // true = force refresh
+        }
+      }
+    };
+
+    // Use ResizeObserver untuk menangkap perubahan ukuran canvas (sidebar toggle)
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+
+    resizeObserver.observe(canvas);
+    window.addEventListener("resize", handleResize);
+    handleResize();
+
     return () => {
+      resizeObserver.disconnect();
       window.removeEventListener("resize", handleResize);
       engine.dispose();
     };

@@ -268,8 +268,6 @@ export const loadAdditionalModel = async (
 
       // C. Fallback: place on back wall at available X position
       if (!finalPosition) {
-        console.log("⚠️ No snap position found, placing on back wall");
-
         let posX = 0;
         const maxX = CONFIG.rw / 2 - width / 2 - 15;
 
@@ -335,19 +333,6 @@ export const loadAdditionalModel = async (
       );
       rootMesh.rotation.y = finalPosition.rotation;
 
-      console.log(
-        "Final position:",
-        rootMesh.position.x.toFixed(1),
-        rootMesh.position.z.toFixed(1),
-      );
-      console.log(
-        "Final rotation:",
-        ((finalPosition.rotation * 180) / Math.PI).toFixed(0),
-        "degrees",
-      );
-      console.log("Final wall:", finalPosition.wall);
-      console.log("========================\n");
-
       // --------------------------------------------------------
       // UPDATE STORE LANGSUNG (TANPA SETTIMEOUT)
       // --------------------------------------------------------
@@ -367,13 +352,9 @@ export const loadAdditionalModel = async (
 
       if (meshIndex === 0) {
         updateTransformSilent(0, initialTransform, true);
-        console.log("💾 Additional saved as MAIN (index 0) [Silent Update]");
       } else {
         // Index - 1 karena index 0 biasanya main model
         updateTransformSilent(meshIndex - 1, initialTransform, false);
-        console.log(
-          `💾 Additional model saved (index ${meshIndex - 1}) [Silent Update]`,
-        );
       }
     }
     // DEBUGGING: Visualisasikan Bounding Box

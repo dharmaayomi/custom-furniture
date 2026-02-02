@@ -83,9 +83,10 @@ export const setupCamera = (
   camera.animations.push(zoomInAnimation);
   scene.beginAnimation(camera, 0, 90, false);
 
-  // scene.getEngine().onResizeObservable.add(() => {
-  //   camera.aspectRatio = canvas.clientWidth / canvas.clientHeight;
-  // });
+  scene.getEngine().onResizeObservable.add(() => {
+    // The engine.resize() method is called automatically by Babylon.js
+    // No need to manually set aspect ratio
+  });
 
   return camera;
 };

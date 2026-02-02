@@ -2,7 +2,6 @@ import * as BABYLON from "@babylonjs/core";
 import { setupCamera } from "./CameraSetup";
 import { setupLighting } from "./LightingSetup";
 import { setupPointerInteractions } from "./MeshUtils_WallSnap";
-import { CONFIG } from "./RoomConfig";
 
 /**
  * Create and initialize the complete scene with auto-snap system

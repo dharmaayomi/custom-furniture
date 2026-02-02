@@ -169,13 +169,11 @@ export const RoomPage = () => {
         isLoggedIn={false}
       />
       <CustomizeRoomPanel
-        // isOpen={isCustomizeOpen}
         scene={scene}
         isOpen={activePanel === "customize"}
         onClose={closePanel}
       />
       <ListProductPanel
-        // isOpen={isProductListOpen}
         isOpen={activePanel === "productList"}
         onClose={closePanel}
         mainModel={mainModel}
@@ -189,12 +187,6 @@ export const RoomPage = () => {
 
       <div
         className="relative min-w-0 flex-1 bg-gray-200"
-        // style={{
-        //   marginRight:
-        //     isSidebarOpen || showHomeSidebar || isProductListOpen
-        //       ? "320px"
-        //       : "0",
-        // }}
         style={{
           marginRight: isAnyPanelOpen ? "320px" : "0",
         }}
@@ -246,16 +238,9 @@ export const RoomPage = () => {
       </div>
 
       {/* Sidebar Panel */}
-      {/* <SidebarPanel
-        isOpen={isSidebarOpen || showHomeSidebar}
-        showHomeSidebar={showHomeSidebar}
-        selectedTool={selectedTool}
-        tools={tools}
-        onClose={closeSidebar}
-      /> */}
+
       <SidebarPanel
         isOpen={activePanel === "sidebar" || activePanel === "home"}
-        // showHomeSidebar={showHomeSidebar}
         showHomeSidebar={activePanel === "home"}
         selectedTool={selectedTool}
         tools={tools}
@@ -263,9 +248,6 @@ export const RoomPage = () => {
         assetList3D={ASSETS_3D}
         assetListTexture={ASSETS_TEXTURE}
         onSelectMainModel={(model) => setMainModel(model)}
-        // onAddAdditionalModel={(model) =>
-        //   setAdditionalModels([...additionalModels, model])
-        // }
         onAddAdditionalModel={addAdditionalModel}
         onSelectTexture={(tex) => setActiveTexture(tex)}
       />

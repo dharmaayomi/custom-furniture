@@ -124,27 +124,6 @@ const getOrCreateMaterial = (
 // ============================================================================
 
 export const getMeshAABB = (mesh: BABYLON.AbstractMesh): BoundingBox => {
-  // Force update world matrix untuk menjamin bounding box akurat setelah rotasi
-  // mesh.computeWorldMatrix(true);
-  // const bounds = mesh.getHierarchyBoundingVectors(true);
-  // const children = mesh.getChildMeshes(false, (node) => {
-  //   return node instanceof BABYLON.AbstractMesh && node.isVisible;
-  // });
-
-  // // Jika tidak ada child, gunakan mesh itu sendiri
-  // const bounds = mesh.getHierarchyBoundingVectors(true, (node) => {
-  //   return node.isVisible; // HANYA hitung yang terlihat
-  // });
-  // const width = bounds.max.x - bounds.min.x;
-  // const depth = bounds.max.z - bounds.min.z;
-
-  // return {
-  //   minX: mesh.position.x - width / 2,
-  //   maxX: mesh.position.x + width / 2,
-  //   minZ: mesh.position.z - depth / 2,
-  //   maxZ: mesh.position.z + depth / 2,
-  //   width,
-  //   depth,
   mesh.computeWorldMatrix(true);
 
   // Pastikan hanya menghitung mesh yang terlihat (isVisible)
@@ -189,33 +168,82 @@ export const getAllFurniture = (
 // WALL DETERMINATION & SNAP LOGIC
 // ============================================================================
 
-const determineClosestWall = (
-  position: BABYLON.Vector3,
-): "back" | "front" | "right" | "left" => {
+// const determineClosestWall = (
+//   position: BABYLON.Vector3,
+// ): "back" | "front" | "right" | "left" => {
+//   const { roomConfig } = useRoomStore.getState().present;
+//   const rw = roomConfig.width;
+//   const rd = roomConfig.depth;
+//   const SNAP_THRESHOLD = 0.1; // <-- UBAH INI! Coba 0.2 - 0.5
+
+//   const distToBack = Math.abs(position.z - rd / 2);
+//   const distToFront = Math.abs(position.z + rd / 2);
+//   const distToRight = Math.abs(position.x - rw / 2);
+//   const distToLeft = Math.abs(position.x + rw / 2);
+
+//   const minDist = Math.min(distToBack, distToFront, distToRight, distToLeft);
+
+//   // CRITICAL: Hanya snap ke wall jika SANGAT dekat
+//   // Ini mencegah snap terlalu cepat saat user masih jauh dari tembok
+//   if (minDist > SNAP_THRESHOLD) {
+//     // Kalau masih jauh dari semua tembok, tetap di wall sebelumnya
+//     // Atau default ke wall tertentu
+//     // Untuk sekarang, kita tetap return wall terdekat tapi dengan batasan
+//   }
+
+//   if (minDist === distToBack) return "back";
+//   if (minDist === distToFront) return "front";
+//   if (minDist === distToRight) return "right";
+//   return "left";
+// };
+// Cari fungsi ini di MeshUtils_WallSnap.tsx
+// const determineClosestWall = (position: BABYLON.Vector3): WallSide => {
+//   const { roomConfig } = useRoomStore.getState().present;
+//   const rw = roomConfig.width;
+//   const rd = roomConfig.depth;
+
+//   // Hitung jarak absolut ke setiap bidang tembok
+//   const distToBack = Math.abs(position.z - rd / 2);
+//   const distToFront = Math.abs(position.z + rd / 2);
+//   const distToRight = Math.abs(position.x - rw / 2);
+//   const distToLeft = Math.abs(position.x + rw / 2);
+
+//   const distances = [
+//     { side: "back" as WallSide, dist: distToBack },
+//     { side: "front" as WallSide, dist: distToFront },
+//     { side: "right" as WallSide, dist: distToRight },
+//     { side: "left" as WallSide, dist: distToLeft },
+//   ];
+
+//   // Ambil yang terkecil tanpa minimal threshold agar perpindahan "instan"
+//   distances.sort((a, b) => a.dist - b.dist);
+//   return distances[0].side;
+// };
+// MeshUtils_WallSnap.tsx
+
+const determineClosestWall = (position: BABYLON.Vector3): WallSide => {
   const { roomConfig } = useRoomStore.getState().present;
   const rw = roomConfig.width;
   const rd = roomConfig.depth;
-  const SNAP_THRESHOLD = 0.1; // <-- UBAH INI! Coba 0.2 - 0.5
 
+  // Hitung jarak murni ke bidang setiap tembok (abaikan tinggi/Y)
   const distToBack = Math.abs(position.z - rd / 2);
   const distToFront = Math.abs(position.z + rd / 2);
   const distToRight = Math.abs(position.x - rw / 2);
   const distToLeft = Math.abs(position.x + rw / 2);
 
-  const minDist = Math.min(distToBack, distToFront, distToRight, distToLeft);
+  const distances = [
+    { wall: "back" as WallSide, dist: distToBack },
+    { wall: "front" as WallSide, dist: distToFront },
+    { wall: "right" as WallSide, dist: distToRight },
+    { wall: "left" as WallSide, dist: distToLeft },
+  ];
 
-  // CRITICAL: Hanya snap ke wall jika SANGAT dekat
-  // Ini mencegah snap terlalu cepat saat user masih jauh dari tembok
-  if (minDist > SNAP_THRESHOLD) {
-    // Kalau masih jauh dari semua tembok, tetap di wall sebelumnya
-    // Atau default ke wall tertentu
-    // Untuk sekarang, kita tetap return wall terdekat tapi dengan batasan
-  }
+  // Urutkan dari yang paling dekat
+  distances.sort((a, b) => a.dist - b.dist);
 
-  if (minDist === distToBack) return "back";
-  if (minDist === distToFront) return "front";
-  if (minDist === distToRight) return "right";
-  return "left";
+  // Selalu return yang terdekat, tidak peduli seberapa jauh kursor di lantai
+  return distances[0].wall;
 };
 
 export const getWallSnapPosition = (
@@ -459,45 +487,56 @@ export const addDragBehavior = (
   mesh: BABYLON.AbstractMesh,
   scene: BABYLON.Scene,
 ) => {
-  const pointerDragBehavior = new BABYLON.PointerDragBehavior({
-    dragPlaneNormal: new BABYLON.Vector3(0, 1, 0),
-  });
+  // const pointerDragBehavior = new BABYLON.PointerDragBehavior({
+  //   dragPlaneNormal: new BABYLON.Vector3(0, 1, 0),
+  // });
 
   // // 2. PENTING: Agar seluruh ujung/bagian model bisa di-klik untuk drag
-  pointerDragBehavior.dragDeltaRatio = 0.5;
-  pointerDragBehavior.moveAttached = true;
+  // pointerDragBehavior.dragDeltaRatio = 0.5;
+  // pointerDragBehavior.moveAttached = true;
 
   // // 3. Tambahkan ke mesh root
   // mesh.addBehavior(pointerDragBehavior);
 
   // // 4. VALIDASI AREA KLIK:
-  // // Jika model GLB memiliki banyak child meshes, kita harus memastikan
-  // // semua child tersebut mengirimkan event klik ke parent-nya.
-  mesh.getChildMeshes().forEach((child) => {
-    child.isPickable = true;
-    //   // Memastikan pointer drag mengenali child sebagai bagian dari satu kesatuan
-    child.actionManager = mesh.actionManager;
-  });
+  // mesh.getChildMeshes().forEach((child) => {
+  //   child.isPickable = true;
+  //   // Memastikan pointer drag mengenali child sebagai bagian dari satu kesatuan
+  //   child.actionManager = mesh.actionManager;
+  // });
 
-  pointerDragBehavior.onDragStartObservable.add(() => {
-    // Logika highlight yang kita bahas sebelumnya bisa ditaruh di sini
-    console.log("Drag dimulai dari bagian mana saja pada model");
-  });
+  // pointerDragBehavior.onDragStartObservable.add(() => {
+  //   // Logika highlight yang kita bahas sebelumnya bisa ditaruh di sini
+  //   console.log("Drag dimulai dari bagian mana saja pada model");
+  // });
 
   const dragBehavior = new BABYLON.PointerDragBehavior({
     dragPlaneNormal: new BABYLON.Vector3(0, 1, 0),
   });
+  // dragBehavior.options.dragButtons = [0, 1, 2];
+  // YANG EMNIHHHHHH
+  dragBehavior.moveAttached = false;
+  dragBehavior.updateDragPlane = true;
+
+  mesh.getChildMeshes().forEach((child) => {
+    child.isPickable = true;
+  });
+  dragBehavior.options.dragPlaneNormal = new BABYLON.Vector3(0, 1, 0);
+  dragBehavior.validateDrag = () => true;
 
   dragBehavior.useObjectOrientationForDragging = false;
-  dragBehavior.moveAttached = false;
 
-  let snapIndicator: BABYLON.Mesh | null = null;
+  // ----------------------------------------------------
+
   let previousValidPosition = mesh.position.clone();
   let previousValidRotation = mesh.rotation.y;
   let currentWall: WallSide | null = null;
 
   dragBehavior.onDragStartObservable.add(() => {
     updateRoomDimensions();
+
+    dragBehavior.attachedNode = mesh;
+
     const hl = scene.getHighlightLayerByName("hl1");
     if (hl) {
       hl.removeAllMeshes();
@@ -515,7 +554,6 @@ export const addDragBehavior = (
 
     const { captureCurrentState } = useRoomStore.getState();
     captureCurrentState();
-    // console.log("📸 Captured state BEFORE drag");
     // Detect current wall dari posisi
     const { roomConfig } = useRoomStore.getState().present;
     const rw = roomConfig.width;
@@ -534,16 +572,6 @@ export const addDragBehavior = (
     else if (minDist === distToRight) currentWall = "right";
     else currentWall = "left";
 
-    snapIndicator = BABYLON.MeshBuilder.CreateBox(
-      "snapInd",
-      { width: 2, height: 100, depth: 2 },
-      scene,
-    );
-    const mat = new BABYLON.StandardMaterial("snapMat", scene);
-    mat.emissiveColor = BABYLON.Color3.Green();
-    snapIndicator.material = mat;
-    snapIndicator.isPickable = false;
-
     const canvas = scene.getEngine().getRenderingCanvas();
     if (canvas) canvas.style.cursor = "grabbing";
   });
@@ -553,8 +581,7 @@ export const addDragBehavior = (
     const { roomConfig } = useRoomStore.getState().present;
     const rw = roomConfig.width;
     const rd = roomConfig.depth;
-    mesh.showBoundingBox = true;
-    mesh.getChildMeshes().forEach((m) => (m.showBoundingBox = true));
+
     //  THRESHOLD DINAMIS
     const SWITCH_THRESHOLD_PERCENT = 0.01;
     const switchThreshold = Math.min(rw, rd) * SWITCH_THRESHOLD_PERCENT;
@@ -605,18 +632,12 @@ export const addDragBehavior = (
       targetWall,
       mesh,
       pointerPos,
-      undefined, // Force recalculate
+      undefined,
     );
 
     // Apply posisi hasil snap (BUKAN posisi pointer!)
     mesh.position.x = snapPos.x;
     mesh.position.z = snapPos.z;
-
-    // Update indicator
-    if (snapIndicator) {
-      snapIndicator.position = mesh.position.clone();
-      snapIndicator.position.y += 50;
-    }
 
     // Cek collision (updated)
     mesh.computeWorldMatrix(true);
@@ -651,24 +672,9 @@ export const addDragBehavior = (
 
       mesh.position.x = newSnapPos.x;
       mesh.position.z = newSnapPos.z;
-
-      if (snapIndicator && snapIndicator.material) {
-        (snapIndicator.material as BABYLON.StandardMaterial).emissiveColor =
-          BABYLON.Color3.Yellow();
-      }
     } else {
       previousValidPosition.copyFrom(mesh.position);
       previousValidRotation = mesh.rotation.y;
-
-      if (snapIndicator && snapIndicator.material) {
-        (snapIndicator.material as BABYLON.StandardMaterial).emissiveColor =
-          BABYLON.Color3.Green();
-      }
-    }
-
-    if (snapIndicator) {
-      snapIndicator.position = mesh.position.clone();
-      snapIndicator.position.y += 50;
     }
   });
 
@@ -686,15 +692,10 @@ export const addDragBehavior = (
       }
     }
 
-    // console.log("🔴 Collision:", hasCollision);
-
     if (hasCollision) {
       mesh.position.copyFrom(previousValidPosition);
       mesh.rotation.y = previousValidRotation;
-      // console.log("❌ Reverted due to collision");
     } else {
-      // console.log("✅ No collision, saving transform...");
-
       // SAVE TRANSFORM WITH HISTORY
       const { saveTransformToHistory } = useRoomStore.getState();
 
@@ -722,16 +723,9 @@ export const addDragBehavior = (
 
       if (meshIndex === 0) {
         saveTransformToHistory(0, transform, true);
-        // console.log("💾 Saved MAIN model WITH HISTORY");
       } else if (meshIndex > 0) {
         saveTransformToHistory(meshIndex - 1, transform, false);
-        // console.log(`💾 Saved ADDITIONAL ${meshIndex - 1} WITH HISTORY`);
       }
-    }
-
-    if (snapIndicator) {
-      snapIndicator.dispose();
-      snapIndicator = null;
     }
 
     const canvas = scene.getEngine().getRenderingCanvas();
@@ -766,10 +760,10 @@ export const setupPointerInteractions = (
 
         if (target.metadata === "furniture") {
           canvas.style.cursor = "grab";
-          canvas.setAttribute("data-visual-cue", "hover"); // Tambah cue hover
+          canvas.setAttribute("data-visual-cue", "hover");
         } else {
           canvas.style.cursor = "default";
-          canvas.setAttribute("data-visual-cue", "none"); // Reset cue
+          canvas.setAttribute("data-visual-cue", "none");
         }
       } else {
         canvas.style.cursor = "default";
