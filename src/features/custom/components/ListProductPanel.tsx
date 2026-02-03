@@ -1,7 +1,11 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { formatPrice, getAssetPrice, extractModelNameFromId } from "@/lib/price";
+import {
+  formatPrice,
+  getAssetPrice,
+  extractModelNameFromId,
+} from "@/lib/price";
 import { Product } from "@/types/product";
 import { X } from "lucide-react";
 
@@ -25,58 +29,21 @@ const getProductName = (
       name: "Wooden Cupboard",
       description: "Wooden storage unit",
     },
-    "bismillah.glb": {
-      name: "Bismillah",
-      description: "Bismillah",
-    },
     "lemaritest.glb": {
       name: "TEST BENER",
       description: "test",
-    },
-    "test.glb": {
-      name: "test",
-      description: "test",
-    },
-    "cupboard.glb": {
-      name: "Cupboard",
-      description: "Modern storage Cupboard",
-    },
-    "drawer-2.glb": {
-      name: "Cupboard",
-      description: "Modern storage Cupboard",
-    },
-    "cabinet-1.glb": {
-      name: "Cabinet",
-      description: "Modern storage cabinet",
     },
     "cabinet-2.glb": {
       name: "Clean Cabinet",
       description: "Modern storage cabinet",
     },
-    "restaurant_pub_wardrobe.glb": {
-      name: "Cabinet",
-      description: "Modern Pub Wardrobe",
-    },
     "cabinet.glb": {
       name: "Storage Cabinet",
       description: "Functional storage solution",
     },
-    "chair-1.glb": {
-      name: "Chair",
-      description: "Elegant dining chair",
-    },
     "wall_cupboard.glb": {
       name: "Wall Cupboard",
       description: "Wall-mounted storage",
-    },
-
-    "rakayolahkaliinibener.glb": {
-      name: "Storage Cabinet",
-      description: "storage cabinet",
-    },
-    "rak-1.glb": {
-      name: "Storage Cabinet",
-      description: "storage cabinet",
     },
   };
 

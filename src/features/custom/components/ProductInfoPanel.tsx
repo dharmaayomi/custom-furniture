@@ -28,58 +28,25 @@ const getProductName = (
       description:
         "Classic wooden storage unit perfect for any room with spacious compartments",
     },
-    "bismillah.glb": {
-      name: "Bismillah",
-      description: "Traditional Islamic-inspired cabinet design",
-    },
+
     "lemaritest.glb": {
       name: "TEST BENER",
       description: "Test cabinet item",
     },
-    "test.glb": {
-      name: "test",
-      description: "Test product",
-    },
-    "cupboard.glb": {
-      name: "Cupboard",
-      description:
-        "Modern storage Cupboard with clean lines and contemporary styling",
-    },
-    "drawer-2.glb": {
-      name: "Drawer Cabinet",
-      description: "Modern storage with multiple drawers for organized storage",
-    },
-    "cabinet-1.glb": {
-      name: "Cabinet",
-      description: "Modern storage cabinet with sleek design",
-    },
+
     "cabinet-2.glb": {
       name: "Clean Cabinet",
       description: "Minimalist modern storage cabinet with refined details",
     },
-    "restaurant_pub_wardrobe.glb": {
-      name: "Cabinet",
-      description: "Commercial-grade pub wardrobe cabinet",
-    },
+
     "cabinet.glb": {
       name: "Storage Cabinet",
       description: "Functional storage solution for any space",
     },
-    "chair-1.glb": {
-      name: "Chair",
-      description: "Elegant dining chair with comfortable seating",
-    },
+
     "wall_cupboard.glb": {
       name: "Wall Cupboard",
       description: "Wall-mounted storage unit perfect for saving floor space",
-    },
-    "rakayolahkaliinibener.glb": {
-      name: "Storage Cabinet",
-      description: "Versatile storage cabinet for various uses",
-    },
-    "rak-1.glb": {
-      name: "Storage Rack",
-      description: "Modern storage rack with open shelves",
     },
   };
 
@@ -133,7 +100,7 @@ export const ProductInfoPanel = ({
     <>
       {/* Overlay */}
       <div
-        className={`fixed inset-0 z-50 bg-black transition-opacity duration-300 ${
+        className={`fixed inset-0 z-51 bg-black transition-opacity duration-300 ${
           isOpen ? "opacity-30" : "pointer-events-none opacity-0"
         }`}
         onClick={onClose}
@@ -141,7 +108,7 @@ export const ProductInfoPanel = ({
 
       {/* Panel */}
       <div
-        className={`fixed top-0 right-0 z-51 h-full w-80 overflow-y-auto bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 z-52 h-full w-80 overflow-y-auto bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
