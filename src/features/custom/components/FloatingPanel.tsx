@@ -6,7 +6,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Tool, ToolType } from "@/types/toolType";
-import { Home } from "lucide-react";
+import { Home, Wrench } from "lucide-react";
 import { useState } from "react";
 
 interface FloatingToolPanelProps {
@@ -16,6 +16,7 @@ interface FloatingToolPanelProps {
   isSidebarOpen: boolean;
   onToolClick: (toolId: ToolType) => void;
   onHomeClick: () => void;
+  onCustomizeClick: () => void;
 }
 
 export const FloatingToolPanel = ({
@@ -25,6 +26,7 @@ export const FloatingToolPanel = ({
   isSidebarOpen,
   onToolClick,
   onHomeClick,
+  onCustomizeClick,
 }: FloatingToolPanelProps) => {
   const [previousState, setPreviousState] = useState(null);
 
@@ -84,6 +86,22 @@ export const FloatingToolPanel = ({
             );
           })}
         </div>
+
+        {/* customize room */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              onClick={onCustomizeClick}
+              className="bg-slate-900 text-white shadow-lg hover:bg-slate-800"
+              size="icon"
+            >
+              <Wrench size={20} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            <p>Customize Room</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
     </TooltipProvider>
   );

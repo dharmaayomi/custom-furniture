@@ -1,20 +1,19 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import { useRoomStore } from "@/store/useRoomStore";
 import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders";
-import { createScene } from "./SceneSetup";
+import { useEffect, useRef } from "react";
+import { useDebounceValue } from "usehooks-ts";
+import { HumanHelper } from "./HumanHelper";
+import { setupAutoHideWalls, updateRoomDimensions } from "./MeshUtils_WallSnap";
 import {
   loadAdditionalModel,
   loadMainModel,
   updateAllTextures,
 } from "./ModelLoader_WallSnap";
-import { useRoomStore } from "@/store/useRoomStore";
-import { setupAutoHideWalls, updateRoomDimensions } from "./MeshUtils_WallSnap";
 import { setupRoom } from "./RoomSetup";
-import { useDebounceValue } from "usehooks-ts";
-import { HumanHelper } from "./HumanHelper";
-import { on } from "events";
+import { createScene } from "./SceneSetup";
 
 interface RoomCanvasProps {
   mainModel: string;
@@ -227,7 +226,6 @@ export const RoomCanvasThree = ({
       }
 
       // 2. Hanya load model baru jika string mainModel TIDAK kosong
-
       if (mainModel) {
         const savedTransform = presentRef.current.mainModelTransform;
         const mesh = await loadMainModel(

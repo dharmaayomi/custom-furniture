@@ -28,49 +28,150 @@ export interface WallSnapPosition {
 // DYNAMIC ROOM DIMENSIONS - TAMBAHAN BARU
 // ============================================================================
 export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
-  const { roomConfig } = useRoomStore.getState().present;
+  const { roomConfig, mainModelTransform, additionalTransforms } =
+    useRoomStore.getState().present;
   CONFIG.rw = roomConfig.width;
   CONFIG.rd = roomConfig.depth;
 
   if (scene) {
     const allFurniture = getAllFurniture(scene);
 
-    allFurniture.forEach((mesh) => {
+    allFurniture.forEach((mesh, index) => {
       const pos = mesh.position;
       const rw = CONFIG.rw;
       const rd = CONFIG.rd;
 
-      const distToBack = Math.abs(pos.z - rd / 2);
-      const distToFront = Math.abs(pos.z + rd / 2);
-      const distToRight = Math.abs(pos.x - rw / 2);
-      const distToLeft = Math.abs(pos.x + rw / 2);
+      let savedTransform: FurnitureTransform | undefined;
+      if (index === 0 && mainModelTransform) {
+        // Main model (index 0)
+        savedTransform = mainModelTransform;
+      } else if (index > 0 && additionalTransforms[index - 1]) {
+        // Additional models (index > 0)
+        savedTransform = additionalTransforms[index - 1];
+      }
 
-      const minDist = Math.min(
-        distToBack,
-        distToFront,
-        distToRight,
-        distToLeft,
-      );
+      // Jika ada saved transform, gunakan posisi yang tersimpan
+      if (savedTransform && savedTransform.modelName === mesh.name) {
+        // Hitung jarak ke setiap tembok dari posisi yang tersimpan
+        const savedPos = savedTransform.position;
+        const distToBack = Math.abs(savedPos.z - rd / 2);
+        const distToFront = Math.abs(savedPos.z + rd / 2);
+        const distToRight = Math.abs(savedPos.x - rw / 2);
+        const distToLeft = Math.abs(savedPos.x + rw / 2);
 
-      let currentWall: WallSide = "back";
-      if (minDist === distToBack) currentWall = "back";
-      else if (minDist === distToFront) currentWall = "front";
-      else if (minDist === distToRight) currentWall = "right";
-      else currentWall = "left";
+        const minDist = Math.min(
+          distToBack,
+          distToFront,
+          distToRight,
+          distToLeft,
+        );
 
-      const newPos = getWallSnapPosition(
-        currentWall,
-        mesh,
-        new BABYLON.Vector3(pos.x, 0, pos.z),
-      );
+        let currentWall: WallSide = "back";
+        if (minDist === distToBack) currentWall = "back";
+        else if (minDist === distToFront) currentWall = "front";
+        else if (minDist === distToRight) currentWall = "right";
+        else currentWall = "left";
 
-      mesh.position.x = newPos.x;
-      mesh.position.z = newPos.z;
-      mesh.computeWorldMatrix(true);
+        // Gunakan rotasi yang tersimpan
+        mesh.rotation.y = savedTransform.rotation;
+        mesh.computeWorldMatrix(true);
+
+        // Snap ke wall dengan mempertahankan posisi relatif
+        const newPos = getWallSnapPosition(
+          currentWall,
+          mesh,
+          new BABYLON.Vector3(savedPos.x, 0, savedPos.z),
+        );
+
+        mesh.position.x = newPos.x;
+        mesh.position.z = newPos.z;
+        // Pertahankan Y position
+        mesh.position.y = savedPos.y;
+        mesh.computeWorldMatrix(true);
+
+        // Update transform di store
+        const { updateTransformSilent } = useRoomStore.getState();
+        const updatedTransform: FurnitureTransform = {
+          modelName: mesh.name,
+          position: {
+            x: mesh.position.x,
+            y: mesh.position.y,
+            z: mesh.position.z,
+          },
+          rotation: mesh.rotation.y,
+        };
+
+        if (index === 0) {
+          updateTransformSilent(0, updatedTransform, true);
+        } else {
+          updateTransformSilent(index - 1, updatedTransform, false);
+        }
+      } else {
+        // Fallback: jika tidak ada saved transform, gunakan logic lama
+        const distToBack = Math.abs(pos.z - rd / 2);
+        const distToFront = Math.abs(pos.z + rd / 2);
+        const distToRight = Math.abs(pos.x - rw / 2);
+        const distToLeft = Math.abs(pos.x + rw / 2);
+
+        const minDist = Math.min(
+          distToBack,
+          distToFront,
+          distToRight,
+          distToLeft,
+        );
+
+        let currentWall: WallSide = "back";
+        if (minDist === distToBack) currentWall = "back";
+        else if (minDist === distToFront) currentWall = "front";
+        else if (minDist === distToRight) currentWall = "right";
+        else currentWall = "left";
+
+        const newPos = getWallSnapPosition(
+          currentWall,
+          mesh,
+          new BABYLON.Vector3(pos.x, 0, pos.z),
+        );
+
+        mesh.position.x = newPos.x;
+        mesh.position.z = newPos.z;
+        mesh.computeWorldMatrix(true);
+      }
     });
     // console.log("🔄 All furniture repositioned");
   }
 };
+
+//       const distToBack = Math.abs(pos.z - rd / 2);
+//       const distToFront = Math.abs(pos.z + rd / 2);
+//       const distToRight = Math.abs(pos.x - rw / 2);
+//       const distToLeft = Math.abs(pos.x + rw / 2);
+
+//       const minDist = Math.min(
+//         distToBack,
+//         distToFront,
+//         distToRight,
+//         distToLeft,
+//       );
+
+//       let currentWall: WallSide = "back";
+//       if (minDist === distToBack) currentWall = "back";
+//       else if (minDist === distToFront) currentWall = "front";
+//       else if (minDist === distToRight) currentWall = "right";
+//       else currentWall = "left";
+
+//       const newPos = getWallSnapPosition(
+//         currentWall,
+//         mesh,
+//         new BABYLON.Vector3(pos.x, 0, pos.z),
+//       );
+
+//       mesh.position.x = newPos.x;
+//       mesh.position.z = newPos.z;
+//       mesh.computeWorldMatrix(true);
+//     });
+//     // console.log("🔄 All furniture repositioned");
+//   }
+// };
 
 // ============================================================================
 // MATERIAL CACHE - FIX UNTUK MASALAH LIGHTING

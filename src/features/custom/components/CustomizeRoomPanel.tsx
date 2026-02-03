@@ -30,10 +30,25 @@ export const CustomizeRoomPanel = ({
 }: CustomizeRoomPanelProps) => {
   const { present, updateRoomConfig } = useRoomStore();
   const { roomConfig } = present;
+  const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (scene) {
-      updateRoomDimensions(scene); // Pass scene untuk reposisi
+      // Clear previous timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      debounceTimerRef.current = setTimeout(() => {
+        updateRoomDimensions(scene);
+      }, 150);
     }
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
   }, [roomConfig.width, roomConfig.depth, scene]);
   if (!isOpen) return null;
 

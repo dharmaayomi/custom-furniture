@@ -133,12 +133,6 @@ export const loadAdditionalModel = async (
   try {
     updateRoomDimensions();
 
-    // const { present } = useRoomStore.getState();
-    // const uniqueId =
-    //   present.additionalModels.find((id) =>
-    //     id.includes(modelName.split(".")[0]),
-    //   ) || modelName;
-
     let uniqueId = savedTransform?.modelName;
 
     if (!uniqueId) {

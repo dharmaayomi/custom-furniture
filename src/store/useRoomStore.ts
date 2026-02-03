@@ -1,7 +1,7 @@
 import { updateRoomDimensions } from "@/features/custom/_components/MeshUtils_WallSnap";
 import { CONFIG } from "@/features/custom/_components/RoomConfig";
 import * as BABYLON from "@babylonjs/core";
-import { ASSET_PRICES, TEXTURE_PRICES } from "@/lib/price";
+import { ASSET_PRICES, TEXTURE_PRICES, extractModelNameFromId } from "@/lib/price";
 import { create } from "zustand";
 
 // --- 1. SETUP DATA HARGA (DATABASE SEMENTARA) ---
@@ -16,7 +16,9 @@ const calculateTotal = (
   let total = ASSET_PRICES[mainModel] || 0;
 
   additionalModels.forEach((model) => {
-    total += ASSET_PRICES[model] || 0;
+    // Extract the actual model name from unique ID
+    const modelName = extractModelNameFromId(model);
+    total += ASSET_PRICES[modelName] || 0;
   });
 
   total += TEXTURE_PRICES[activeTexture] || 0;
@@ -85,7 +87,7 @@ interface RoomStore {
 }
 
 // State Awal
-const INITIAL_MAIN = "lemaritest.glb";
+const INITIAL_MAIN = "";
 const INITIAL_TEXTURE = "";
 const INITIAL_ROOM_CONFIG: RoomConfig = {
   width: 620,
@@ -174,12 +176,6 @@ export const useRoomStore = create<RoomStore>((set) => ({
       const uniqueId = `${model}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const newModels = [...currentPresent.additionalModels, uniqueId];
 
-      const extractModelName = (id: string) => {
-        const parts = id.split("_");
-        return parts.slice(0, -2).join("_");
-      };
-
-      // const newTransforms = [...state.present.additionalTransforms];
       const newTransforms = [
         ...currentPresent.additionalTransforms,
         {
@@ -188,11 +184,14 @@ export const useRoomStore = create<RoomStore>((set) => ({
           rotation: 0,
         },
       ];
+      
+      // Calculate price using the new models list (which contains uniqueIds)
       const newPrice = calculateTotal(
         state.present.mainModel,
-        newModels.map(extractModelName),
+        newModels, // Pass uniqueIds, calculateTotal will extract model names
         state.present.activeTexture,
       );
+      
       const newPresent = {
         ...currentPresent,
         additionalModels: newModels,
@@ -272,11 +271,10 @@ export const useRoomStore = create<RoomStore>((set) => ({
 
   captureCurrentState: () =>
     set((state) => {
-      console.log("📸 Capturing state:", state.present);
       return {
         past: [...state.past, state.present],
-        present: state.present, // ⭐ Keep current present
-        future: [], // Clear future
+        present: state.present,
+        future: [],
       };
     }),
 
@@ -297,7 +295,6 @@ export const useRoomStore = create<RoomStore>((set) => ({
           additionalTransforms: newTransforms,
         };
       }
-
       // Return state tanpa mengubah 'past'
       return {
         past: state.past,
@@ -313,7 +310,6 @@ export const useRoomStore = create<RoomStore>((set) => ({
   undo: () =>
     set((state) => {
       if (state.past.length === 0) return state;
-
       const previous = state.past[state.past.length - 1];
       const newPast = state.past.slice(0, -1);
 

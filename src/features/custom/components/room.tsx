@@ -227,6 +227,7 @@ export const RoomPage = () => {
           isSidebarOpen={isSidebarOpen}
           onToolClick={handleToolClick}
           onHomeClick={handleHomeClick}
+          onCustomizeClick={handleCustomizeClick}
         />
 
         {/* Footer */}

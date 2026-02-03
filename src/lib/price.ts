@@ -42,6 +42,16 @@ export const formatPrice = (price: number): string => {
   }).format(price);
 };
 
+export const extractModelNameFromId = (uniqueId: string): string => {
+  // Extract original model name from uniqueId
+  // Format: model_timestamp_randomstring -> model
+  const parts = uniqueId.split("_");
+  if (parts.length > 2) {
+    return parts.slice(0, -2).join("_");
+  }
+  return uniqueId;
+};
+
 export const calculateTotalPrice = (
   mainModel: string,
   additionalModels: string[],
@@ -54,7 +64,9 @@ export const calculateTotalPrice = (
   }
 
   additionalModels.forEach((model) => {
-    total += getAssetPrice(model);
+    // Extract the actual model name if it's a unique ID
+    const modelName = extractModelNameFromId(model);
+    total += getAssetPrice(modelName);
   });
 
   if (activeTexture) {

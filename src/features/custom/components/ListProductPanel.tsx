@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { formatPrice, getAssetPrice } from "@/lib/price";
+import { formatPrice, getAssetPrice, extractModelNameFromId } from "@/lib/price";
 import { Product } from "@/types/product";
 import { X } from "lucide-react";
 
@@ -105,7 +105,9 @@ export const ListProductPanel = ({
   // Add additional models with their quantities
   const modelCounts: Record<string, number> = {};
   additionalModels.forEach((model) => {
-    modelCounts[model] = (modelCounts[model] || 0) + 1;
+    // Extract original model name from unique ID
+    const modelName = extractModelNameFromId(model);
+    modelCounts[modelName] = (modelCounts[modelName] || 0) + 1;
   });
 
   Object.entries(modelCounts).forEach(([model, quantity]) => {
