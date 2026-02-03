@@ -27,19 +27,10 @@ import { ProductInfoPanel } from "./ProductInfoPanel";
 const ASSETS_3D = [
   "wine_cabinet.glb",
   "wooden_cupboard.glb",
-  "bismillah.glb",
   "lemaritest.glb",
-  "test.glb",
-  "drawer-2.glb",
-  "cupboard.glb",
   "cabinet-2.glb",
-  "cabinet-1.glb",
   "cabinet.glb",
-  "chair-1.glb",
   "wall_cupboard.glb",
-  "rak-1.glb",
-  "rakayolahkaliinibener.glb",
-  "restaurant_pub_wardrobe.glb",
 ];
 
 type ActivePanel =

@@ -1,19 +1,10 @@
 export const ASSET_PRICES: Record<string, number> = {
   "wine_cabinet.glb": 2500000,
   "wooden_cupboard.glb": 2000000,
-  "bismillah.glb": 1500000,
   "lemaritest.glb": 1500000,
-  "test.glb": 1500000,
   "cabinet-2.glb": 1800000,
-  "cabinet-1.glb": 1800000,
   "cabinet.glb": 1500000,
-  "chair-1.glb": 800000,
   "wall_cupboard.glb": 2000000,
-  "rakayolahkaliinibener.glb": 1500000,
-  "ral-1.glb": 1500000,
-  "restaurant_pub_wardrobe.glb": 2500000,
-  "cupboard.glb": 1900000,
-  "drawer-2.glb": 1900000,
 };
 
 export const TEXTURE_PRICES: Record<string, number> = {
