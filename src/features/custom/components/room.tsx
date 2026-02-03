@@ -25,9 +25,9 @@ import { SidebarPanel } from "./SidebarPanel";
 import { ProductInfoPanel } from "./ProductInfoPanel";
 
 const ASSETS_3D = [
+  "lemaritest.glb",
   "wine_cabinet.glb",
   "wooden_cupboard.glb",
-  "lemaritest.glb",
   "cabinet-2.glb",
   "cabinet.glb",
   "wall_cupboard.glb",
@@ -140,7 +140,6 @@ export const RoomPage = () => {
   };
 
   const closePanelWithRestore = () => {
-    // When closing product info, switch to home sidebar
     setActivePanel("home");
     setShowHomeSidebar(true);
     setSelectedTool(null);
@@ -166,7 +165,6 @@ export const RoomPage = () => {
   };
 
   const handleProductInfoClick = () => {
-    // Open sidebar first, then open product info panel on top
     setActivePanel("sidebar");
     setSelectedTool(null);
     setShowHomeSidebar(false);
@@ -258,7 +256,6 @@ export const RoomPage = () => {
       </div>
 
       {/* Sidebar Panel */}
-
       <SidebarPanel
         isOpen={activePanel === "sidebar" || activePanel === "home"}
         showHomeSidebar={activePanel === "home"}

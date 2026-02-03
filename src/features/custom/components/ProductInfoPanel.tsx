@@ -100,7 +100,7 @@ export const ProductInfoPanel = ({
     <>
       {/* Overlay */}
       <div
-        className={`fixed inset-0 z-50 bg-black transition-opacity duration-300 ${
+        className={`fixed inset-0 z-51 bg-black transition-opacity duration-300 ${
           isOpen ? "opacity-30" : "pointer-events-none opacity-0"
         }`}
         onClick={onClose}
@@ -108,7 +108,7 @@ export const ProductInfoPanel = ({
 
       {/* Panel */}
       <div
-        className={`fixed top-0 right-0 z-51 h-full w-80 overflow-y-auto bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 z-52 h-full w-80 overflow-y-auto bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >

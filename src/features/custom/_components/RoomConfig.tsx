@@ -28,12 +28,12 @@ export const CAMERA_CONFIG = {
   // minTargetY: 60,
   // maxTargetY: 160,
   alpha: -Math.PI / 2,
-  beta: Math.PI / 3, // Sudut awal yang lebih natural
+  beta: Math.PI / 2,
   radius: 600,
   targetY: 120,
-  wheelPrecision: 1, // Ditingkatkan agar scroll lebih halus
+  wheelPrecision: 1,
   lowerBetaLimit: 0.1,
-  upperBetaLimit: (Math.PI / 2) * 0.9, // Jangan persis 90 derajat agar tidak distorsi
+  upperBetaLimit: Math.PI / 1.85,
   lowerRadiusLimit: 50,
   upperRadiusLimit: 1200,
   minTargetY: 20,

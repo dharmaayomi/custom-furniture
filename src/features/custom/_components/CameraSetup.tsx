@@ -27,8 +27,16 @@ export const setupCamera = (
   camera.lowerRadiusLimit = CAMERA_CONFIG.lowerRadiusLimit;
   camera.upperRadiusLimit = CAMERA_CONFIG.upperRadiusLimit;
 
-  // ===== IKEA-style: drag DOWN = move FORWARD =====
-  const prevPointerY = { value: 0 };
+  scene.onBeforeRenderObservable.add(() => {
+    const lowerLimit = camera.lowerRadiusLimit ?? 0;
+    if (camera.radius <= lowerLimit + 1) {
+      camera.panningSensibility = 1000;
+      camera.wheelPrecision = 20;
+    } else {
+      camera.panningSensibility = 50;
+      camera.wheelPrecision = CAMERA_CONFIG.wheelPrecision;
+    }
+  });
 
   let isPointerDown = false;
   let lastPointerY = 0;
@@ -47,17 +55,8 @@ export const setupCamera = (
       case BABYLON.PointerEventTypes.POINTERMOVE:
         if (!isPointerDown) return;
 
-        const deltaY = scene.pointerY - lastPointerY;
         lastPointerY = scene.pointerY;
 
-        // camera.target.y -= deltaY * 0.25;
-        // camera.target.y -= deltaY * 0.08;
-
-        // camera.target.y = BABYLON.Scalar.Clamp(
-        //   camera.target.y,
-        //   CAMERA_CONFIG.minTargetY,
-        //   CAMERA_CONFIG.maxTargetY,
-        // );
         break;
     }
   });
@@ -73,13 +72,12 @@ export const setupCamera = (
 
   zoomInAnimation.setKeys([
     { frame: 0, value: 600 },
-    { frame: 90, value: 200 },
+    { frame: 90, value: 250 },
   ]);
 
   const easing = new BABYLON.CubicEase();
   easing.setEasingMode(BABYLON.EasingFunction.EASINGMODE_EASEINOUT);
   zoomInAnimation.setEasingFunction(easing);
-
   camera.animations.push(zoomInAnimation);
   scene.beginAnimation(camera, 0, 90, false);
 
