@@ -22,7 +22,7 @@ import { FloatingToolPanel } from "./FloatingPanel";
 import { ListProductPanel } from "./ListProductPanel";
 import { MenuModal } from "./MenuModal";
 import { SidebarPanel } from "./SidebarPanel";
-import { set } from "zod";
+import { ProductInfoPanel } from "./ProductInfoPanel";
 
 const ASSETS_3D = [
   "wine_cabinet.glb",
@@ -42,7 +42,13 @@ const ASSETS_3D = [
   "restaurant_pub_wardrobe.glb",
 ];
 
-type ActivePanel = "sidebar" | "productList" | "customize" | "home" | null;
+type ActivePanel =
+  | "sidebar"
+  | "productList"
+  | "customize"
+  | "home"
+  | "productInfo"
+  | null;
 
 const ASSETS_TEXTURE = [
   "fine-wood-texture.jpg",
@@ -142,6 +148,13 @@ export const RoomPage = () => {
     setSelectedTool(null);
   };
 
+  const closePanelWithRestore = () => {
+    // When closing product info, switch to home sidebar
+    setActivePanel("home");
+    setShowHomeSidebar(true);
+    setSelectedTool(null);
+  };
+
   const closeSidebar = () => {
     setIsSidebarOpen(false);
     setSelectedTool(null);
@@ -159,6 +172,14 @@ export const RoomPage = () => {
 
   const handleCustomizeClick = () => {
     openPanel("customize");
+  };
+
+  const handleProductInfoClick = () => {
+    // Open sidebar first, then open product info panel on top
+    setActivePanel("sidebar");
+    setSelectedTool(null);
+    setShowHomeSidebar(false);
+    setActivePanel("productInfo");
   };
 
   return (
@@ -183,6 +204,10 @@ export const RoomPage = () => {
           additionalModels,
           activeTexture,
         )}
+      />
+      <ProductInfoPanel
+        isOpen={activePanel === "productInfo"}
+        onClose={closePanelWithRestore}
       />
 
       <div
@@ -233,7 +258,10 @@ export const RoomPage = () => {
         {/* Footer */}
         <div className="pointer-events-none absolute bottom-0 left-0 z-40 w-full">
           <div className="pointer-events-auto">
-            <FooterCustom onCustomizeClick={handleCustomizeClick} />
+            <FooterCustom
+              onCustomizeClick={handleCustomizeClick}
+              onInfoClick={handleProductInfoClick}
+            />
           </div>
         </div>
       </div>

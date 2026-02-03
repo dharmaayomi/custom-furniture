@@ -43,6 +43,9 @@ export const RoomCanvasThree = ({
   const present = useRoomStore((state) => state.present);
   const presentRef = useRef(present);
   const showHuman = useRoomStore((state) => state.present.showHuman);
+  const setSelectedFurniture = useRoomStore(
+    (state) => state.setSelectedFurniture,
+  );
   const humanRef = useRef<any>(null);
   const hlRef = useRef<BABYLON.HighlightLayer | null>(null);
 
@@ -95,8 +98,12 @@ export const RoomCanvasThree = ({
               BABYLON.Color3.FromHexString("#f59e0b"),
             );
           });
+
+          // Update selected furniture in store
+          setSelectedFurniture(targetMesh.name);
         } else {
           hl.removeAllMeshes();
+          setSelectedFurniture(null);
         }
       }
     };
@@ -327,7 +334,6 @@ export const RoomCanvasThree = ({
     present.additionalTransforms.forEach((transform, index) => {
       const mesh = additionalMeshes[index];
       if (mesh) {
-        // console.log(`📍 Restoring mesh ${index} (${mesh.name}) to:`, transform);
         mesh.position.set(
           transform.position.x,
           transform.position.y,

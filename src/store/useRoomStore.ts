@@ -1,7 +1,11 @@
 import { updateRoomDimensions } from "@/features/custom/_components/MeshUtils_WallSnap";
 import { CONFIG } from "@/features/custom/_components/RoomConfig";
 import * as BABYLON from "@babylonjs/core";
-import { ASSET_PRICES, TEXTURE_PRICES, extractModelNameFromId } from "@/lib/price";
+import {
+  ASSET_PRICES,
+  TEXTURE_PRICES,
+  extractModelNameFromId,
+} from "@/lib/price";
 import { create } from "zustand";
 
 // --- 1. SETUP DATA HARGA (DATABASE SEMENTARA) ---
@@ -49,6 +53,7 @@ interface RoomData {
   additionalTransforms: FurnitureTransform[];
   roomConfig: RoomConfig;
   showHuman: boolean;
+  selectedFurniture: string | null; // Track selected furniture mesh name
 }
 
 interface RoomStore {
@@ -59,6 +64,9 @@ interface RoomStore {
   setMainModel: (model: string) => void;
   setActiveTexture: (texture: string) => void;
   addAdditionalModel: (model: string) => void;
+  setSelectedFurniture: (meshName: string | null) => void;
+  duplicateSelectedFurniture: () => void;
+  deleteSelectedFurniture: () => void;
 
   updateRoomConfig: (config: Partial<RoomConfig>) => void;
 
@@ -106,6 +114,7 @@ const INITIAL_STATE: RoomData = {
   additionalTransforms: [],
   roomConfig: INITIAL_ROOM_CONFIG,
   showHuman: false,
+  selectedFurniture: null,
 };
 
 export const useRoomStore = create<RoomStore>((set) => ({
@@ -170,6 +179,170 @@ export const useRoomStore = create<RoomStore>((set) => ({
       // Gunakan update silent atau capture history tergantung keinginan Anda
     })),
 
+  setSelectedFurniture: (meshName) =>
+    set((state) => ({
+      present: { ...state.present, selectedFurniture: meshName },
+    })),
+
+  duplicateSelectedFurniture: () =>
+    set((state) => {
+      const selected = state.present.selectedFurniture;
+      if (!selected) return state;
+
+      // Extract the actual model name from selected furniture
+      const extractedSelected = extractModelNameFromId(selected);
+
+      let modelNameToDuplicate = "";
+
+      // Check if it's main model
+      if (extractedSelected === state.present.mainModel) {
+        modelNameToDuplicate = state.present.mainModel;
+      } else {
+        // Find the additional model name from the selected mesh name
+        const found = state.present.additionalModels.find(
+          (id) =>
+            id === selected || extractModelNameFromId(id) === extractedSelected,
+        );
+        if (found) {
+          modelNameToDuplicate = extractModelNameFromId(found);
+        }
+      }
+
+      if (!modelNameToDuplicate) return state;
+
+      // Add as additional model
+      const uniqueId = `${modelNameToDuplicate}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const newModels = [...state.present.additionalModels, uniqueId];
+
+      const newTransforms = [
+        ...state.present.additionalTransforms,
+        {
+          modelName: uniqueId,
+          position: { x: 0, y: 0, z: 0 },
+          rotation: 0,
+        },
+      ];
+
+      const newPrice = calculateTotal(
+        state.present.mainModel,
+        newModels,
+        state.present.activeTexture,
+      );
+
+      const newPresent = {
+        ...state.present,
+        additionalModels: newModels,
+        totalPrice: newPrice,
+        additionalTransforms: newTransforms,
+        selectedFurniture: null,
+      };
+
+      return {
+        past: [...state.past, state.present],
+        present: newPresent,
+        future: [],
+      };
+    }),
+
+  deleteSelectedFurniture: () =>
+    set((state) => {
+      const selected = state.present.selectedFurniture;
+      if (!selected) return state;
+
+      // Extract the actual model name from selected furniture
+      const extractedSelected = extractModelNameFromId(selected);
+
+      // Check if it's main model
+      if (extractedSelected === state.present.mainModel) {
+        // If there are additional models, promote the first one to main model
+        if (state.present.additionalModels.length > 0) {
+          const promotedModelId = state.present.additionalModels[0];
+          const promotedModelName = extractModelNameFromId(promotedModelId);
+          const promotedTransform = state.present.additionalTransforms[0];
+
+          // Remove from additional models
+          const newAdditionalModels = state.present.additionalModels.slice(1);
+          const newAdditionalTransforms =
+            state.present.additionalTransforms.slice(1);
+
+          const newPrice = calculateTotal(
+            promotedModelName,
+            newAdditionalModels,
+            state.present.activeTexture,
+          );
+
+          const newPresent = {
+            ...state.present,
+            mainModel: promotedModelName,
+            mainModelTransform: promotedTransform,
+            additionalModels: newAdditionalModels,
+            additionalTransforms: newAdditionalTransforms,
+            totalPrice: newPrice,
+            selectedFurniture: null,
+          };
+
+          return {
+            past: [...state.past, state.present],
+            present: newPresent,
+            future: [],
+          };
+        } else {
+          // No additional models, just clear the main model
+          const newPresent = {
+            ...state.present,
+            mainModel: "",
+            mainModelTransform: undefined,
+            selectedFurniture: null,
+            totalPrice: calculateTotal(
+              "",
+              state.present.additionalModels,
+              state.present.activeTexture,
+            ),
+          };
+          return {
+            past: [...state.past, state.present],
+            present: newPresent,
+            future: [],
+          };
+        }
+      }
+
+      // Find and remove from additional models
+      const modelIndex = state.present.additionalModels.findIndex(
+        (id) =>
+          id === selected || extractModelNameFromId(id) === extractedSelected,
+      );
+
+      if (modelIndex === -1) return state;
+
+      const newModels = state.present.additionalModels.filter(
+        (_, idx) => idx !== modelIndex,
+      );
+      const newTransforms = state.present.additionalTransforms.filter(
+        (_, idx) => idx !== modelIndex,
+      );
+
+      const newPrice = calculateTotal(
+        state.present.mainModel,
+        newModels,
+        state.present.activeTexture,
+      );
+
+      const newPresent = {
+        ...state.present,
+        additionalModels: newModels,
+        additionalTransforms: newTransforms,
+        totalPrice: newPrice,
+        selectedFurniture: null,
+      };
+
+      return {
+        past: [...state.past, state.present],
+        present: newPresent,
+        future: [],
+      };
+    }),
+
   addAdditionalModel: (model) =>
     set((state) => {
       const currentPresent = state.present;
@@ -184,14 +357,14 @@ export const useRoomStore = create<RoomStore>((set) => ({
           rotation: 0,
         },
       ];
-      
+
       // Calculate price using the new models list (which contains uniqueIds)
       const newPrice = calculateTotal(
         state.present.mainModel,
         newModels, // Pass uniqueIds, calculateTotal will extract model names
         state.present.activeTexture,
       );
-      
+
       const newPresent = {
         ...currentPresent,
         additionalModels: newModels,
@@ -313,9 +486,12 @@ export const useRoomStore = create<RoomStore>((set) => ({
       const previous = state.past[state.past.length - 1];
       const newPast = state.past.slice(0, -1);
 
+      // Clear selected furniture on undo
+      const clearedPrevious = { ...previous, selectedFurniture: null };
+
       return {
         past: newPast,
-        present: previous,
+        present: clearedPrevious,
         future: [state.present, ...state.future],
       };
     }),
@@ -327,9 +503,12 @@ export const useRoomStore = create<RoomStore>((set) => ({
       const next = state.future[0];
       const newFuture = state.future.slice(1);
 
+      // Clear selected furniture on redo
+      const clearedNext = { ...next, selectedFurniture: null };
+
       return {
         past: [...state.past, state.present],
-        present: next,
+        present: clearedNext,
         future: newFuture,
       };
     }),

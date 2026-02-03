@@ -1,20 +1,57 @@
 import { useRoomStore } from "@/store/useRoomStore";
 import {
   Columns2,
+  Copy,
   CornerUpLeft,
   CornerUpRight,
+  Info,
   Moon,
   Ruler,
+  Trash2,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface FooterCustomProps {
   onCustomizeClick?: () => void;
+  onInfoClick?: () => void;
 }
-export const FooterCustom = ({ onCustomizeClick }: FooterCustomProps) => {
-  const { undo, redo, past, future, present, toggleHuman } = useRoomStore();
+export const FooterCustom = ({
+  onCustomizeClick,
+  onInfoClick,
+}: FooterCustomProps) => {
+  const {
+    undo,
+    redo,
+    past,
+    future,
+    present,
+    toggleHuman,
+    deleteSelectedFurniture,
+    duplicateSelectedFurniture,
+  } = useRoomStore();
   const isHumanActive = present.showHuman;
   const canUndo = past.length > 0;
   const canRedo = future.length > 0;
+  const hasSelectedFurniture = present.selectedFurniture !== null;
+
+  const handleDelete = () => {
+    deleteSelectedFurniture();
+  };
+
+  const handleDuplicate = () => {
+    duplicateSelectedFurniture();
+  };
+
+  const handleInfo = () => {
+    if (onInfoClick) {
+      onInfoClick();
+    }
+  };
   return (
     <footer className="pointer-events-none absolute bottom-0 z-5 mx-auto flex w-full justify-between gap-4 px-3 pb-4 md:px-8">
       {/* ruler button */}
@@ -35,6 +72,64 @@ export const FooterCustom = ({ onCustomizeClick }: FooterCustomProps) => {
         <div className="cursor-pointer rounded-full bg-slate-900 p-3">
           <Ruler className="h-5 w-5 text-white" />
         </div>
+      </div>
+
+      {/* selected item */}
+      <div
+        className={`pointer-events-auto flex items-center gap-2 self-end transition-all duration-300 ${
+          hasSelectedFurniture
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-12 opacity-0"
+        }`}
+      >
+        <TooltipProvider>
+          <div className="bg-primary flex items-center gap-5 rounded-full px-5 py-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleDelete}
+                  disabled={!hasSelectedFurniture}
+                  className="transition-opacity hover:opacity-80"
+                >
+                  <Trash2 className="h-5 w-5 text-white" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Delete selected item</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleDuplicate}
+                  disabled={!hasSelectedFurniture}
+                  className="transition-opacity hover:opacity-80"
+                >
+                  <Copy className="h-5 w-5 text-white" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Duplicate selected item</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleInfo}
+                  disabled={!hasSelectedFurniture}
+                  className="transition-opacity hover:opacity-80"
+                >
+                  <Info className="h-5 w-5 text-white" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View item details</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       </div>
 
       {/* arrow button */}
