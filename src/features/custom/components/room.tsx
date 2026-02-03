@@ -248,6 +248,7 @@ export const RoomPage = () => {
         onClose={closeSidebar}
         assetList3D={ASSETS_3D}
         assetListTexture={ASSETS_TEXTURE}
+        mainModel={mainModel}
         onSelectMainModel={(model) => setMainModel(model)}
         onAddAdditionalModel={addAdditionalModel}
         onSelectTexture={(tex) => setActiveTexture(tex)}
