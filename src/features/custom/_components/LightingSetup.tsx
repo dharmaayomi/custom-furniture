@@ -1,5 +1,6 @@
 import * as BABYLON from "@babylonjs/core";
 import { CONFIG, LIGHTING_CONFIG, ROOM_DIMENSIONS } from "./RoomConfig";
+import { useRoomStore } from "@/store/useRoomStore";
 
 export const setupLighting = (scene: BABYLON.Scene) => {
   const { rw, rd } = CONFIG;
@@ -69,7 +70,7 @@ export const setupLighting = (scene: BABYLON.Scene) => {
   );
   spot2.intensity = 20.0; // Naikkan karena lampu dikurangi
   spot2.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
-  spot2.range = 800;
+  spot2.range = 1800;
 
   // Spot Light Kanan
   const spot3 = new BABYLON.SpotLight(
@@ -82,9 +83,168 @@ export const setupLighting = (scene: BABYLON.Scene) => {
   );
   spot3.intensity = 20.0;
   spot3.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
-  spot3.range = 800;
+  spot3.range = 1800;
+
+  // ========== HELPERS ==========
+  // createLightHelpers(scene, {
+  //   ceilingLamp,
+  //   fillLight,
+  //   fillLight2,
+  //   mainSpot,
+  //   spot2,
+  //   spot3,
+  // });
 
   return {
     ceilingLamp,
+    // shadowGenerator,
   };
+};
+
+// Helper function untuk menampilkan visualisasi lampu
+const createLightHelpers = (
+  scene: BABYLON.Scene,
+  lights: {
+    ceilingLamp: BABYLON.PointLight;
+    fillLight: BABYLON.DirectionalLight;
+    fillLight2: BABYLON.DirectionalLight;
+    mainSpot: BABYLON.SpotLight;
+    spot2: BABYLON.SpotLight;
+    spot3: BABYLON.SpotLight;
+  },
+) => {
+  // Helper untuk Point Light (Ceiling Lamp)
+  const ceilingSphere = BABYLON.MeshBuilder.CreateSphere(
+    "ceilingHelper",
+    { diameter: 20 },
+    scene,
+  );
+  ceilingSphere.position = lights.ceilingLamp.position.clone();
+  const ceilingMat = new BABYLON.StandardMaterial("ceilingHelperMat", scene);
+  ceilingMat.emissiveColor = new BABYLON.Color3(1, 1, 0);
+  ceilingMat.alpha = 0.5;
+  ceilingSphere.material = ceilingMat;
+
+  // Helper untuk Directional Lights (Fill Lights)
+  createDirectionalHelper(
+    scene,
+    lights.fillLight,
+    "fillLightHelper",
+    new BABYLON.Color3(0, 1, 1),
+  );
+  createDirectionalHelper(
+    scene,
+    lights.fillLight2,
+    "fillLight2Helper",
+    new BABYLON.Color3(0, 0.8, 1),
+  );
+
+  // Helper untuk Spot Lights
+  createSpotHelper(
+    scene,
+    lights.mainSpot,
+    "mainSpotHelper",
+    new BABYLON.Color3(1, 0.5, 0),
+  );
+  createSpotHelper(
+    scene,
+    lights.spot2,
+    "spot2Helper",
+    new BABYLON.Color3(1, 0, 0),
+  );
+  createSpotHelper(
+    scene,
+    lights.spot3,
+    "spot3Helper",
+    new BABYLON.Color3(0, 1, 0),
+  );
+};
+
+// Helper untuk Directional Light
+const createDirectionalHelper = (
+  scene: BABYLON.Scene,
+  light: BABYLON.DirectionalLight,
+  name: string,
+  color: BABYLON.Color3,
+) => {
+  const position = new BABYLON.Vector3(0, 200, 0);
+
+  // Sphere di posisi awal
+  const sphere = BABYLON.MeshBuilder.CreateSphere(
+    name + "Sphere",
+    { diameter: 15 },
+    scene,
+  );
+  sphere.position = position;
+
+  // Arrow menunjukkan arah
+  const direction = light.direction.normalize();
+  const arrowLength = 100;
+  const arrow = BABYLON.MeshBuilder.CreateCylinder(
+    name + "Arrow",
+    { height: arrowLength, diameter: 5 },
+    scene,
+  );
+  arrow.position = position.add(direction.scale(arrowLength / 2));
+
+  // Rotate arrow to point in direction
+  const up = BABYLON.Vector3.Up();
+  const angle = Math.acos(BABYLON.Vector3.Dot(up, direction));
+  const axis = BABYLON.Vector3.Cross(up, direction).normalize();
+  if (axis.length() > 0) {
+    arrow.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle);
+  }
+
+  // Material
+  const mat = new BABYLON.StandardMaterial(name + "Mat", scene);
+  mat.emissiveColor = color;
+  mat.alpha = 0.6;
+  sphere.material = mat;
+  arrow.material = mat;
+};
+
+// Helper untuk Spot Light
+const createSpotHelper = (
+  scene: BABYLON.Scene,
+  light: BABYLON.SpotLight,
+  name: string,
+  color: BABYLON.Color3,
+) => {
+  // Sphere di posisi lampu
+  const sphere = BABYLON.MeshBuilder.CreateSphere(
+    name + "Sphere",
+    { diameter: 15 },
+    scene,
+  );
+  sphere.position = light.position.clone();
+
+  // Cone menunjukkan arah dan angle
+  const direction = light.direction.normalize();
+  const coneHeight = 80;
+  const cone = BABYLON.MeshBuilder.CreateCylinder(
+    name + "Cone",
+    {
+      height: coneHeight,
+      diameterTop: 0,
+      diameterBottom: Math.tan(light.angle) * coneHeight * 2,
+    },
+    scene,
+  );
+  cone.position = light.position.add(direction.scale(coneHeight / 2));
+
+  // Rotate cone to point in direction
+  const up = BABYLON.Vector3.Up();
+  const angle = Math.acos(BABYLON.Vector3.Dot(up, direction));
+  const axis = BABYLON.Vector3.Cross(up, direction).normalize();
+  if (axis.length() > 0) {
+    cone.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle);
+  }
+
+  // Material
+  const mat = new BABYLON.StandardMaterial(name + "Mat", scene);
+  mat.emissiveColor = color;
+  mat.alpha = 0.3;
+  mat.wireframe = true;
+  sphere.material = mat;
+  cone.material = mat;
 };

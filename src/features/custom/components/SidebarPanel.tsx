@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { Tool, ToolType } from "@/types/toolType";
+import { useState } from "react";
 
 interface SidebarPanelProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface SidebarPanelProps {
   onClose: () => void;
   assetList3D: string[];
   assetListTexture: string[];
+  mainModel: string;
   onSelectMainModel: (name: string) => void;
   onAddAdditionalModel: (name: string) => void;
   onSelectTexture: (name: string) => void;
@@ -23,10 +25,13 @@ export const SidebarPanel = ({
   onClose,
   assetList3D,
   assetListTexture,
+  mainModel,
   onSelectMainModel,
   onAddAdditionalModel,
   onSelectTexture,
 }: SidebarPanelProps) => {
+  const [previousState, setPreviousState] = useState(null);
+
   const renderToolSidebar = () => {
     const tool = tools.find((t) => t.id === selectedTool);
     if (!tool) return null;
@@ -65,12 +70,33 @@ export const SidebarPanel = ({
         <div className="space-y-4">
           <p className="text-sm text-gray-600">Kategori: {tool.category}</p>
 
+          {tool.id === "tambahan" && !mainModel && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <p className="text-sm font-medium text-amber-900">
+                ⚠️ Please select a main model first
+              </p>
+              <p className="mt-1 text-xs text-amber-700">
+                You need to place the main furniture before adding additional
+                items.
+              </p>
+            </div>
+          )}
+
           <div className="mt-6 grid grid-cols-2 gap-4">
             {itemsToShow.map((item, idx) => (
               <div
                 key={idx}
-                onClick={() => handleItemClick(item)}
-                className="relative aspect-square cursor-pointer overflow-hidden rounded-lg border-2 border-gray-200 bg-gray-100 transition-all hover:border-blue-500"
+                onClick={() => {
+                  if (tool.id === "tambahan" && !mainModel) {
+                    return; // Prevent click if main model doesn't exist
+                  }
+                  handleItemClick(item);
+                }}
+                className={`relative aspect-square cursor-pointer overflow-hidden rounded-lg border-2 border-gray-200 bg-gray-100 transition-all hover:border-blue-500 ${
+                  tool.id === "tambahan" && !mainModel
+                    ? "cursor-not-allowed opacity-50"
+                    : ""
+                }`}
               >
                 {/* Render Preview (Simple Text/Image logic) */}
                 {isTexture ? (
@@ -149,8 +175,7 @@ export const SidebarPanel = ({
 
   return (
     <div
-      // className={`fixed top-0 right-0 z-50 h-full w-80 bg-white shadow-2xl transition-transform duration-500 ease-in-out ${
-      className={`fixed top-0 right-0 z-50 h-full w-80 bg-white shadow-md ${
+      className={`fixed top-0 right-0 z-51 h-full w-80 bg-white shadow-md ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
     >

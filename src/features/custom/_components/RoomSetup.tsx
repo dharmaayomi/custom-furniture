@@ -1,4 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
+import earcut from "earcut";
 import { ROOM_DIMENSIONS, MATERIAL_CONFIG, TEXTURE_PATHS } from "./RoomConfig";
 import { RoomConfig } from "@/store/useRoomStore";
 
@@ -6,7 +7,12 @@ import { RoomConfig } from "@/store/useRoomStore";
 const hexToColor3 = (hex: string) => {
   return BABYLON.Color3.FromHexString(hex);
 };
+if (typeof window !== "undefined") {
+  (window as any).earcut = earcut;
+}
 
+const materialCache = new Map<string, BABYLON.PBRMaterial>();
+const textureCache = new Map<string, BABYLON.Texture>();
 export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   const {
     width: rw,
@@ -16,8 +22,7 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
     floorTexture: floorTexturePath,
   } = config;
   const { wallThickness, floorThickness, vinylThickness } = ROOM_DIMENSIONS;
-  const totalWidth = rw + wallThickness * 2;
-  const totalDepth = rd + wallThickness * 2;
+
   // --- 1. FLOOR BASE ---
   const floorBase = BABYLON.MeshBuilder.CreateBox(
     "floorBase",
@@ -33,7 +38,8 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
     { width: rw, height: vinylThickness, depth: rd },
     scene,
   );
-  floorVinyl.position.y = floorThickness - vinylThickness / 2;
+  // floorVinyl.position.y = floorThickness - vinylThickness / 2;
+  floorVinyl.position.y = floorThickness - vinylThickness / 2 + 0.01;
   floorVinyl.receiveShadows = true;
 
   const floorVinylMat = new BABYLON.PBRMaterial("floorVinylMat", scene);
@@ -41,10 +47,34 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   floorVinylMat.metallic = MATERIAL_CONFIG.floor.metallic;
   floorVinylMat.directIntensity = 1.5;
 
-  const texture = new BABYLON.Texture(floorTexturePath, scene);
-  texture.uScale = rw / 100;
-  texture.vScale = rd / 100;
-  floorVinylMat.albedoTexture = texture;
+  let texture = textureCache.get(floorTexturePath);
+
+  if (!texture) {
+    texture = new BABYLON.Texture(floorTexturePath, scene);
+    texture.uScale = rw / 100;
+    texture.vScale = rd / 100;
+    texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+    texture.onLoadObservable.addOnce(() => {
+      textureCache.set(floorTexturePath, texture!);
+    });
+  }
+
+  // Check apakah texture sudah ready
+  if (texture.isReady()) {
+    // Texture sudah loaded, langsung apply
+    floorVinylMat.albedoTexture = texture;
+    floorVinylMat.albedoColor = new BABYLON.Color3(1, 1, 1);
+  } else {
+    // Texture belum loaded, pakai placeholder
+    floorVinylMat.albedoColor = new BABYLON.Color3(0.9, 0.9, 0.9);
+
+    texture.onLoadObservable.addOnce(() => {
+      floorVinylMat.albedoTexture = texture;
+      floorVinylMat.albedoColor = new BABYLON.Color3(1, 1, 1);
+    });
+  }
+
   floorVinyl.material = floorVinylMat;
 
   // --- 3. CEILING ---
@@ -90,7 +120,7 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   // Back
   createWall(
     "wall_back",
-    rw,
+    rw + wallThickness * 2,
     wallThickness,
     0,
     rd / 2 + wallThickness / 2,
@@ -99,7 +129,7 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   // Front
   createWall(
     "wall_front",
-    rw,
+    rw + wallThickness * 2,
     wallThickness,
     0,
     -rd / 2 - wallThickness / 2,
@@ -123,6 +153,7 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
     0,
     "right",
   );
+
   ceiling.material = wallMat;
   floorBase.material = wallMat;
 

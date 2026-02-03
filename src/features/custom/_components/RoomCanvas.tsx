@@ -1,22 +1,25 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import { useRoomStore } from "@/store/useRoomStore";
 import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders";
-import { createScene } from "./SceneSetup";
+import { useEffect, useRef } from "react";
+import { useDebounceValue } from "usehooks-ts";
+import { HumanHelper } from "./HumanHelper";
+import { setupAutoHideWalls, updateRoomDimensions } from "./MeshUtils_WallSnap";
 import {
   loadAdditionalModel,
   loadMainModel,
   updateAllTextures,
 } from "./ModelLoader_WallSnap";
-import { useRoomStore } from "@/store/useRoomStore";
-import { setupAutoHideWalls } from "./MeshUtils_WallSnap";
 import { setupRoom } from "./RoomSetup";
+import { createScene } from "./SceneSetup";
 
 interface RoomCanvasProps {
   mainModel: string;
   activeTexture: string;
   additionalModels: string[];
+  onSceneReady?: (scene: BABYLON.Scene) => void;
 }
 
 const getAdditionalMeshes = (
@@ -32,11 +35,24 @@ export const RoomCanvasThree = ({
   mainModel,
   activeTexture,
   additionalModels,
+  onSceneReady,
 }: RoomCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<BABYLON.Scene | null>(null);
   const mainMeshRef = useRef<BABYLON.AbstractMesh | null>(null);
   const present = useRoomStore((state) => state.present);
+  const presentRef = useRef(present);
+  const showHuman = useRoomStore((state) => state.present.showHuman);
+  const setSelectedFurniture = useRoomStore(
+    (state) => state.setSelectedFurniture,
+  );
+  const humanRef = useRef<any>(null);
+  const hlRef = useRef<BABYLON.HighlightLayer | null>(null);
+
+  useEffect(() => {
+    presentRef.current = present;
+  }, [present]);
+
   const { roomConfig } = present;
   const shadowGenRef = useRef<BABYLON.ShadowGenerator | null>(null);
   const cameraRef = useRef<BABYLON.ArcRotateCamera | null>(null);
@@ -46,64 +62,138 @@ export const RoomCanvasThree = ({
     ceiling: BABYLON.Mesh;
     floorBase: BABYLON.Mesh;
   } | null>(null);
+  const [debouncedRoomConfig] = useDebounceValue(roomConfig, 150);
+  const [debouncedActiveTexture] = useDebounceValue(activeTexture, 150);
 
   // --- 1. INITIAL SCENE SETUP ---
-  // useEffect(() => {
-  //   if (!canvasRef.current) return;
-  //   const canvas = canvasRef.current;
-  //   const engine = new BABYLON.Engine(canvas, true);
 
-  //   const scene = createScene(canvas, engine);
-  //   sceneRef.current = scene;
-
-  //   engine.runRenderLoop(() => {
-  //     scene.render();
-  //   });
-
-  //   const handleResize = () => engine.resize();
-  //   window.addEventListener("resize", handleResize);
-
-  //   const resizeObserver = new ResizeObserver(() => engine.resize());
-  //   if (canvas.parentElement) {
-  //     resizeObserver.observe(canvas.parentElement);
-  //   }
-
-  //   return () => {
-  //     window.removeEventListener("resize", handleResize);
-  //     resizeObserver.disconnect();
-  //     engine.dispose();
-  //   };
-  // }, []);
   useEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
-    const engine = new BABYLON.Engine(canvas, true);
+    // const engine = new BABYLON.Engine(canvas, true);
+    const engine = new BABYLON.Engine(canvas, true, {
+      adaptToDeviceRatio: true,
+      preserveDrawingBuffer: true,
+    });
 
     // Ambil references dari createScene yang sudah dimodifikasi
-    const { scene, shadowGen, camera } = createScene(canvas, engine);
+    const { scene, shadowGen, camera, hl } = createScene(canvas, engine);
 
     sceneRef.current = scene;
+    hlRef.current = hl;
+    scene.onPointerDown = (evt, pickResult) => {
+      if (pickResult.hit && pickResult.pickedMesh) {
+        let targetMesh = pickResult.pickedMesh;
+
+        while (targetMesh.parent && targetMesh.metadata !== "furniture") {
+          targetMesh = targetMesh.parent as BABYLON.AbstractMesh;
+        }
+
+        if (targetMesh.metadata === "furniture") {
+          hl.removeAllMeshes();
+
+          targetMesh.getChildMeshes().forEach((m) => {
+            hl.addMesh(
+              m as BABYLON.Mesh,
+              BABYLON.Color3.FromHexString("#f59e0b"),
+            );
+          });
+
+          // Update selected furniture in store
+          setSelectedFurniture(targetMesh.name);
+        } else {
+          hl.removeAllMeshes();
+          setSelectedFurniture(null);
+        }
+      }
+    };
     shadowGenRef.current = shadowGen;
     cameraRef.current = camera as any;
+
+    if (onSceneReady) {
+      onSceneReady(scene);
+    }
 
     engine.runRenderLoop(() => {
       scene.render();
     });
-    const handleResize = () => engine.resize();
+
+    const handleResize = () => {
+      // Pastikan canvas dan engine resize dengan benar
+      if (canvas && engine) {
+        // Update ukuran canvas secara eksplisit
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+
+        // Resize engine
+        engine.resize();
+
+        // Force update camera projection matrix
+        if (camera) {
+          camera.getProjectionMatrix(true); // true = force refresh
+        }
+      }
+    };
+
+    // Use ResizeObserver untuk menangkap perubahan ukuran canvas (sidebar toggle)
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+
+    resizeObserver.observe(canvas);
     window.addEventListener("resize", handleResize);
+    handleResize();
 
     return () => {
+      resizeObserver.disconnect();
       window.removeEventListener("resize", handleResize);
       engine.dispose();
     };
-  }, []);
+  }, [onSceneReady]);
 
+  // human helper
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    const handleHuman = async () => {
+      if (humanRef.current) {
+        humanRef.current.dispose();
+        humanRef.current = null;
+      }
+
+      if (showHuman) {
+        let spawnPos = new BABYLON.Vector3(0, 0, 0);
+
+        if (mainMeshRef.current) {
+          // 1. Ambil bounding box untuk tahu lebar lemari
+          const boundingInfo =
+            mainMeshRef.current.getHierarchyBoundingVectors(true);
+          const width = boundingInfo.max.x - boundingInfo.min.x;
+          const depth = boundingInfo.max.z - boundingInfo.min.z;
+
+          // 2. Spawn di depan lemari
+          spawnPos = mainMeshRef.current.position
+            .clone()
+            .add(new BABYLON.Vector3(width / 2 + 60, 0, 20));
+        }
+
+        const human = await HumanHelper(scene, spawnPos);
+        humanRef.current = human;
+      }
+    };
+
+    handleHuman();
+  }, [showHuman]);
+
+  // update room dimension
   useEffect(() => {
     if (!sceneRef.current || !shadowGenRef.current || !cameraRef.current)
       return;
 
     const scene = sceneRef.current;
     const shadowGen = shadowGenRef.current;
+    const camera = cameraRef.current;
 
     // Bersihkan mesh lama
     if (roomMeshesRef.current) {
@@ -112,27 +202,26 @@ export const RoomCanvasThree = ({
       roomMeshesRef.current.ceiling.dispose();
       roomMeshesRef.current.floorBase.dispose();
 
-      // Remove from shadow caster
       shadowGen.removeShadowCaster(roomMeshesRef.current.ceiling);
       roomMeshesRef.current.walls.forEach((w) =>
         shadowGen.removeShadowCaster(w),
       );
     }
 
-    // Buat ruangan baru dengan config dari store
-    const newRoomMeshes = setupRoom(scene, roomConfig);
-    roomMeshesRef.current = newRoomMeshes;
+    const newRoomMeshes = setupRoom(scene, debouncedRoomConfig);
+    scene.executeWhenReady(() => {
+      roomMeshesRef.current = newRoomMeshes;
 
-    // Setup ulang shadow dan auto-hide
-    shadowGen.addShadowCaster(newRoomMeshes.ceiling);
-    newRoomMeshes.walls.forEach((w) => shadowGen.addShadowCaster(w));
+      shadowGen.addShadowCaster(newRoomMeshes.ceiling);
+      newRoomMeshes.walls.forEach((w) => shadowGen.addShadowCaster(w));
 
-    // Panggil ulang logika auto-hide walls
-    setupAutoHideWalls(scene, newRoomMeshes.walls, cameraRef.current);
-  }, [roomConfig]); // Trigger saat config berubah
+      setupAutoHideWalls(scene, newRoomMeshes.walls, camera);
+      updateRoomDimensions(scene);
+    });
+  }, [debouncedRoomConfig]);
+
   // --- 2. LOAD MAIN MODEL ---
   useEffect(() => {
-    // Hapus "!mainModel" dari pengecekan awal
     if (!sceneRef.current) return;
     const scene = sceneRef.current;
 
@@ -145,7 +234,13 @@ export const RoomCanvasThree = ({
 
       // 2. Hanya load model baru jika string mainModel TIDAK kosong
       if (mainModel) {
-        const mesh = await loadMainModel(mainModel, activeTexture, scene);
+        const savedTransform = presentRef.current.mainModelTransform;
+        const mesh = await loadMainModel(
+          mainModel,
+          activeTexture,
+          scene,
+          savedTransform,
+        );
         mainMeshRef.current = mesh;
       }
     };
@@ -161,73 +256,72 @@ export const RoomCanvasThree = ({
     const syncModels = async () => {
       const currentMeshes = getAdditionalMeshes(scene, mainMeshRef.current);
 
-      // KASUS A: Store lebih banyak -> TAMBAH mesh
-      if (additionalModels.length > currentMeshes.length) {
-        const indexToAdd = currentMeshes.length;
-        const modelToLoad = additionalModels[indexToAdd];
+      currentMeshes.forEach((mesh) => {
+        if (!additionalModels.includes(mesh.name)) {
+          mesh.dispose();
+        }
+      });
 
-        if (modelToLoad) {
+      // Load Mesh baru atau Sync Mesh yang hilang
+      // Kita iterasi berdasarkan index di additionalModels untuk mencocokkan dengan transforms
+      for (let i = 0; i < additionalModels.length; i++) {
+        const uniqueId = additionalModels[i];
+
+        // Cek apakah mesh sudah ada di scene
+        const existingMesh = scene.getMeshByName(uniqueId);
+
+        if (!existingMesh) {
+          // Extract nama file asli
+          const parts = uniqueId.split("_");
+          const modelName = parts.slice(0, -2).join("_");
+
+          // AMBIL TRANSFORM DARI STORE BERDASARKAN INDEX
+          // Pastikan additionalTransforms di store sinkron dengan additionalModels array
+          const savedTransform = presentRef.current.additionalTransforms[i];
+
           await loadAdditionalModel(
-            modelToLoad,
+            modelName,
             activeTexture,
             scene,
             mainMeshRef.current,
+            savedTransform, // <-- Kirim data history
           );
         }
       }
-      // KASUS B: Scene lebih banyak -> HAPUS mesh (UNDO)
-      else if (currentMeshes.length > additionalModels.length) {
-        const diff = currentMeshes.length - additionalModels.length;
-
-        // Hapus mesh dari belakang (LIFO)
-        for (let i = 0; i < diff; i++) {
-          const meshToRemove = currentMeshes[currentMeshes.length - 1 - i];
-          if (meshToRemove) {
-            console.log("🗑️ Removing mesh:", meshToRemove.name);
-            meshToRemove.dispose();
-          }
-        }
-      }
     };
-
     syncModels();
-  }, [additionalModels.length]); // Trigger saat jumlah berubah
+  }, [additionalModels]); // Trigger saat jumlah berubah
 
   // --- 4. UPDATE TEXTURE ---
   useEffect(() => {
-    if (!sceneRef.current || !activeTexture) return;
+    if (!sceneRef.current || !debouncedActiveTexture) return;
     const scene = sceneRef.current;
 
-    updateAllTextures(scene, activeTexture, mainMeshRef.current);
-  }, [activeTexture]);
+    updateAllTextures(scene, debouncedActiveTexture, mainMeshRef.current);
+  }, [debouncedActiveTexture]);
 
-  // ⭐ --- 5. RESTORE POSITIONS SAAT UNDO/REDO ---
+  //  --- 5. RESTORE POSITIONS SAAT UNDO/REDO ---
   useEffect(() => {
-    console.log("🔄 RESTORE EFFECT TRIGGERED");
+    // console.log("🔄 RESTORE EFFECT TRIGGERED");
 
     if (!sceneRef.current) {
-      console.log("⚠️ No scene ref");
+      // console.log("⚠️ No scene ref");
       return;
     }
-
-    console.log("📦 Present state:", {
-      mainTransform: present.mainModelTransform,
-      additionalTransforms: present.additionalTransforms,
-    });
 
     // Restore main model transform
     if (present.mainModelTransform && mainMeshRef.current) {
       const t = present.mainModelTransform;
-      console.log("📍 Restoring main model to:", t);
+      // console.log("📍 Restoring main model to:", t);
       mainMeshRef.current.position.set(
         t.position.x,
         t.position.y,
         t.position.z,
       );
       mainMeshRef.current.rotation.y = t.rotation;
-      console.log("✅ Main model restored");
+      // console.log("✅ Main model restored");
     } else {
-      console.log("⚠️ No main transform or mesh");
+      // console.log("⚠️ No main transform or mesh");
     }
 
     // Restore additional transforms
@@ -235,23 +329,25 @@ export const RoomCanvasThree = ({
       sceneRef.current,
       mainMeshRef.current,
     );
-    console.log("🔍 Additional meshes found:", additionalMeshes.length);
+    // console.log("🔍 Additional meshes found:", additionalMeshes.length);
 
     present.additionalTransforms.forEach((transform, index) => {
       const mesh = additionalMeshes[index];
       if (mesh) {
-        console.log(`📍 Restoring mesh ${index} (${mesh.name}) to:`, transform);
         mesh.position.set(
           transform.position.x,
           transform.position.y,
           transform.position.z,
         );
         mesh.rotation.y = transform.rotation;
-        console.log(`✅ Mesh ${index} restored`);
+        // console.log(`✅ Mesh ${index} restored`);
       } else {
-        console.log(`⚠️ No mesh at index ${index}`);
+        // console.log(`⚠️ No mesh at index ${index}`);
       }
     });
+    if (hlRef.current) {
+      hlRef.current.removeAllMeshes();
+    }
   }, [present.mainModelTransform, present.additionalTransforms]);
 
   return (

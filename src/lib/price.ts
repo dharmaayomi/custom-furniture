@@ -1,10 +1,13 @@
 export const ASSET_PRICES: Record<string, number> = {
   "wine_cabinet.glb": 2500000,
+  "wooden_cupboard.glb": 2000000,
+  "bismillah.glb": 1500000,
+  "lemaritest.glb": 1500000,
+  "test.glb": 1500000,
   "cabinet-2.glb": 1800000,
   "cabinet-1.glb": 1800000,
   "cabinet.glb": 1500000,
   "chair-1.glb": 800000,
-  "man.glb": 0,
   "wall_cupboard.glb": 2000000,
   "rakayolahkaliinibener.glb": 1500000,
   "ral-1.glb": 1500000,
@@ -39,6 +42,16 @@ export const formatPrice = (price: number): string => {
   }).format(price);
 };
 
+export const extractModelNameFromId = (uniqueId: string): string => {
+  // Extract original model name from uniqueId
+  // Format: model_timestamp_randomstring -> model
+  const parts = uniqueId.split("_");
+  if (parts.length > 2) {
+    return parts.slice(0, -2).join("_");
+  }
+  return uniqueId;
+};
+
 export const calculateTotalPrice = (
   mainModel: string,
   additionalModels: string[],
@@ -51,7 +64,9 @@ export const calculateTotalPrice = (
   }
 
   additionalModels.forEach((model) => {
-    total += getAssetPrice(model);
+    // Extract the actual model name if it's a unique ID
+    const modelName = extractModelNameFromId(model);
+    total += getAssetPrice(modelName);
   });
 
   if (activeTexture) {

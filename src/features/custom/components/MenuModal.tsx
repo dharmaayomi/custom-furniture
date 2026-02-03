@@ -11,8 +11,8 @@ import {
   Share,
   X,
 } from "lucide-react";
-import { signIn, signOut, useSession } from "next-auth/react";
-import { redirect, useRouter } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 interface MenuModalProps {
   isOpen: boolean;

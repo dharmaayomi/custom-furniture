@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { formatPrice, getAssetPrice } from "@/lib/price";
+import { formatPrice, getAssetPrice, extractModelNameFromId } from "@/lib/price";
 import { Product } from "@/types/product";
 import { X } from "lucide-react";
 
@@ -20,6 +20,22 @@ const getProductName = (
     "wine_cabinet.glb": {
       name: "Wine Cabinet",
       description: "Premium wine storage unit",
+    },
+    "wooden_cupboard.glb": {
+      name: "Wooden Cupboard",
+      description: "Wooden storage unit",
+    },
+    "bismillah.glb": {
+      name: "Bismillah",
+      description: "Bismillah",
+    },
+    "lemaritest.glb": {
+      name: "TEST BENER",
+      description: "test",
+    },
+    "test.glb": {
+      name: "test",
+      description: "test",
     },
     "cupboard.glb": {
       name: "Cupboard",
@@ -53,10 +69,7 @@ const getProductName = (
       name: "Wall Cupboard",
       description: "Wall-mounted storage",
     },
-    "man.glb": {
-      name: "Decoration",
-      description: "Decorative element",
-    },
+
     "rakayolahkaliinibener.glb": {
       name: "Storage Cabinet",
       description: "storage cabinet",
@@ -92,7 +105,9 @@ export const ListProductPanel = ({
   // Add additional models with their quantities
   const modelCounts: Record<string, number> = {};
   additionalModels.forEach((model) => {
-    modelCounts[model] = (modelCounts[model] || 0) + 1;
+    // Extract original model name from unique ID
+    const modelName = extractModelNameFromId(model);
+    modelCounts[modelName] = (modelCounts[modelName] || 0) + 1;
   });
 
   Object.entries(modelCounts).forEach(([model, quantity]) => {

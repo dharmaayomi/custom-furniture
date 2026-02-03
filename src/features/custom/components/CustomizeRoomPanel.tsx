@@ -1,13 +1,16 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useRoomStore } from "@/store/useRoomStore";
+import * as BABYLON from "@babylonjs/core";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { X } from "lucide-react";
+import { updateRoomDimensions } from "../_components/MeshUtils_WallSnap";
 
 interface CustomizeRoomPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  scene: BABYLON.Scene | null;
 }
 
 const FLOOR_TEXTURES = [
@@ -23,10 +26,30 @@ const FLOOR_TEXTURES = [
 export const CustomizeRoomPanel = ({
   isOpen,
   onClose,
+  scene,
 }: CustomizeRoomPanelProps) => {
   const { present, updateRoomConfig } = useRoomStore();
   const { roomConfig } = present;
+  const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
+  useEffect(() => {
+    if (scene) {
+      // Clear previous timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      debounceTimerRef.current = setTimeout(() => {
+        updateRoomDimensions(scene);
+      }, 150);
+    }
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [roomConfig.width, roomConfig.depth, scene]);
   if (!isOpen) return null;
 
   return (
@@ -44,7 +67,7 @@ export const CustomizeRoomPanel = ({
           <h3 className="font-semibold text-gray-700">Dimensions</h3>
 
           <div className="space-y-2">
-            <Label>Width (cm): {roomConfig.width}</Label>
+            <Label>Width (cm): {roomConfig.width - 20}</Label>
             <Slider
               value={[roomConfig.width]}
               min={300}
@@ -56,7 +79,7 @@ export const CustomizeRoomPanel = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Depth (cm): {roomConfig.depth}</Label>
+            <Label>Depth (cm): {roomConfig.depth - 20}</Label>
             <Slider
               value={[roomConfig.depth]}
               min={300}
@@ -67,10 +90,10 @@ export const CustomizeRoomPanel = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Height (cm): {roomConfig.height}</Label>
+            <Label>Height (cm): {roomConfig.height - 20}</Label>
             <Slider
               value={[roomConfig.height]}
-              min={240}
+              min={290}
               max={500}
               step={10}
               onValueChange={([val]) => updateRoomConfig({ height: val })}

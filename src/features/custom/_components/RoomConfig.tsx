@@ -15,18 +15,29 @@ export const ROOM_DIMENSIONS = {
 } as const;
 
 export const CAMERA_CONFIG = {
+  // alpha: -Math.PI / 2,
+  // // beta: Math.PI / 2.2,
+  // beta: Math.PI / 1.2,
+  // radius: 600,
+  // targetY: 140,
+  // wheelPrecision: 0.2,
+  // lowerBetaLimit: 0.2,
+  // upperBetaLimit: Math.PI / 2.02,
+  // lowerRadiusLimit: 90,
+  // upperRadiusLimit: 1500,
+  // minTargetY: 60,
+  // maxTargetY: 160,
   alpha: -Math.PI / 2,
-  // beta: Math.PI / 2.2,
-  beta: Math.PI / 1.2,
+  beta: Math.PI / 3, // Sudut awal yang lebih natural
   radius: 600,
-  targetY: 140,
-  wheelPrecision: 0.2,
-  lowerBetaLimit: 0.2,
-  upperBetaLimit: Math.PI / 2.02,
-  lowerRadiusLimit: 90,
-  upperRadiusLimit: 1500,
-  minTargetY: 60,
-  maxTargetY: 160,
+  targetY: 120,
+  wheelPrecision: 1, // Ditingkatkan agar scroll lebih halus
+  lowerBetaLimit: 0.1,
+  upperBetaLimit: (Math.PI / 2) * 0.9, // Jangan persis 90 derajat agar tidak distorsi
+  lowerRadiusLimit: 50,
+  upperRadiusLimit: 1200,
+  minTargetY: 20,
+  maxTargetY: 200,
 } as const;
 
 export const LIGHTING_CONFIG = {

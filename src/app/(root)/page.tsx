@@ -1,5 +1,4 @@
 import { HomePage } from "@/features/root";
-import Image from "next/image";
 
 export default function Home() {
   return (
