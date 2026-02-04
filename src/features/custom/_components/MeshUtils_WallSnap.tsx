@@ -579,12 +579,60 @@ export const applyTextureToMesh = (
 
 export const autoScaleMesh = (
   mesh: BABYLON.AbstractMesh,
-  targetHeight: number = 80,
+  // Parameter ini opsional, hanya sebagai "plafon" maksimal, bukan target paksaan
+  maxHeightLimit?: number,
 ): number => {
+  // Ambil tinggi ruangan asli dari config
+  const { roomConfig } = useRoomStore.getState().present;
+  const roomHeight = roomConfig.height; // misal 3.0 (meter) atau 300 (cm)
+
+  // Hitung tinggi mesh saat ini
   const boundsInfo = mesh.getHierarchyBoundingVectors(true);
-  const sizeY = boundsInfo.max.y - boundsInfo.min.y;
-  const scaleFactor = sizeY > 0 ? targetHeight / sizeY : 1;
+  const currentY = boundsInfo.max.y - boundsInfo.min.y;
+
+  if (currentY === 0) return 1;
+
+  let scaleFactor = 1;
+
+  // --- LOGIC 1: DETEKSI KESALAHAN UNIT (METER vs CM vs MM) ---
+  // Kita gunakan kelipatan 10 untuk memperbaiki unit tanpa merusak proporsi
+
+  // Kasus A: Model RAKSASA (misal: import MM ke scene Meter)
+  // Jika tinggi model > 2x tinggi ruangan, pasti salah unit
+  if (currentY > roomHeight * 2) {
+    let tempY = currentY;
+    // Kecilkan 10x berulang-ulang sampai masuk akal
+    while (tempY > roomHeight * 1.5) {
+      scaleFactor /= 10;
+      tempY /= 10;
+    }
+  }
+  // Kasus B: Model MIKRO (misal: import Meter ke scene CM)
+  // Jika tinggi model < 5% tinggi ruangan, kemungkinan salah unit
+  else if (currentY < roomHeight * 0.05) {
+    let tempY = currentY;
+    // Besarkan 10x berulang-ulang sampai minimal 20% tinggi ruangan
+    // (Kecuali memang modelnya kecil banget, tapi ini safety net)
+    while (tempY < roomHeight * 0.2) {
+      scaleFactor *= 10;
+      tempY *= 10;
+    }
+  }
+
+  // --- LOGIC 2: HARD LIMIT (MENTOK PLAFON) ---
+  // Setelah unit diperbaiki, pastikan tidak tembus plafon
+  const projectedHeight = currentY * scaleFactor;
+  const limit = maxHeightLimit || roomHeight;
+
+  if (projectedHeight > limit) {
+    // Jika masih lebih tinggi dari plafon, kecilkan pas sebatas plafon
+    const fitRatio = limit / projectedHeight;
+    scaleFactor *= fitRatio * 0.98; // Beri gap 2%
+  }
+
+  // Terapkan scale uniform (X, Y, Z sama) agar TIDAK gepeng/distorsi
   mesh.scaling.set(scaleFactor, scaleFactor, scaleFactor);
+
   return scaleFactor;
 };
 
@@ -624,15 +672,12 @@ export const addDragBehavior = (
       const pickInfo = pointerInfo.pickInfo;
       const pickedMesh = pickInfo?.pickedMesh;
 
-      // Cek apakah yang diklik adalah anak dari mesh ini (descendant)
-      // DAN bukan mesh ini sendiri (karena mesh sendiri sudah dihandle otomatis)
       if (
         pickedMesh &&
         pickedMesh !== mesh &&
         pickedMesh.isDescendantOf(mesh)
       ) {
         if (dragBehavior.enabled && pickInfo?.pickedPoint) {
-          // FIX: Cast event ke PointerEvent agar TypeScript mengenali pointerId
           const evt = pointerInfo.event as PointerEvent;
           dragBehavior.startDrag(evt.pointerId);
         }

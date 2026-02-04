@@ -304,7 +304,7 @@ export const loadMainModel = async (
     });
 
     // Auto scale
-    const scaleFactor = autoScaleMesh(rootMesh, 240);
+    const scaleFactor = autoScaleMesh(rootMesh);
 
     // Make all child meshes pickable
     // Agar bagian atas model yang tinggi tetap punya area klik yang valid
@@ -394,7 +394,6 @@ export const loadMainModel = async (
         ((rootMesh.rotation.y * 180) / Math.PI).toFixed(0) + "°",
       );
 
-      // UPDATE STORE IMMEDIATELY (NO SETTIMEOUT)
       const { updateTransformSilent } = useRoomStore.getState();
 
       const initialTransform: FurnitureTransform = {
@@ -877,7 +876,7 @@ export const loadAdditionalModel = async (
       if (activeTexture) applyTextureToMesh(m, activeTexture, scene);
     });
 
-    autoScaleMesh(rootMesh, 240);
+    autoScaleMesh(rootMesh);
 
     rootMesh.getChildMeshes().forEach((m) => {
       m.isPickable = true;
