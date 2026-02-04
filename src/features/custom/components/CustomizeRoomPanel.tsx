@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { X } from "lucide-react";
 import { updateRoomDimensions } from "../_components/MeshUtils_WallSnap";
+import path from "path";
 
 interface CustomizeRoomPanelProps {
   isOpen: boolean;
@@ -14,13 +15,17 @@ interface CustomizeRoomPanelProps {
 }
 
 const FLOOR_TEXTURES = [
-  { name: "Wood A", path: "/assets/texture/wood-texture.jpg" },
-  { name: "Wood B", path: "/assets/texture/light-wood-texture.jpg" },
+  { name: "Oak Wood", path: "/assets/texture/european-oak.jpg" },
+  { name: "Light Wood", path: "/assets/texture/light-wood-texture.jpg" },
   { name: "Fine Wood", path: "/assets/texture/fine-wood-texture.jpg" },
   {
     name: "Concrete",
     path: "/assets/texture/texture-of-dry-concrete-wall.jpg",
   },
+  { name: "Carpet", path: "/assets/texture/carpet.jpg" },
+  { name: "Tile", path: "/assets/texture/bathroom-tile.jpg" },
+  { name: " Herringbone", path: "/assets/texture/Oak_Herringbone.jpg" },
+  { name: "Gray Herringbone", path: "/assets/texture/gray_herringbone.jpg" },
 ];
 
 export const CustomizeRoomPanel = ({

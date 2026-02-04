@@ -62,6 +62,7 @@ export const RoomPage = () => {
     present,
     setMainModel,
     setActiveTexture,
+    setMeshTexture,
     addAdditionalModel,
     undo,
     redo,
@@ -265,9 +266,17 @@ export const RoomPage = () => {
         assetList3D={ASSETS_3D}
         assetListTexture={ASSETS_TEXTURE}
         mainModel={mainModel}
+        selectedFurniture={present.selectedFurniture}
         onSelectMainModel={(model) => setMainModel(model)}
         onAddAdditionalModel={addAdditionalModel}
-        onSelectTexture={(tex) => setActiveTexture(tex)}
+        onSelectTexture={(tex) => {
+          // If a mesh is selected, apply texture to that mesh only
+          if (present.selectedFurniture) {
+            setMeshTexture(present.selectedFurniture, tex);
+          } else {
+            setActiveTexture(tex);
+          }
+        }}
       />
     </div>
   );

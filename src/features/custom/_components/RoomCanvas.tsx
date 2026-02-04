@@ -83,26 +83,55 @@ export const RoomCanvasThree = ({
     hlRef.current = hl;
     scene.onPointerDown = (evt, pickResult) => {
       if (pickResult.hit && pickResult.pickedMesh) {
-        let targetMesh = pickResult.pickedMesh;
+        const picked = pickResult.pickedMesh as BABYLON.AbstractMesh;
 
-        while (targetMesh.parent && targetMesh.metadata !== "furniture") {
-          targetMesh = targetMesh.parent as BABYLON.AbstractMesh;
+        // Find root furniture mesh robustly: check known furniture roots first
+        const furnitureRoots = scene.meshes.filter(
+          (m) => m.metadata === "furniture" && !m.parent,
+        ) as BABYLON.AbstractMesh[];
+
+        let root: BABYLON.AbstractMesh | null = null;
+        for (const r of furnitureRoots) {
+          if (r === picked || picked.isDescendantOf(r)) {
+            root = r;
+            break;
+          }
         }
 
-        if (targetMesh.metadata === "furniture") {
-          hl.removeAllMeshes();
+        // Fallback: climb parent chain until metadata === 'furniture'
+        if (!root) {
+          let targetMesh = picked;
+          while (targetMesh.parent && targetMesh.metadata !== "furniture") {
+            targetMesh = targetMesh.parent as BABYLON.AbstractMesh;
+          }
+          if (targetMesh.metadata === "furniture") root = targetMesh;
+        }
 
-          targetMesh.getChildMeshes().forEach((m) => {
-            hl.addMesh(
-              m as BABYLON.Mesh,
+        const hlLayer = hlRef.current;
+        if (root) {
+          if (hlLayer) hlLayer.removeAllMeshes();
+          console.log("PointerDown: selected furniture:", root.name);
+
+          // Highlight root and its children
+          if (hlLayer) {
+            hlLayer.addMesh(
+              root as BABYLON.Mesh,
               BABYLON.Color3.FromHexString("#f59e0b"),
             );
+          }
+          root.getChildMeshes().forEach((m) => {
+            if (hlLayer) {
+              hlLayer.addMesh(
+                m as BABYLON.Mesh,
+                BABYLON.Color3.FromHexString("#f59e0b"),
+              );
+            }
           });
 
           // Update selected furniture in store
-          setSelectedFurniture(targetMesh.name);
+          setSelectedFurniture(root.name);
         } else {
-          hl.removeAllMeshes();
+          if (hlLayer) hlLayer.removeAllMeshes();
           setSelectedFurniture(null);
         }
       }
@@ -294,11 +323,46 @@ export const RoomCanvasThree = ({
 
   // --- 4. UPDATE TEXTURE ---
   useEffect(() => {
-    if (!sceneRef.current || !debouncedActiveTexture) return;
+    console.log(
+      "Texture effect triggered, debouncedActiveTexture:",
+      debouncedActiveTexture,
+    );
+    if (!sceneRef.current) return;
     const scene = sceneRef.current;
 
-    updateAllTextures(scene, debouncedActiveTexture, mainMeshRef.current);
-  }, [debouncedActiveTexture]);
+    // Build per-mesh texture map from transforms (persisted on transforms)
+    const meshTextureMap: Record<string, string> = {};
+    if (present.mainModelTransform && present.mainModelTransform.texture) {
+      // main model should use the stored unique modelName from transform
+      const key = present.mainModelTransform.modelName || present.mainModel;
+      meshTextureMap[key] = present.mainModelTransform.texture as string;
+    }
+
+    present.additionalTransforms.forEach((t, idx) => {
+      if (t && t.texture) {
+        const key = present.additionalModels[idx] || t.modelName;
+        meshTextureMap[key] = t.texture as string;
+      }
+    });
+
+    console.log(
+      "Calling updateAllTextures with:",
+      debouncedActiveTexture,
+      meshTextureMap,
+    );
+    updateAllTextures(
+      scene,
+      debouncedActiveTexture,
+      mainMeshRef.current,
+      meshTextureMap,
+    );
+  }, [
+    debouncedActiveTexture,
+    present.mainModelTransform,
+    present.additionalTransforms,
+    present.additionalModels,
+    present.mainModel,
+  ]);
 
   //  --- 5. RESTORE POSITIONS SAAT UNDO/REDO ---
   useEffect(() => {
