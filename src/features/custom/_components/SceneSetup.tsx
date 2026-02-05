@@ -19,6 +19,9 @@ export const createScene = (
 
   // Setup lighting
   const { ceilingLamp } = setupLighting(scene);
+  // Track "official" scene lights so we can keep only these later
+  if (!scene.metadata) scene.metadata = {};
+  scene.metadata.allowedLightIds = scene.lights.map((l) => l.uniqueId);
 
   // Setup shadow generator (Tanpa menambahkan ceiling dulu)
   const shadowGen = new BABYLON.ShadowGenerator(2048, ceilingLamp);

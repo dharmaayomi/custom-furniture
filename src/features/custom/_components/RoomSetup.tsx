@@ -39,7 +39,7 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
     scene,
   );
   // floorVinyl.position.y = floorThickness - vinylThickness / 2;
-  floorVinyl.position.y = floorThickness - vinylThickness / 2 + 0.01;
+  floorVinyl.position.y = floorThickness - vinylThickness / 2 + 0.0001;
   floorVinyl.receiveShadows = true;
 
   const floorVinylMat = new BABYLON.PBRMaterial("floorVinylMat", scene);
@@ -51,8 +51,8 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
 
   if (!texture) {
     texture = new BABYLON.Texture(floorTexturePath, scene);
-    texture.uScale = rw / 100;
-    texture.vScale = rd / 100;
+    texture.uScale = rw;
+    texture.vScale = rd;
     texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
     texture.onLoadObservable.addOnce(() => {

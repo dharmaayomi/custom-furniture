@@ -197,7 +197,7 @@ export const RoomCanvasThree = ({
 
           spawnPos = mainMeshRef.current.position
             .clone()
-            .add(new BABYLON.Vector3(width / 2 + 60, 0, 20));
+            .add(new BABYLON.Vector3(width / 2 + 0.6, 0, 0.2));
         }
 
         const human = await HumanHelper(scene, spawnPos);

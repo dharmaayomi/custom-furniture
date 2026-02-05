@@ -29,11 +29,11 @@ export const setupCamera = (
 
   scene.onBeforeRenderObservable.add(() => {
     const lowerLimit = camera.lowerRadiusLimit ?? 0;
-    if (camera.radius <= lowerLimit + 1) {
-      camera.panningSensibility = 1000;
+    if (camera.radius <= lowerLimit + 0.01) {
+      camera.panningSensibility = 50;
       camera.wheelPrecision = 20;
     } else {
-      camera.panningSensibility = 50;
+      camera.panningSensibility = 90;
       camera.wheelPrecision = CAMERA_CONFIG.wheelPrecision;
     }
   });
@@ -71,8 +71,8 @@ export const setupCamera = (
   );
 
   zoomInAnimation.setKeys([
-    { frame: 0, value: 600 },
-    { frame: 90, value: 250 },
+    { frame: 0, value: 6 },
+    { frame: 90, value: 2.5 },
   ]);
 
   const easing = new BABYLON.CubicEase();

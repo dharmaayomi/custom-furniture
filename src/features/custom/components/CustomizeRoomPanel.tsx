@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { X } from "lucide-react";
 import { updateRoomDimensions } from "../_components/MeshUtils_WallSnap";
+import { ROOM_DIMENSIONS } from "../_components/RoomConfig";
 import path from "path";
 
 interface CustomizeRoomPanelProps {
@@ -36,6 +37,7 @@ export const CustomizeRoomPanel = ({
   const { present, updateRoomConfig } = useRoomStore();
   const { roomConfig } = present;
   const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const wallOffset = ROOM_DIMENSIONS.wallThickness * 2;
 
   useEffect(() => {
     if (scene) {
@@ -72,35 +74,41 @@ export const CustomizeRoomPanel = ({
           <h3 className="font-semibold text-gray-700">Dimensions</h3>
 
           <div className="space-y-2">
-            <Label>Width (cm): {roomConfig.width - 20}</Label>
+            <Label>
+              Width (m): {(roomConfig.width - wallOffset).toFixed(2)}
+            </Label>
             <Slider
               value={[roomConfig.width]}
-              min={300}
-              max={1000}
-              step={10}
+              min={3}
+              max={10}
+              step={0.1}
               onValueChange={([val]) => updateRoomConfig({ width: val })}
               color="bg-white"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Depth (cm): {roomConfig.depth - 20}</Label>
+            <Label>
+              Depth (m): {(roomConfig.depth - wallOffset).toFixed(2)}
+            </Label>
             <Slider
               value={[roomConfig.depth]}
-              min={300}
-              max={1000}
-              step={10}
+              min={3}
+              max={10}
+              step={0.1}
               onValueChange={([val]) => updateRoomConfig({ depth: val })}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Height (cm): {roomConfig.height - 20}</Label>
+            <Label>
+              Height (m): {(roomConfig.height - wallOffset).toFixed(2)}
+            </Label>
             <Slider
               value={[roomConfig.height]}
-              min={290}
-              max={500}
-              step={10}
+              min={2.9}
+              max={5.0}
+              step={0.1}
               onValueChange={([val]) => updateRoomConfig({ height: val })}
             />
           </div>

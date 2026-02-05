@@ -1,4 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
+import { FLOOR_Y } from "./RoomConfig";
 import "@babylonjs/loaders/glTF";
 
 interface HumanHelperResult {
@@ -26,7 +27,7 @@ export const HumanHelper = async (
     const boundingInfo = rootMesh.getHierarchyBoundingVectors(true);
     const modelHeight = boundingInfo.max.y - boundingInfo.min.y;
 
-    const targetHeight = 170;
+    const targetHeight = 1.7;
     const scaleFactor = targetHeight / modelHeight;
     rootMesh.scaling = new BABYLON.Vector3(
       scaleFactor,
@@ -42,20 +43,20 @@ export const HumanHelper = async (
     // POSISI SAMA SEPERTI FURNITURE
     rootMesh.position = new BABYLON.Vector3(
       position.x,
-      10 - scaledBounding.min.y,
+      FLOOR_Y - scaledBounding.min.y,
       position.z,
     );
 
-    const floorY = 10;
+    const floorY = FLOOR_Y;
 
     // ✨ GARIS TINGGI - Lebih tipis
     const heightLine = BABYLON.MeshBuilder.CreateLines(
       "heightLine",
       {
         points: [
-          new BABYLON.Vector3(position.x + 10, floorY, position.z), // Offset ke samping
+          new BABYLON.Vector3(position.x + 0.1, floorY, position.z), // Offset ke samping
           new BABYLON.Vector3(
-            position.x + 10,
+            position.x + 0.1,
             floorY + actualHeight,
             position.z,
           ),
@@ -71,8 +72,8 @@ export const HumanHelper = async (
         `tick_${yOffset}`,
         {
           points: [
-            new BABYLON.Vector3(position.x + 8, floorY + yOffset, position.z),
-            new BABYLON.Vector3(position.x + 12, floorY + yOffset, position.z),
+            new BABYLON.Vector3(position.x + 0.08, floorY + yOffset, position.z),
+            new BABYLON.Vector3(position.x + 0.12, floorY + yOffset, position.z),
           ],
         },
         scene,
@@ -85,15 +86,15 @@ export const HumanHelper = async (
     createTick(0);
     createTick(actualHeight);
 
-    const planeWidth = 30;
-    const planeHeight = 15;
+    const planeWidth = 0.3;
+    const planeHeight = 0.15;
     const heightLabel = BABYLON.MeshBuilder.CreatePlane(
       "heightLabel",
       { width: planeWidth, height: planeHeight },
       scene,
     );
     heightLabel.position = new BABYLON.Vector3(
-      position.x + 25, // Lebih jauh dari garis
+      position.x + 0.25, // Lebih jauh dari garis
       floorY + actualHeight / 2,
       position.z,
     );
@@ -126,7 +127,7 @@ export const HumanHelper = async (
     ctx.fillStyle = "#333333";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(`${Math.round(actualHeight)} cm`, 128, 64);
+    ctx.fillText(`${actualHeight.toFixed(2)} m`, 128, 64);
 
     dynamicTexture.update();
 
@@ -167,9 +168,9 @@ export const setupHumanInRoom = async (
   roomConfig: { width: number; depth: number },
 ) => {
   const humanPosition = new BABYLON.Vector3(
-    -roomConfig.width / 2 + 50,
+    -roomConfig.width / 2 + 0.5,
     0,
-    roomConfig.depth / 2 - 50,
+    roomConfig.depth / 2 - 0.5,
   );
 
   const human = await HumanHelper(scene, humanPosition);
