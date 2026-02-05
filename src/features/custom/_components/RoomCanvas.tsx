@@ -148,23 +148,18 @@ export const RoomCanvasThree = ({
     });
 
     const handleResize = () => {
-      // Pastikan canvas dan engine resize dengan benar
       if (canvas && engine) {
-        // Update ukuran canvas secara eksplisit
         canvas.width = canvas.clientWidth;
         canvas.height = canvas.clientHeight;
 
-        // Resize engine
         engine.resize();
 
-        // Force update camera projection matrix
         if (camera) {
-          camera.getProjectionMatrix(true); // true = force refresh
+          camera.getProjectionMatrix(true);
         }
       }
     };
 
-    // Use ResizeObserver untuk menangkap perubahan ukuran canvas (sidebar toggle)
     const resizeObserver = new ResizeObserver(() => {
       handleResize();
     });
@@ -195,13 +190,11 @@ export const RoomCanvasThree = ({
         let spawnPos = new BABYLON.Vector3(0, 0, 0);
 
         if (mainMeshRef.current) {
-          // 1. Ambil bounding box untuk tahu lebar lemari
           const boundingInfo =
             mainMeshRef.current.getHierarchyBoundingVectors(true);
           const width = boundingInfo.max.x - boundingInfo.min.x;
           const depth = boundingInfo.max.z - boundingInfo.min.z;
 
-          // 2. Spawn di depan lemari
           spawnPos = mainMeshRef.current.position
             .clone()
             .add(new BABYLON.Vector3(width / 2 + 60, 0, 20));
@@ -224,7 +217,6 @@ export const RoomCanvasThree = ({
     const shadowGen = shadowGenRef.current;
     const camera = cameraRef.current;
 
-    // Bersihkan mesh lama
     if (roomMeshesRef.current) {
       roomMeshesRef.current.walls.forEach((w) => w.dispose());
       roomMeshesRef.current.floorVinyl.dispose();

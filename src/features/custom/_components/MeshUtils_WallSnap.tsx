@@ -700,13 +700,25 @@ export const addDragBehavior = (
 
     updateRoomDimensions();
 
-    const furnitureY = mesh.position.y;
+    // const furnitureY = mesh.position.y;
+
+    // const dragPlane = BABYLON.Plane.FromPositionAndNormal(
+    //   new BABYLON.Vector3(0, furnitureY, 0),
+    //   new BABYLON.Vector3(0, 1, 0),
+    // );
+
+    const bounds = mesh.getHierarchyBoundingVectors(true);
+    const furnitureHeight = bounds.max.y - bounds.min.y;
+    const furnitureTopY = bounds.max.y; // Y paling atas furniture
+
+    // ✅ BUAT DRAG PLANE DI TENGAH-TENGAH FURNITURE (lebih stabil)
+    // Atau bisa juga di paling atas (furnitureTopY)
+    const dragPlaneY = bounds.min.y + furnitureHeight / 2;
 
     const dragPlane = BABYLON.Plane.FromPositionAndNormal(
-      new BABYLON.Vector3(0, furnitureY, 0),
+      new BABYLON.Vector3(0, dragPlaneY, 0), // ✅ Pakai Y furniture
       new BABYLON.Vector3(0, 1, 0),
     );
-
     // Override drag plane behavior
     (dragBehavior as any).currentDraggingPlane = dragPlane;
 

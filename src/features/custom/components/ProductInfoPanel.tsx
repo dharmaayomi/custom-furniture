@@ -163,13 +163,6 @@ export const ProductInfoPanel = ({
               {selectedModelName}
             </p>
           </div>
-
-          {/* Selection Info */}
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <p className="text-sm font-medium text-blue-900">
-              ℹ️ {isMainModelSelected ? "Main" : "Additional"} item selected
-            </p>
-          </div>
         </div>
       </div>
     </>

@@ -58,6 +58,8 @@ export const RoomPage = () => {
   const [selectedTool, setSelectedTool] = useState<ToolType>(null);
   const isAnyPanelOpen = activePanel !== null;
 
+  const [showDragPlane, setShowDragPlane] = useState(false);
+
   const {
     present,
     setMainModel,
