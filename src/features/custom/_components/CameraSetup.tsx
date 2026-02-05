@@ -27,15 +27,23 @@ export const setupCamera = (
   camera.lowerRadiusLimit = CAMERA_CONFIG.lowerRadiusLimit;
   camera.upperRadiusLimit = CAMERA_CONFIG.upperRadiusLimit;
 
+  // scene.onBeforeRenderObservable.add(() => {
+  //   const lowerLimit = camera.lowerRadiusLimit ?? 0;
+  //   if (camera.radius <= lowerLimit + 0.01) {
+  //     camera.panningSensibility = 250;
+  //     camera.wheelPrecision = 20;
+  //   } else {
+  //     camera.panningSensibility = 390;
+  //     camera.wheelPrecision = CAMERA_CONFIG.wheelPrecision;
+  //   }
+  // });
+
   scene.onBeforeRenderObservable.add(() => {
     const lowerLimit = camera.lowerRadiusLimit ?? 0;
-    if (camera.radius <= lowerLimit + 0.01) {
-      camera.panningSensibility = 50;
-      camera.wheelPrecision = 20;
-    } else {
-      camera.panningSensibility = 90;
-      camera.wheelPrecision = CAMERA_CONFIG.wheelPrecision;
-    }
+    const t = BABYLON.Scalar.Clamp((camera.radius - lowerLimit) / 1.2, 0, 1);
+
+    camera.panningSensibility = BABYLON.Scalar.Lerp(800, 350, t);
+    camera.wheelPrecision = BABYLON.Scalar.Lerp(120, 50, t);
   });
 
   let isPointerDown = false;
