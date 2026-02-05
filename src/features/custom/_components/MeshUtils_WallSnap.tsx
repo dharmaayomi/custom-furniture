@@ -99,6 +99,8 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
             z: mesh.position.z,
           },
           rotation: mesh.rotation.y,
+          // Preserve texture if it existed in saved transform
+          texture: savedTransform?.texture,
         };
 
         if (index === 0) {
@@ -137,7 +139,7 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
         mesh.computeWorldMatrix(true);
       }
     });
-    // console.log("🔄 All furniture repositioned");
+    //
   }
 };
 
@@ -169,7 +171,7 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
 //       mesh.position.z = newPos.z;
 //       mesh.computeWorldMatrix(true);
 //     });
-//     // console.log("🔄 All furniture repositioned");
+//     //
 //   }
 // };
 
@@ -178,6 +180,26 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
 // ============================================================================
 
 const materialCache = new Map<string, BABYLON.PBRMaterial>();
+const originalMaterialCache = new Map<string, BABYLON.Material | null>();
+
+// Cache original materials for a mesh and its children so resets can restore originals
+export const cacheOriginalMaterials = (mesh: BABYLON.AbstractMesh) => {
+  const storeFor = (m: BABYLON.AbstractMesh) => {
+    const cacheKey = `original_${m.uniqueId}`;
+    if (originalMaterialCache.has(cacheKey)) return;
+    const orig = m.material ?? null;
+    try {
+      const cloned = orig ? orig.clone(`orig_${cacheKey}`) : null;
+      originalMaterialCache.set(cacheKey, cloned as BABYLON.Material | null);
+    } catch (e) {
+      originalMaterialCache.set(cacheKey, orig);
+    }
+  };
+
+  // Store for root and all children
+  storeFor(mesh as BABYLON.AbstractMesh);
+  mesh.getChildMeshes().forEach((c) => storeFor(c as BABYLON.AbstractMesh));
+};
 
 /**
  * Get atau create material dengan caching
@@ -277,59 +299,6 @@ export const getAllFurniture = (
 // ============================================================================
 // WALL DETERMINATION & SNAP LOGIC
 // ============================================================================
-
-// const determineClosestWall = (
-//   position: BABYLON.Vector3,
-// ): "back" | "front" | "right" | "left" => {
-//   const { roomConfig } = useRoomStore.getState().present;
-//   const rw = roomConfig.width;
-//   const rd = roomConfig.depth;
-//   const SNAP_THRESHOLD = 0.1; // <-- UBAH INI! Coba 0.2 - 0.5
-
-//   const distToBack = Math.abs(position.z - rd / 2);
-//   const distToFront = Math.abs(position.z + rd / 2);
-//   const distToRight = Math.abs(position.x - rw / 2);
-//   const distToLeft = Math.abs(position.x + rw / 2);
-
-//   const minDist = Math.min(distToBack, distToFront, distToRight, distToLeft);
-
-//   // CRITICAL: Hanya snap ke wall jika SANGAT dekat
-//   // Ini mencegah snap terlalu cepat saat user masih jauh dari tembok
-//   if (minDist > SNAP_THRESHOLD) {
-//     // Kalau masih jauh dari semua tembok, tetap di wall sebelumnya
-//     // Atau default ke wall tertentu
-//     // Untuk sekarang, kita tetap return wall terdekat tapi dengan batasan
-//   }
-
-//   if (minDist === distToBack) return "back";
-//   if (minDist === distToFront) return "front";
-//   if (minDist === distToRight) return "right";
-//   return "left";
-// };
-// Cari fungsi ini di MeshUtils_WallSnap.tsx
-// const determineClosestWall = (position: BABYLON.Vector3): WallSide => {
-//   const { roomConfig } = useRoomStore.getState().present;
-//   const rw = roomConfig.width;
-//   const rd = roomConfig.depth;
-
-//   // Hitung jarak absolut ke setiap bidang tembok
-//   const distToBack = Math.abs(position.z - rd / 2);
-//   const distToFront = Math.abs(position.z + rd / 2);
-//   const distToRight = Math.abs(position.x - rw / 2);
-//   const distToLeft = Math.abs(position.x + rw / 2);
-
-//   const distances = [
-//     { side: "back" as WallSide, dist: distToBack },
-//     { side: "front" as WallSide, dist: distToFront },
-//     { side: "right" as WallSide, dist: distToRight },
-//     { side: "left" as WallSide, dist: distToLeft },
-//   ];
-
-//   // Ambil yang terkecil tanpa minimal threshold agar perpindahan "instan"
-//   distances.sort((a, b) => a.dist - b.dist);
-//   return distances[0].side;
-// };
-// MeshUtils_WallSnap.tsx
 
 const determineClosestWall = (position: BABYLON.Vector3): WallSide => {
   const { roomConfig } = useRoomStore.getState().present;
@@ -570,29 +539,107 @@ export const applyTextureToMesh = (
   texName: string,
   scene: BABYLON.Scene,
 ) => {
-  // FIX: Reset Quaternion jika ada, agar rotasi texture/mesh normal
   if (mesh.rotationQuaternion) mesh.rotationQuaternion = null;
 
-  // PERBAIKAN UTAMA: Gunakan cached material
-  // Ini mencegah material baru dibuat terus-menerus yang menyebabkan perubahan lighting
+  const cacheKey = `original_${mesh.uniqueId}`;
+
+  if (!texName || texName === "") {
+    if (originalMaterialCache.has(cacheKey)) {
+      const originalMat = originalMaterialCache.get(cacheKey);
+      if (originalMat) {
+        mesh.material = originalMat;
+      }
+      // If we don't have a cached original material, do not overwrite the current
+      // material to `null` — leave existing material as-is to avoid white default.
+    }
+    return;
+  }
+
+  if (!originalMaterialCache.has(cacheKey)) {
+    try {
+      const orig = mesh.material;
+      if (orig) {
+        // Clone original material to avoid shared-material mutation side-effects
+        const cloned = orig.clone(`orig_${cacheKey}`);
+        originalMaterialCache.set(cacheKey, cloned as BABYLON.Material);
+      } else {
+        originalMaterialCache.set(cacheKey, null);
+      }
+      console.log("Stored original material for mesh:", mesh.name);
+    } catch (e) {
+      // Fallback: store direct reference if clone fails
+      originalMaterialCache.set(cacheKey, mesh.material ?? null);
+      console.warn("Failed to clone original material for mesh:", mesh.name, e);
+    }
+  }
+
   const material = getOrCreateMaterial(texName, scene);
   mesh.material = material;
 };
 
 export const autoScaleMesh = (
   mesh: BABYLON.AbstractMesh,
-  targetHeight: number = 80,
+  // Parameter ini opsional, hanya sebagai "plafon" maksimal, bukan target paksaan
+  maxHeightLimit?: number,
 ): number => {
+  // Ambil tinggi ruangan asli dari config
+  const { roomConfig } = useRoomStore.getState().present;
+  const roomHeight = roomConfig.height; // misal 3.0 (meter) atau 300 (cm)
+
+  // Hitung tinggi mesh saat ini
   const boundsInfo = mesh.getHierarchyBoundingVectors(true);
-  const sizeY = boundsInfo.max.y - boundsInfo.min.y;
-  const scaleFactor = sizeY > 0 ? targetHeight / sizeY : 1;
+  const currentY = boundsInfo.max.y - boundsInfo.min.y;
+
+  if (currentY === 0) return 1;
+
+  let scaleFactor = 1;
+
+  // --- LOGIC 1: DETEKSI KESALAHAN UNIT (METER vs CM vs MM) ---
+  // Kita gunakan kelipatan 10 untuk memperbaiki unit tanpa merusak proporsi
+
+  // Kasus A: Model RAKSASA (misal: import MM ke scene Meter)
+  // Jika tinggi model > 2x tinggi ruangan, pasti salah unit
+  if (currentY > roomHeight * 2) {
+    let tempY = currentY;
+    // Kecilkan 10x berulang-ulang sampai masuk akal
+    while (tempY > roomHeight * 1.5) {
+      scaleFactor /= 10;
+      tempY /= 10;
+    }
+  }
+  // Kasus B: Model MIKRO (misal: import Meter ke scene CM)
+  // Jika tinggi model < 5% tinggi ruangan, kemungkinan salah unit
+  else if (currentY < roomHeight * 0.05) {
+    let tempY = currentY;
+    // Besarkan 10x berulang-ulang sampai minimal 20% tinggi ruangan
+    // (Kecuali memang modelnya kecil banget, tapi ini safety net)
+    while (tempY < roomHeight * 0.2) {
+      scaleFactor *= 10;
+      tempY *= 10;
+    }
+  }
+
+  // --- LOGIC 2: HARD LIMIT (MENTOK PLAFON) ---
+  // Setelah unit diperbaiki, pastikan tidak tembus plafon
+  const projectedHeight = currentY * scaleFactor;
+  const limit = maxHeightLimit || roomHeight;
+
+  if (projectedHeight > limit) {
+    // Jika masih lebih tinggi dari plafon, kecilkan pas sebatas plafon
+    const fitRatio = limit / projectedHeight;
+    scaleFactor *= fitRatio * 0.98; // Beri gap 2%
+  }
+
+  // Terapkan scale uniform (X, Y, Z sama) agar TIDAK gepeng/distorsi
   mesh.scaling.set(scaleFactor, scaleFactor, scaleFactor);
+
   return scaleFactor;
 };
 
 // ============================================================================
 // DRAG BEHAVIOR (FIXED ROTATION)
 // ============================================================================
+
 export const addDragBehavior = (
   mesh: BABYLON.AbstractMesh,
   scene: BABYLON.Scene,
@@ -605,31 +652,74 @@ export const addDragBehavior = (
   dragBehavior.validateDrag = () => true;
   dragBehavior.useObjectOrientationForDragging = false;
 
-  //  SIMPLE APPROACH: Bikin mesh DAN children pickable
-  // Babylon.js akan otomatis detect parent yang punya behavior
+  dragBehavior.detachCameraControls = true;
+
   mesh.isPickable = true;
   mesh.getChildMeshes().forEach((child) => {
     child.isPickable = true;
   });
 
-  //  Attach behavior LANGSUNG ke root mesh
   mesh.addBehavior(dragBehavior);
 
-  // State tracking
+  // ========================================================================
+  // FIX: MANUAL DRAG TRIGGER FOR CHILDREN
+
+  // ========================================================================
+  const observer = scene.onPointerObservable.add((pointerInfo) => {
+    if (
+      pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN &&
+      pointerInfo.event.button === 0
+    ) {
+      const pickInfo = pointerInfo.pickInfo;
+      const pickedMesh = pickInfo?.pickedMesh;
+
+      if (
+        pickedMesh &&
+        pickedMesh !== mesh &&
+        pickedMesh.isDescendantOf(mesh)
+      ) {
+        if (dragBehavior.enabled && pickInfo?.pickedPoint) {
+          const evt = pointerInfo.event as PointerEvent;
+          dragBehavior.startDrag(evt.pointerId);
+        }
+      }
+    }
+  });
+
+  mesh.onDisposeObservable.addOnce(() => {
+    scene.onPointerObservable.remove(observer);
+  });
+
   let previousValidPosition = mesh.position.clone();
   let previousValidRotation = mesh.rotation.y;
   let currentWall: WallSide | null = null;
 
   // ==================== DRAG START ====================
   dragBehavior.onDragStartObservable.add(() => {
+    mesh.computeWorldMatrix(true);
+    mesh.refreshBoundingInfo(true, true);
+
     updateRoomDimensions();
 
-    const furnitureY = mesh.position.y;
-    const dragPlane = BABYLON.Plane.FromPositionAndNormal(
-      new BABYLON.Vector3(0, furnitureY, 0), // Plane di tinggi furniture
-      new BABYLON.Vector3(0, 1, 0), // Normal ke atas
-    );
+    // const furnitureY = mesh.position.y;
 
+    // const dragPlane = BABYLON.Plane.FromPositionAndNormal(
+    //   new BABYLON.Vector3(0, furnitureY, 0),
+    //   new BABYLON.Vector3(0, 1, 0),
+    // );
+
+    const bounds = mesh.getHierarchyBoundingVectors(true);
+    const furnitureHeight = bounds.max.y - bounds.min.y;
+    const furnitureTopY = bounds.max.y; // Y paling atas furniture
+
+    // ✅ BUAT DRAG PLANE DI TENGAH-TENGAH FURNITURE (lebih stabil)
+    // Atau bisa juga di paling atas (furnitureTopY)
+    const dragPlaneY = bounds.min.y + furnitureHeight / 2;
+
+    const dragPlane = BABYLON.Plane.FromPositionAndNormal(
+      new BABYLON.Vector3(0, dragPlaneY, 0), // ✅ Pakai Y furniture
+      new BABYLON.Vector3(0, 1, 0),
+    );
     // Override drag plane behavior
     (dragBehavior as any).currentDraggingPlane = dragPlane;
 
@@ -675,140 +765,227 @@ export const addDragBehavior = (
   });
 
   // ==================== DRAG (MOVING) ====================
+  // dragBehavior.onDragObservable.add((event) => {
+  //   const pointerPos = event.dragPlanePoint;
+
+  //   const { roomConfig } = useRoomStore.getState().present;
+  //   const rw = roomConfig.width;
+  //   const rd = roomConfig.depth;
+
+  //   // THRESHOLD DINAMIS
+  //   const SWITCH_THRESHOLD_PERCENT = 0.01;
+  //   const switchThreshold = Math.min(rw, rd) * SWITCH_THRESHOLD_PERCENT;
+
+  //   // Hitung jarak ke setiap tembok
+  //   const distToBack = Math.abs(pointerPos.z - rd / 2);
+  //   const distToFront = Math.abs(pointerPos.z + rd / 2);
+  //   const distToRight = Math.abs(pointerPos.x - rw / 2);
+  //   const distToLeft = Math.abs(pointerPos.x + rw / 2);
+
+  //   // Cari wall terdekat
+  //   const minDist = Math.min(distToBack, distToFront, distToRight, distToLeft);
+  //   let nearestWall: WallSide = "back";
+
+  //   if (minDist === distToBack) nearestWall = "back";
+  //   else if (minDist === distToFront) nearestWall = "front";
+  //   else if (minDist === distToRight) nearestWall = "right";
+  //   else nearestWall = "left";
+
+  //   // Tentukan target wall
+  //   let targetWall: WallSide = currentWall || nearestWall;
+
+  //   if (minDist < switchThreshold) {
+  //     targetWall = nearestWall;
+  //   }
+
+  //   // Update current wall
+  //   currentWall = targetWall;
+
+  //   // Tentukan rotasi target
+  //   let targetRotation = 0;
+  //   if (targetWall === "back") targetRotation = Math.PI;
+  //   else if (targetWall === "front") targetRotation = 0;
+  //   else if (targetWall === "right") targetRotation = -Math.PI / 2;
+  //   else if (targetWall === "left") targetRotation = Math.PI / 2;
+
+  //   //  STEP 1: SIMPAN posisi & rotasi current
+  //   const savedPosition = mesh.position.clone();
+  //   const savedRotation = mesh.rotation.y;
+
+  //   //  STEP 2: SIMULASI posisi baru
+  //   if (mesh.rotationQuaternion) {
+  //     mesh.rotationQuaternion = null;
+  //   }
+  //   mesh.rotation.y = targetRotation;
+  //   mesh.computeWorldMatrix(true);
+
+  //   const snapPos = getWallSnapPosition(targetWall, mesh, pointerPos);
+
+  //   const originalY = mesh.position.y;
+  //   mesh.position.x = snapPos.x;
+  //   mesh.position.z = snapPos.z;
+  //   mesh.position.y = originalY;
+  //   mesh.computeWorldMatrix(true);
+
+  //   //  STEP 3: CEK collision dengan posisi simulasi
+  //   const allFurniture = getAllFurniture(scene, mesh);
+  //   const myBox = getMeshAABB(mesh);
+
+  //   let collidingFurniture: BABYLON.AbstractMesh | null = null;
+  //   for (const other of allFurniture) {
+  //     const otherBox = getMeshAABB(other);
+  //     if (checkAABBOverlap(myBox, otherBox)) {
+  //       collidingFurniture = other;
+  //       break;
+  //     }
+  //   }
+
+  //   //  STEP 4: Handle collision
+  //   if (collidingFurniture) {
+  //     // Revert ke posisi saved dulu
+  //     mesh.position.copyFrom(savedPosition);
+  //     mesh.rotation.y = savedRotation;
+  //     mesh.computeWorldMatrix(true);
+
+  //     // Hitung posisi "push away"
+  //     const otherBox = getMeshAABB(collidingFurniture);
+  //     const dragDirection = pointerPos.x - previousValidPosition.x;
+
+  //     let safeX: number;
+  //     if (dragDirection > 0) {
+  //       // Geser ke kanan dari furniture lain
+  //       safeX = otherBox.maxX + myBox.width / 2 + 2;
+  //     } else {
+  //       // Geser ke kiri dari furniture lain
+  //       safeX = otherBox.minX - myBox.width / 2 - 2;
+  //     }
+
+  //     // Set rotasi lagi untuk safe position
+  //     mesh.rotation.y = targetRotation;
+  //     mesh.computeWorldMatrix(true);
+
+  //     // Test posisi safe
+  //     const safePushPos = getWallSnapPosition(
+  //       targetWall,
+  //       mesh,
+  //       new BABYLON.Vector3(safeX, 0, snapPos.z),
+  //     );
+
+  //     mesh.position.x = safePushPos.x;
+  //     mesh.position.z = safePushPos.z;
+  //     mesh.position.y = originalY;
+  //     mesh.computeWorldMatrix(true);
+
+  //     // Validasi final: cek lagi apakah masih overlap
+  //     const finalBox = getMeshAABB(mesh);
+  //     let stillHasCollision = false;
+
+  //     for (const other of allFurniture) {
+  //       const otherBox = getMeshAABB(other);
+  //       if (checkAABBOverlap(finalBox, otherBox)) {
+  //         stillHasCollision = true;
+  //         break;
+  //       }
+  //     }
+
+  //     if (stillHasCollision) {
+  //       // Masih collision, kembalikan ke posisi valid terakhir
+  //       mesh.position.copyFrom(previousValidPosition);
+  //       mesh.rotation.y = previousValidRotation;
+  //       mesh.computeWorldMatrix(true);
+  //     } else {
+  //       // update previous valid
+  //       previousValidPosition.copyFrom(mesh.position);
+  //       previousValidRotation = mesh.rotation.y;
+  //     }
+  //   } else {
+  //     // Tidak ada collision,
+  //     previousValidPosition.copyFrom(mesh.position);
+  //     previousValidRotation = mesh.rotation.y;
+  //   }
+  // });
+  // ==================== DRAG (MOVING) ====================
   dragBehavior.onDragObservable.add((event) => {
     const pointerPos = event.dragPlanePoint;
+
     const { roomConfig } = useRoomStore.getState().present;
     const rw = roomConfig.width;
     const rd = roomConfig.depth;
 
-    // THRESHOLD DINAMIS
-    const SWITCH_THRESHOLD_PERCENT = 0.01;
-    const switchThreshold = Math.min(rw, rd) * SWITCH_THRESHOLD_PERCENT;
-
-    // Hitung jarak ke setiap tembok
+    // ---------- 1. HITUNG JARAK KE TEMBOK ----------
     const distToBack = Math.abs(pointerPos.z - rd / 2);
     const distToFront = Math.abs(pointerPos.z + rd / 2);
     const distToRight = Math.abs(pointerPos.x - rw / 2);
     const distToLeft = Math.abs(pointerPos.x + rw / 2);
 
-    // Cari wall terdekat
-    const minDist = Math.min(distToBack, distToFront, distToRight, distToLeft);
-    let nearestWall: WallSide = "back";
+    const distances = [
+      { wall: "back" as WallSide, dist: distToBack },
+      { wall: "front" as WallSide, dist: distToFront },
+      { wall: "right" as WallSide, dist: distToRight },
+      { wall: "left" as WallSide, dist: distToLeft },
+    ];
 
-    if (minDist === distToBack) nearestWall = "back";
-    else if (minDist === distToFront) nearestWall = "front";
-    else if (minDist === distToRight) nearestWall = "right";
-    else nearestWall = "left";
+    distances.sort((a, b) => a.dist - b.dist);
 
-    // Tentukan target wall
-    let targetWall: WallSide = currentWall || nearestWall;
+    const nearestWall = distances[0].wall;
+    const minDist = distances[0].dist;
 
-    if (minDist < switchThreshold) {
-      targetWall = nearestWall;
+    // ---------- 2. HYSTERESIS (ANTI GOYANG) ----------
+    const SWITCH_THRESHOLD_PERCENT = 0.01;
+    const switchThreshold = Math.min(rw, rd) * SWITCH_THRESHOLD_PERCENT;
+
+    const HYSTERESIS = 1.5;
+
+    if (!currentWall) {
+      // pertama kali drag
+      currentWall = nearestWall;
+    } else if (
+      nearestWall !== currentWall &&
+      minDist < switchThreshold / HYSTERESIS
+    ) {
+      // pindah wall hanya kalau user "niat banget"
+      currentWall = nearestWall;
     }
 
-    // Update current wall
-    currentWall = targetWall;
+    const targetWall = currentWall;
 
-    // Tentukan rotasi target
+    // ---------- 3. ROTASI TARGET ----------
     let targetRotation = 0;
     if (targetWall === "back") targetRotation = Math.PI;
     else if (targetWall === "front") targetRotation = 0;
     else if (targetWall === "right") targetRotation = -Math.PI / 2;
     else if (targetWall === "left") targetRotation = Math.PI / 2;
 
-    //  STEP 1: SIMPAN posisi & rotasi current
+    // ---------- 4. SIMULASI POSISI ----------
     const savedPosition = mesh.position.clone();
     const savedRotation = mesh.rotation.y;
 
-    //  STEP 2: SIMULASI posisi baru
-    if (mesh.rotationQuaternion) {
-      mesh.rotationQuaternion = null;
-    }
     mesh.rotation.y = targetRotation;
     mesh.computeWorldMatrix(true);
 
     const snapPos = getWallSnapPosition(targetWall, mesh, pointerPos);
 
     const originalY = mesh.position.y;
-    mesh.position.x = snapPos.x;
-    mesh.position.z = snapPos.z;
-    mesh.position.y = originalY;
+    mesh.position.set(snapPos.x, originalY, snapPos.z);
     mesh.computeWorldMatrix(true);
 
-    //  STEP 3: CEK collision dengan posisi simulasi
+    // ---------- 5. COLLISION CHECK ----------
     const allFurniture = getAllFurniture(scene, mesh);
     const myBox = getMeshAABB(mesh);
 
-    let collidingFurniture: BABYLON.AbstractMesh | null = null;
+    let hasCollision = false;
     for (const other of allFurniture) {
-      const otherBox = getMeshAABB(other);
-      if (checkAABBOverlap(myBox, otherBox)) {
-        collidingFurniture = other;
+      if (checkAABBOverlap(myBox, getMeshAABB(other))) {
+        hasCollision = true;
         break;
       }
     }
 
-    //  STEP 4: Handle collision
-    if (collidingFurniture) {
-      // Revert ke posisi saved dulu
+    if (hasCollision) {
       mesh.position.copyFrom(savedPosition);
       mesh.rotation.y = savedRotation;
       mesh.computeWorldMatrix(true);
-
-      // Hitung posisi "push away"
-      const otherBox = getMeshAABB(collidingFurniture);
-      const dragDirection = pointerPos.x - previousValidPosition.x;
-
-      let safeX: number;
-      if (dragDirection > 0) {
-        // Geser ke kanan dari furniture lain
-        safeX = otherBox.maxX + myBox.width / 2 + 2;
-      } else {
-        // Geser ke kiri dari furniture lain
-        safeX = otherBox.minX - myBox.width / 2 - 2;
-      }
-
-      // Set rotasi lagi untuk safe position
-      mesh.rotation.y = targetRotation;
-      mesh.computeWorldMatrix(true);
-
-      // Test posisi safe
-      const safePushPos = getWallSnapPosition(
-        targetWall,
-        mesh,
-        new BABYLON.Vector3(safeX, 0, snapPos.z),
-      );
-
-      mesh.position.x = safePushPos.x;
-      mesh.position.z = safePushPos.z;
-      mesh.position.y = originalY;
-      mesh.computeWorldMatrix(true);
-
-      // Validasi final: cek lagi apakah masih overlap
-      const finalBox = getMeshAABB(mesh);
-      let stillHasCollision = false;
-
-      for (const other of allFurniture) {
-        const otherBox = getMeshAABB(other);
-        if (checkAABBOverlap(finalBox, otherBox)) {
-          stillHasCollision = true;
-          break;
-        }
-      }
-
-      if (stillHasCollision) {
-        // Masih collision, kembalikan ke posisi valid terakhir
-        mesh.position.copyFrom(previousValidPosition);
-        mesh.rotation.y = previousValidRotation;
-        mesh.computeWorldMatrix(true);
-      } else {
-        // Aman, update previous valid
-        previousValidPosition.copyFrom(mesh.position);
-        previousValidRotation = mesh.rotation.y;
-      }
     } else {
-      // Tidak ada collision, posisi aman
       previousValidPosition.copyFrom(mesh.position);
       previousValidRotation = mesh.rotation.y;
     }
@@ -866,6 +1043,7 @@ export const addDragBehavior = (
     if (canvas) canvas.style.cursor = "grab";
   });
 };
+// emnih
 
 // ============================================================================
 // POINTER & WALLS VISIBILITY
@@ -885,8 +1063,6 @@ export const setupPointerInteractions = (
       if (pick.hit && pick.pickedMesh) {
         let target = pick.pickedMesh;
 
-        //  Traverse ke atas sampai ketemu furniture root
-        // ATAU sampai ga ada parent lagi
         while (target.parent) {
           if (target.metadata === "furniture") {
             break; // Ketemu furniture root, stop

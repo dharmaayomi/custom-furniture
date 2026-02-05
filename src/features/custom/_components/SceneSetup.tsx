@@ -32,6 +32,9 @@ export const createScene = (
   // Setup pointer interactions
   setupPointerInteractions(scene, canvas);
 
+  // ✅ TAMBAHKAN INI: Show drag plane indicator
+  // showDragPlaneIndicator(scene, 0); // Uncomment kalau mau selalu keliatan
+
   // RETURN object references
   return { scene, camera, shadowGen, hl };
 };

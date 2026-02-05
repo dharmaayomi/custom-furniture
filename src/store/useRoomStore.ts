@@ -41,6 +41,7 @@ export interface FurnitureTransform {
   modelName: string;
   position: { x: number; y: number; z: number };
   rotation: number;
+  texture?: string;
 }
 
 // --- 2. UPDATE INTERFACE ---
@@ -63,6 +64,7 @@ interface RoomStore {
 
   setMainModel: (model: string) => void;
   setActiveTexture: (texture: string) => void;
+  setMeshTexture: (meshName: string, texture: string) => void;
   addAdditionalModel: (model: string) => void;
   setSelectedFurniture: (meshName: string | null) => void;
   duplicateSelectedFurniture: () => void;
@@ -139,6 +141,9 @@ export const useRoomStore = create<RoomStore>((set) => ({
         ...state.present,
         mainModel: model,
         totalPrice: newPrice,
+        // changes
+
+        mainModelTransform: undefined,
       };
 
       return {
@@ -152,7 +157,20 @@ export const useRoomStore = create<RoomStore>((set) => ({
   setShadowGenerator: (generator) => set({ shadowGenerator: generator }),
   setActiveTexture: (texture) =>
     set((state) => {
-      if (state.present.activeTexture === texture) return state;
+      console.log("setActiveTexture called with:", texture);
+      // Skip update only if setting the same non-empty texture
+      // Always allow clearing texture (texture === "") even if it's already empty
+      if (state.present.activeTexture === texture && texture !== "") {
+        console.log("Skipping update - same non-empty texture");
+        return state;
+      }
+
+      console.log(
+        "Updating texture from",
+        state.present.activeTexture,
+        "to",
+        texture,
+      );
 
       const newPrice = calculateTotal(
         state.present.mainModel,
@@ -164,6 +182,83 @@ export const useRoomStore = create<RoomStore>((set) => ({
         ...state.present,
         activeTexture: texture,
         totalPrice: newPrice,
+      };
+
+      return {
+        past: [...state.past, state.present],
+        present: newPresent,
+        future: [],
+      };
+    }),
+
+  setMeshTexture: (meshName: string, texture: string) =>
+    set((state) => {
+      // Persist texture on the corresponding FurnitureTransform so it survives undo/redo
+      const extracted = meshName; // meshName is expected to be the unique id used in transforms
+
+      // Determine whether the meshName corresponds to the main model transform
+      const mainTransformName = state.present.mainModelTransform?.modelName;
+      if (mainTransformName && extracted === mainTransformName) {
+        const current = state.present.mainModelTransform || {
+          modelName: state.present.mainModel,
+          position: { x: 0, y: 0, z: 0 },
+          rotation: 0,
+        };
+
+        const existing = current.texture || "";
+        if (existing === texture && texture !== "") return state;
+
+        const newMainTransform = { ...current };
+        if (!texture || texture === "") {
+          delete newMainTransform.texture;
+        } else {
+          newMainTransform.texture = texture;
+        }
+
+        const newPresent = {
+          ...state.present,
+          mainModelTransform: newMainTransform,
+        };
+
+        return {
+          past: [...state.past, state.present],
+          present: newPresent,
+          future: [],
+        };
+      }
+
+      // Otherwise try to find a matching additional model by exact unique id
+      const idx = state.present.additionalModels.findIndex(
+        (id) => id === extracted,
+      );
+
+      if (idx === -1) {
+        // Fallback: no matching transform found, no-op
+        return state;
+      }
+
+      const currentTransforms = [...state.present.additionalTransforms];
+      const current = currentTransforms[idx] || {
+        modelName: state.present.additionalModels[idx],
+        position: { x: 0, y: 0, z: 0 },
+        rotation: 0,
+      };
+
+      const existing = current.texture || "";
+      if (existing === texture && texture !== "") return state;
+
+      const newTransform = { ...current };
+      if (!texture || texture === "") {
+        delete newTransform.texture;
+      } else {
+        newTransform.texture = texture;
+      }
+
+      currentTransforms[idx] = newTransform;
+
+      const newPresent = {
+        ...state.present,
+        additionalTransforms: currentTransforms,
       };
 
       return {

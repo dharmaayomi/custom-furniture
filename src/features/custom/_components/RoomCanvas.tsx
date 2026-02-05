@@ -83,26 +83,55 @@ export const RoomCanvasThree = ({
     hlRef.current = hl;
     scene.onPointerDown = (evt, pickResult) => {
       if (pickResult.hit && pickResult.pickedMesh) {
-        let targetMesh = pickResult.pickedMesh;
+        const picked = pickResult.pickedMesh as BABYLON.AbstractMesh;
 
-        while (targetMesh.parent && targetMesh.metadata !== "furniture") {
-          targetMesh = targetMesh.parent as BABYLON.AbstractMesh;
+        // Find root furniture mesh robustly: check known furniture roots first
+        const furnitureRoots = scene.meshes.filter(
+          (m) => m.metadata === "furniture" && !m.parent,
+        ) as BABYLON.AbstractMesh[];
+
+        let root: BABYLON.AbstractMesh | null = null;
+        for (const r of furnitureRoots) {
+          if (r === picked || picked.isDescendantOf(r)) {
+            root = r;
+            break;
+          }
         }
 
-        if (targetMesh.metadata === "furniture") {
-          hl.removeAllMeshes();
+        // Fallback: climb parent chain until metadata === 'furniture'
+        if (!root) {
+          let targetMesh = picked;
+          while (targetMesh.parent && targetMesh.metadata !== "furniture") {
+            targetMesh = targetMesh.parent as BABYLON.AbstractMesh;
+          }
+          if (targetMesh.metadata === "furniture") root = targetMesh;
+        }
 
-          targetMesh.getChildMeshes().forEach((m) => {
-            hl.addMesh(
-              m as BABYLON.Mesh,
+        const hlLayer = hlRef.current;
+        if (root) {
+          if (hlLayer) hlLayer.removeAllMeshes();
+          console.log("PointerDown: selected furniture:", root.name);
+
+          // Highlight root and its children
+          if (hlLayer) {
+            hlLayer.addMesh(
+              root as BABYLON.Mesh,
               BABYLON.Color3.FromHexString("#f59e0b"),
             );
+          }
+          root.getChildMeshes().forEach((m) => {
+            if (hlLayer) {
+              hlLayer.addMesh(
+                m as BABYLON.Mesh,
+                BABYLON.Color3.FromHexString("#f59e0b"),
+              );
+            }
           });
 
           // Update selected furniture in store
-          setSelectedFurniture(targetMesh.name);
+          setSelectedFurniture(root.name);
         } else {
-          hl.removeAllMeshes();
+          if (hlLayer) hlLayer.removeAllMeshes();
           setSelectedFurniture(null);
         }
       }
@@ -119,23 +148,18 @@ export const RoomCanvasThree = ({
     });
 
     const handleResize = () => {
-      // Pastikan canvas dan engine resize dengan benar
       if (canvas && engine) {
-        // Update ukuran canvas secara eksplisit
         canvas.width = canvas.clientWidth;
         canvas.height = canvas.clientHeight;
 
-        // Resize engine
         engine.resize();
 
-        // Force update camera projection matrix
         if (camera) {
-          camera.getProjectionMatrix(true); // true = force refresh
+          camera.getProjectionMatrix(true);
         }
       }
     };
 
-    // Use ResizeObserver untuk menangkap perubahan ukuran canvas (sidebar toggle)
     const resizeObserver = new ResizeObserver(() => {
       handleResize();
     });
@@ -166,13 +190,11 @@ export const RoomCanvasThree = ({
         let spawnPos = new BABYLON.Vector3(0, 0, 0);
 
         if (mainMeshRef.current) {
-          // 1. Ambil bounding box untuk tahu lebar lemari
           const boundingInfo =
             mainMeshRef.current.getHierarchyBoundingVectors(true);
           const width = boundingInfo.max.x - boundingInfo.min.x;
           const depth = boundingInfo.max.z - boundingInfo.min.z;
 
-          // 2. Spawn di depan lemari
           spawnPos = mainMeshRef.current.position
             .clone()
             .add(new BABYLON.Vector3(width / 2 + 60, 0, 20));
@@ -195,7 +217,6 @@ export const RoomCanvasThree = ({
     const shadowGen = shadowGenRef.current;
     const camera = cameraRef.current;
 
-    // Bersihkan mesh lama
     if (roomMeshesRef.current) {
       roomMeshesRef.current.walls.forEach((w) => w.dispose());
       roomMeshesRef.current.floorVinyl.dispose();
@@ -294,11 +315,46 @@ export const RoomCanvasThree = ({
 
   // --- 4. UPDATE TEXTURE ---
   useEffect(() => {
-    if (!sceneRef.current || !debouncedActiveTexture) return;
+    console.log(
+      "Texture effect triggered, debouncedActiveTexture:",
+      debouncedActiveTexture,
+    );
+    if (!sceneRef.current) return;
     const scene = sceneRef.current;
 
-    updateAllTextures(scene, debouncedActiveTexture, mainMeshRef.current);
-  }, [debouncedActiveTexture]);
+    // Build per-mesh texture map from transforms (persisted on transforms)
+    const meshTextureMap: Record<string, string> = {};
+    if (present.mainModelTransform && present.mainModelTransform.texture) {
+      // main model should use the stored unique modelName from transform
+      const key = present.mainModelTransform.modelName || present.mainModel;
+      meshTextureMap[key] = present.mainModelTransform.texture as string;
+    }
+
+    present.additionalTransforms.forEach((t, idx) => {
+      if (t && t.texture) {
+        const key = present.additionalModels[idx] || t.modelName;
+        meshTextureMap[key] = t.texture as string;
+      }
+    });
+
+    console.log(
+      "Calling updateAllTextures with:",
+      debouncedActiveTexture,
+      meshTextureMap,
+    );
+    updateAllTextures(
+      scene,
+      debouncedActiveTexture,
+      mainMeshRef.current,
+      meshTextureMap,
+    );
+  }, [
+    debouncedActiveTexture,
+    present.mainModelTransform,
+    present.additionalTransforms,
+    present.additionalModels,
+    present.mainModel,
+  ]);
 
   //  --- 5. RESTORE POSITIONS SAAT UNDO/REDO ---
   useEffect(() => {

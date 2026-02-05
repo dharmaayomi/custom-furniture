@@ -15,6 +15,7 @@ interface SidebarPanelProps {
   onSelectMainModel: (name: string) => void;
   onAddAdditionalModel: (name: string) => void;
   onSelectTexture: (name: string) => void;
+  selectedFurniture: string | null;
 }
 
 export const SidebarPanel = ({
@@ -29,6 +30,7 @@ export const SidebarPanel = ({
   onSelectMainModel,
   onAddAdditionalModel,
   onSelectTexture,
+  selectedFurniture,
 }: SidebarPanelProps) => {
   const [previousState, setPreviousState] = useState(null);
 
@@ -73,7 +75,7 @@ export const SidebarPanel = ({
           {tool.id === "tambahan" && !mainModel && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
               <p className="text-sm font-medium text-amber-900">
-                ⚠️ Please select a main model first
+                ⚠️ Please select a model first
               </p>
               <p className="mt-1 text-xs text-amber-700">
                 You need to place the main furniture before adding additional
@@ -82,6 +84,17 @@ export const SidebarPanel = ({
             </div>
           )}
 
+          {tool.id === "paint" && !mainModel && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <p className="text-sm font-medium text-amber-900">
+                ⚠️ Please select a model first
+              </p>
+              <p className="mt-1 text-xs text-amber-700">
+                You need to place the main furniture before adding paint
+                textures.
+              </p>
+            </div>
+          )}
           <div className="mt-6 grid grid-cols-2 gap-4">
             {itemsToShow.map((item, idx) => (
               <div
@@ -117,6 +130,25 @@ export const SidebarPanel = ({
               </div>
             ))}
           </div>
+
+          {isTexture && (
+            <div className="mt-4">
+              <Button
+                onClick={() => {
+                  console.log("Reset Texture button clicked");
+                  // Only reset texture for the selected furniture. If none selected,
+                  // do nothing to avoid clearing global textures unexpectedly.
+                  if (selectedFurniture) {
+                    handleItemClick("");
+                  }
+                }}
+                disabled={!selectedFurniture}
+                className={`w-full font-semibold ${selectedFurniture ? "bg-slate-900 text-white hover:bg-slate-700" : "cursor-not-allowed bg-gray-100 text-gray-400"}`}
+              >
+                Reset Texture
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -154,6 +186,7 @@ export const SidebarPanel = ({
           </Button>
         </div>
 
+        {/* room type */}
         <div className="mt-6 grid grid-cols-2 gap-4">
           {rooms.map((room) => (
             <div
