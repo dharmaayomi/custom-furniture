@@ -910,201 +910,181 @@ export const loadAdditionalModel = async (
       rootMesh.rotation.y = savedTransform!.rotation;
       rootMesh.computeWorldMatrix(true);
     } else {
+      // 👌start: LOGIKA BARU - SMART SNAP (CENTER-OUT) & ROTATION CHECK
+
+      console.log("✨ New Additional Model: Smart Wall Fill...");
       const allFurniture = getAllFurniture(scene, rootMesh);
       let finalPosition: WallSnapPosition | null = null;
 
-      if (mainMeshRef) {
-        if (rootMesh.rotationQuaternion) {
-          rootMesh.rotationQuaternion = null;
+      // Urutan cek tembok: Belakang -> Kanan -> Depan -> Kiri
+      const wallsToTry: ("back" | "right" | "front" | "left")[] = [
+        "back",
+        "right",
+        "front",
+        "left",
+      ];
+
+      const snapGap = 0.001; // Jarak antar furniture (biar ga nempel banget)
+      const wallPadding = 0; // Jarak aman dari ujung tembok
+      // Loop setiap tembok sampai nemu posisi kosong
+      for (const wall of wallsToTry) {
+        console.log(`🔍 Checking Wall: ${wall}`);
+
+        const isHorizontal = wall === "back" || wall === "front";
+
+        // 1. CEK ROTASI & DIMENSI
+        // Jika pindah ke tembok samping (vertikal), model harusnya diputar 90 derajat.
+        // Maka dimensi Width dan Depth yang kita pakai untuk hitung celah juga harus DITUKAR.
+        // Ini menjawab request: "sebelum nempel ke tembok kanan itu di puter dlu itemnya"
+        const currentModelWidth = isHorizontal ? width : depth;
+        const currentModelDepth = isHorizontal ? depth : width;
+
+        // Tentukan batas koordinat tembok (Limit scanning)
+        // Kita scan "sepanjang" tembok.
+        // Kalau tembok Horizontal (Back/Front), kita scan sumbu X (pakai Room Width).
+        // Kalau tembok Vertikal (Right/Left), kita scan sumbu Z (pakai Room Depth).
+        const roomDim = isHorizontal ? CONFIG.rw : CONFIG.rd;
+        const limit = roomDim / 2 - currentModelWidth / 2 - wallPadding;
+
+        // 2. KUMPULKAN KANDIDAT POSISI (SNAP POINTS)
+        // Kita cari titik-titik potensial untuk menaruh barang.
+        let candidates: number[] = [];
+
+        // A. Titik di sebelah furniture yang sudah ada
+        if (allFurniture.length > 0) {
+          for (const other of allFurniture) {
+            const b = other.getHierarchyBoundingVectors(true);
+
+            if (isHorizontal) {
+              // Coba tempel di Kanan & Kiri furniture eksisting
+              // Rumus: Batas Furniture + Gap + Setengah Lebar Model Kita
+              candidates.push(b.max.x + snapGap + currentModelWidth / 2);
+              candidates.push(b.min.x - snapGap - currentModelWidth / 2);
+            } else {
+              // Coba tempel di Depan & Belakang furniture eksisting (Sumbu Z)
+              candidates.push(b.max.z + snapGap + currentModelWidth / 2);
+              candidates.push(b.min.z - snapGap - currentModelWidth / 2);
+            }
+          }
         }
-        rootMesh.rotation.y = mainMeshRef.rotation.y;
-        rootMesh.computeWorldMatrix(true);
 
-        finalPosition = findAutoSnapPosition(
-          mainMeshRef,
-          width,
-          depth,
-          allFurniture,
-        );
+        // B. Titik awal/pojok tembok (Fallback jika tidak ada furniture lain di tembok ini)
+        // Tambahkan kedua ujung batas tembok sebagai kandidat
+        candidates.push(-limit);
+        candidates.push(limit);
 
-        if (finalPosition) {
-          finalPosition.rotation = mainMeshRef.rotation.y;
+        // Khusus Back wall, kalau kosong banget, coba taruh di tengah (0)
+        if (wall === "back" && allFurniture.length === 0) {
+          candidates.push(0);
         }
-      }
 
-      if (!finalPosition && allFurniture.length > 0) {
-        for (const furniture of allFurniture) {
-          finalPosition = findAutoSnapPosition(
-            furniture,
-            width,
-            depth,
-            allFurniture,
-          );
-          if (finalPosition) break;
-        }
-      }
-
-      if (!finalPosition) {
-        const wallsToTry: ("back" | "left" | "right" | "front")[] = [
-          "back",
-          "left",
-          "right",
-          "front",
+        // 3. FILTER & SORTIR KANDIDAT
+        // Hapus kandidat yang tembus batas tembok
+        candidates = candidates.filter((p) => p >= -limit && p <= limit);
+        // Hapus duplikat (rounding dikit biar sama)
+        candidates = [
+          ...new Set(candidates.map((n) => Math.round(n * 10) / 10)),
         ];
 
-        for (const wall of wallsToTry) {
-          let positionFound = false;
+        if (wall === "back") {
+          // KHUSUS TEMBOK BELAKANG: "Proses penempelan dari sebelah main model"
+          // Kita asumsikan Main Model ada di tengah (0).
+          // Jadi kita urutkan kandidat dari yang PALING DEKAT KE 0 (Tengah) lalu melebar keluar.
+          candidates.sort((a, b) => Math.abs(a) - Math.abs(b));
+        } else {
+          // UNTUK TEMBOK LAIN (Kanan/Kiri/Depan):
+          // Urutkan linear dari negatif ke positif (pojok ke pojok)
+          // Supaya ngisinya urut dari ujung tembok.
+          candidates.sort((a, b) => a - b);
+        }
 
-          if (wall === "back" || wall === "front") {
-            const maxX = CONFIG.rw / 2 - width / 2 - 15;
-            const tryXPositions = [
-              0,
-              maxX / 2,
-              -maxX / 2,
-              maxX * 0.75,
-              -maxX * 0.75,
-              maxX,
-              -maxX,
-            ];
+        console.log(`   Candidates on ${wall}:`, candidates);
 
-            for (const testX of tryXPositions) {
-              const testWallPos = getWallSnapPosition(
-                wall,
-                rootMesh,
-                new BABYLON.Vector3(testX, 0, 0),
-              );
+        // 4. TEST TABRAKAN (COLLISION CHECK)
+        for (const pos of candidates) {
+          // Siapkan vector test (getWallSnapPosition butuh ini untuk hitung rotasi dll)
+          const testVec = isHorizontal
+            ? new BABYLON.Vector3(pos, 0, 0)
+            : new BABYLON.Vector3(0, 0, pos);
 
-              const testBox = {
-                minX: testWallPos.x - width / 2,
-                maxX: testWallPos.x + width / 2,
-                minZ: testWallPos.z - depth / 2,
-                maxZ: testWallPos.z + depth / 2,
-                width,
-                depth,
-              };
+          // Dapatkan posisi final & rotasi dari helper (ini memastikan model nempel tembok)
+          const snapPos = getWallSnapPosition(wall, rootMesh, testVec);
 
-              let hasCollision = false;
-              for (const other of allFurniture) {
-                // Calculate other's bounds fresh too
-                const otherBounds = other.getHierarchyBoundingVectors(true);
-                const otherBox = {
-                  minX: other.position.x + otherBounds.min.x,
-                  maxX: other.position.x + otherBounds.max.x,
-                  minZ: other.position.z + otherBounds.min.z,
-                  maxZ: other.position.z + otherBounds.max.z,
-                };
+          // Bikin Bounding Box Simulasi di posisi tersebut
+          // PENTING: Gunakan currentModelWidth/Depth yang sudah memperhitungkan rotasi tadi
+          // Kasih buffer sedikit (-1) biar gak dideteksi tabrakan kalo cuma nempel doang
+          const testBox = {
+            minX: snapPos.x - currentModelWidth / 2 + 1,
+            maxX: snapPos.x + currentModelWidth / 2 - 1,
+            minZ: snapPos.z - currentModelDepth / 2 + 1,
+            maxZ: snapPos.z + currentModelDepth / 2 - 1,
+          };
 
-                if (
-                  testBox.minX < otherBox.maxX &&
-                  testBox.maxX > otherBox.minX &&
-                  testBox.minZ < otherBox.maxZ &&
-                  testBox.maxZ > otherBox.minZ
-                ) {
-                  hasCollision = true;
-                  break;
-                }
-              }
-
-              if (!hasCollision) {
-                finalPosition = testWallPos;
-                positionFound = true;
-                break;
-              }
-            }
-          } else {
-            const maxZ = CONFIG.rd / 2 - depth / 2 - 15;
-            const tryZPositions = [
-              0,
-              maxZ / 2,
-              -maxZ / 2,
-              maxZ * 0.75,
-              -maxZ * 0.75,
-              maxZ,
-              -maxZ,
-            ];
-
-            for (const testZ of tryZPositions) {
-              const testWallPos = getWallSnapPosition(
-                wall,
-                rootMesh,
-                new BABYLON.Vector3(0, 0, testZ),
-              );
-
-              const testBox = {
-                minX: testWallPos.x - width / 2,
-                maxX: testWallPos.x + width / 2,
-                minZ: testWallPos.z - depth / 2,
-                maxZ: testWallPos.z + depth / 2,
-                width,
-                depth,
-              };
-
-              let hasCollision = false;
-              for (const other of allFurniture) {
-                const otherBounds = other.getHierarchyBoundingVectors(true);
-                const otherBox = {
-                  minX: other.position.x + otherBounds.min.x,
-                  maxX: other.position.x + otherBounds.max.x,
-                  minZ: other.position.z + otherBounds.min.z,
-                  maxZ: other.position.z + otherBounds.max.z,
-                };
-
-                if (
-                  testBox.minX < otherBox.maxX &&
-                  testBox.maxX > otherBox.minX &&
-                  testBox.minZ < otherBox.maxZ &&
-                  testBox.maxZ > otherBox.minZ
-                ) {
-                  hasCollision = true;
-                  break;
-                }
-              }
-
-              if (!hasCollision) {
-                finalPosition = testWallPos;
-                positionFound = true;
-                break;
-              }
+          // Cek tabrakan dengan SEMUA furniture
+          let collision = false;
+          for (const other of allFurniture) {
+            const b = other.getHierarchyBoundingVectors(true);
+            // Simple AABB overlap check
+            if (
+              testBox.minX < b.max.x &&
+              testBox.maxX > b.min.x &&
+              testBox.minZ < b.max.z &&
+              testBox.maxZ > b.min.z
+            ) {
+              collision = true;
+              break;
             }
           }
 
-          if (positionFound) break;
+          if (!collision) {
+            // Hore! Posisi valid ditemukan.
+            finalPosition = snapPos;
+            console.log(`✅ Valid spot found on ${wall} at ${pos}`);
+            break; // Keluar loop kandidat
+          }
         }
 
-        if (!finalPosition) {
-          finalPosition = getWallSnapPosition(
-            "back",
-            rootMesh,
-            new BABYLON.Vector3(0, 0, 0),
-          );
-        }
+        if (finalPosition) break; // Keluar loop tembok, karena sudah dapet posisi
       }
 
-      const yPosition = 10 - boundsInfoOriginal.min.y;
+      if (finalPosition) {
+        // APPLY POSISI & ROTASI
+        const yPosition = 10 - boundsInfoOriginal.min.y;
 
-      rootMesh.position.set(finalPosition.x, yPosition, finalPosition.z);
-      rootMesh.rotation.y = finalPosition.rotation;
-      rootMesh.computeWorldMatrix(true);
+        rootMesh.position.set(finalPosition.x, yPosition, finalPosition.z);
+        rootMesh.rotation.y = finalPosition.rotation;
+        rootMesh.computeWorldMatrix(true);
 
-      const { updateTransformSilent } = useRoomStore.getState();
-      const allFurnitureForIndex = getAllFurniture(scene);
-      const meshIndex = allFurnitureForIndex.indexOf(rootMesh);
+        // UPDATE STORE
+        const { updateTransformSilent } = useRoomStore.getState();
+        const allFurnitureForIndex = getAllFurniture(scene);
+        const meshIndex = allFurnitureForIndex.indexOf(rootMesh);
 
-      const initialTransform: FurnitureTransform = {
-        modelName: rootMesh.name,
-        position: {
-          x: rootMesh.position.x,
-          y: rootMesh.position.y,
-          z: rootMesh.position.z,
-        },
-        rotation: rootMesh.rotation.y,
-      };
+        const initialTransform: FurnitureTransform = {
+          modelName: rootMesh.name,
+          position: {
+            x: rootMesh.position.x,
+            y: rootMesh.position.y,
+            z: rootMesh.position.z,
+          },
+          rotation: rootMesh.rotation.y,
+        };
 
-      if (meshIndex === 0) {
-        updateTransformSilent(0, initialTransform, true);
+        if (meshIndex === 0) {
+          updateTransformSilent(0, initialTransform, true);
+        } else {
+          updateTransformSilent(meshIndex - 1, initialTransform, false);
+        }
+
+        addDragBehavior(rootMesh, scene);
       } else {
-        updateTransformSilent(meshIndex - 1, initialTransform, false);
+        // KAMAR PENUH
+        console.warn("⛔ Room is full! Cannot place additional model.");
+        window.alert("Ruangan penuh! Semua tembok sudah terisi.");
+        rootMesh.dispose();
+        return;
       }
+      // 👌end
     }
 
     addDragBehavior(rootMesh, scene);

@@ -639,6 +639,7 @@ export const autoScaleMesh = (
 // ============================================================================
 // DRAG BEHAVIOR (FIXED ROTATION)
 // ============================================================================
+
 export const addDragBehavior = (
   mesh: BABYLON.AbstractMesh,
   scene: BABYLON.Scene,
@@ -1042,6 +1043,7 @@ export const addDragBehavior = (
     if (canvas) canvas.style.cursor = "grab";
   });
 };
+// emnih
 
 // ============================================================================
 // POINTER & WALLS VISIBILITY
@@ -1061,8 +1063,6 @@ export const setupPointerInteractions = (
       if (pick.hit && pick.pickedMesh) {
         let target = pick.pickedMesh;
 
-        //  Traverse ke atas sampai ketemu furniture root
-        // ATAU sampai ga ada parent lagi
         while (target.parent) {
           if (target.metadata === "furniture") {
             break; // Ketemu furniture root, stop
