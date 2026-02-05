@@ -31,9 +31,9 @@ const calculateTotal = (
 };
 
 export interface RoomConfig {
-  width: number; // rw
-  depth: number; // rd
-  height: number; // wallHeight
+  width: number; // meters
+  depth: number; // meters
+  height: number; // meters
   wallColor: string; // Hex color
   floorTexture: string; // Texture path
 }
@@ -100,9 +100,9 @@ interface RoomStore {
 const INITIAL_MAIN = "";
 const INITIAL_TEXTURE = "";
 const INITIAL_ROOM_CONFIG: RoomConfig = {
-  width: 620,
-  depth: 420,
-  height: 300,
+  width: 6.2,
+  depth: 4.2,
+  height: 3.0,
   wallColor: "#F2F0EB",
   floorTexture: "/assets/texture/wood-texture.jpg",
 };

@@ -13,7 +13,7 @@ import {
   getWallSnapPosition,
   updateRoomDimensions,
 } from "./MeshUtils_WallSnap";
-import { CONFIG } from "./RoomConfig";
+import { CONFIG, FLOOR_Y } from "./RoomConfig";
 
 /**
  * Load main model and setup (always on back wall, centered)
@@ -287,6 +287,15 @@ export const loadMainModel = async (
     );
 
     container.addAllToScene();
+    // Prevent asset-embedded lights/cameras from stacking with scene lighting
+    container.lights.forEach((l) => l.dispose());
+    container.cameras.forEach((c) => c.dispose());
+    // Safety net: remove any lights that slipped in
+    const allowedLightIds: number[] =
+      (scene.metadata && scene.metadata.allowedLightIds) || [];
+    scene.lights
+      .filter((l) => !allowedLightIds.includes(l.uniqueId))
+      .forEach((l) => l.dispose());
     const meshes = container.meshes;
     if (meshes.length === 0) return null;
 
@@ -345,10 +354,12 @@ export const loadMainModel = async (
       box.depth.toFixed(1),
     );
     console.log(
-      "Y Position Calculation: 10 -",
+      "Y Position Calculation:",
+      FLOOR_Y,
+      "-",
       boundsInfo.min.y.toFixed(1),
       "=",
-      (10 - boundsInfo.min.y).toFixed(1),
+      (FLOOR_Y - boundsInfo.min.y).toFixed(1),
     );
 
     if (savedTransform) {
@@ -375,7 +386,7 @@ export const loadMainModel = async (
       );
 
       // Use THIS model's specific boundsInfo for Y position
-      const yPosition = 10 - boundsInfo.min.y;
+      const yPosition = FLOOR_Y - boundsInfo.min.y;
 
       rootMesh.position.set(wallPos.x, yPosition, wallPos.z);
       rootMesh.rotation.y = wallPos.rotation;
@@ -861,6 +872,15 @@ export const loadAdditionalModel = async (
     );
 
     container.addAllToScene();
+    // Prevent asset-embedded lights/cameras from stacking with scene lighting
+    container.lights.forEach((l) => l.dispose());
+    container.cameras.forEach((c) => c.dispose());
+    // Safety net: remove any lights that slipped in
+    const allowedLightIds: number[] =
+      (scene.metadata && scene.metadata.allowedLightIds) || [];
+    scene.lights
+      .filter((l) => !allowedLightIds.includes(l.uniqueId))
+      .forEach((l) => l.dispose());
     const meshes = container.meshes;
 
     if (meshes.length === 0) return;
@@ -924,7 +944,7 @@ export const loadAdditionalModel = async (
         "left",
       ];
 
-      const snapGap = 0.001; // Jarak antar furniture (biar ga nempel banget)
+      const snapGap = 0.00001; // Jarak antar furniture (biar ga nempel banget)
       const wallPadding = 0; // Jarak aman dari ujung tembok
       // Loop setiap tembok sampai nemu posisi kosong
       for (const wall of wallsToTry) {
@@ -983,7 +1003,7 @@ export const loadAdditionalModel = async (
         candidates = candidates.filter((p) => p >= -limit && p <= limit);
         // Hapus duplikat (rounding dikit biar sama)
         candidates = [
-          ...new Set(candidates.map((n) => Math.round(n * 10) / 10)),
+          ...new Set(candidates.map((n) => Math.round(n * 100) / 100)),
         ];
 
         if (wall === "back") {
@@ -1012,12 +1032,12 @@ export const loadAdditionalModel = async (
 
           // Bikin Bounding Box Simulasi di posisi tersebut
           // PENTING: Gunakan currentModelWidth/Depth yang sudah memperhitungkan rotasi tadi
-          // Kasih buffer sedikit (-1) biar gak dideteksi tabrakan kalo cuma nempel doang
+          // Kasih buffer sedikit (~1 cm) biar gak dideteksi tabrakan kalo cuma nempel doang
           const testBox = {
-            minX: snapPos.x - currentModelWidth / 2 + 1,
-            maxX: snapPos.x + currentModelWidth / 2 - 1,
-            minZ: snapPos.z - currentModelDepth / 2 + 1,
-            maxZ: snapPos.z + currentModelDepth / 2 - 1,
+            minX: snapPos.x - currentModelWidth / 2 + 0.01,
+            maxX: snapPos.x + currentModelWidth / 2 - 0.01,
+            minZ: snapPos.z - currentModelDepth / 2 + 0.01,
+            maxZ: snapPos.z + currentModelDepth / 2 - 0.01,
           };
 
           // Cek tabrakan dengan SEMUA furniture
@@ -1049,7 +1069,7 @@ export const loadAdditionalModel = async (
 
       if (finalPosition) {
         // APPLY POSISI & ROTASI
-        const yPosition = 10 - boundsInfoOriginal.min.y;
+        const yPosition = FLOOR_Y - boundsInfoOriginal.min.y;
 
         rootMesh.position.set(finalPosition.x, yPosition, finalPosition.z);
         rootMesh.rotation.y = finalPosition.rotation;

@@ -278,7 +278,7 @@ export const checkAABBOverlap = (
   box1: BoundingBox,
   box2: BoundingBox,
 ): boolean => {
-  const epsilon = 0.5;
+  const epsilon = 0.005;
   return (
     box1.minX < box2.maxX - epsilon &&
     box1.maxX > box2.minX + epsilon &&
@@ -335,7 +335,7 @@ export const getWallSnapPosition = (
   const rw = roomConfig.width;
   const rd = roomConfig.depth;
 
-  // JARAK FURNITURE KE TEMBOK (dalam satuan babylon unit)
+  // JARAK FURNITURE KE TEMBOK (dalam meter; 1 Babylon unit = 1 meter)
   // 0 = menempel ke tembok
   // 5 = jarak 5 unit dari tembok
   // 10 = jarak 10 unit dari tembok
@@ -445,7 +445,7 @@ export const findAutoSnapPosition = (
   const { roomConfig } = useRoomStore.getState().present;
   const rw = roomConfig.width;
   const rd = roomConfig.depth;
-  const gap = 0.001;
+  const gap = 0.00001;
 
   let rot = 0;
   if (targetWall === "back") rot = Math.PI;
@@ -584,7 +584,7 @@ export const autoScaleMesh = (
 ): number => {
   // Ambil tinggi ruangan asli dari config
   const { roomConfig } = useRoomStore.getState().present;
-  const roomHeight = roomConfig.height; // misal 3.0 (meter) atau 300 (cm)
+  const roomHeight = roomConfig.height; // dalam meter
 
   // Hitung tinggi mesh saat ini
   const boundsInfo = mesh.getHierarchyBoundingVectors(true);

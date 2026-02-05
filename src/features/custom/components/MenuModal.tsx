@@ -1,6 +1,13 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft,
   FolderClosed,
   FolderOpen,
@@ -13,6 +20,8 @@ import {
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useRoomStore } from "@/store/useRoomStore";
+import { useState } from "react";
 
 interface MenuModalProps {
   isOpen: boolean;
@@ -27,6 +36,8 @@ export const MenuModal = ({
 }: MenuModalProps) => {
   const router = useRouter();
   const session = useSession();
+  const resetRoom = useRoomStore((state) => state.reset);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const logout = () => {
     signOut({ redirect: false });
     router.push("/");
@@ -45,7 +56,13 @@ export const MenuModal = ({
   };
 
   const handleStartFromScratch = () => {
-    console.log("Start from scratch");
+    setIsConfirmOpen(true);
+  };
+
+  const handleConfirmStartFromScratch = () => {
+    resetRoom();
+    setIsConfirmOpen(false);
+    onClose();
   };
   const handleLogin = () => {
     router.push("/login");
@@ -55,7 +72,7 @@ export const MenuModal = ({
     <>
       {/* Overlay */}
       <div
-        className={`fixed inset-0 z-50 bg-black transition-opacity duration-300 ${
+        className={`fixed inset-0 z-57 bg-black transition-opacity duration-300 ${
           isOpen ? "opacity-50" : "pointer-events-none opacity-0"
         }`}
         onClick={onClose}
@@ -63,7 +80,7 @@ export const MenuModal = ({
 
       {/* Modal */}
       <div
-        className={`fixed top-0 left-0 z-50 h-full w-80 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 z-58 h-full w-80 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -180,6 +197,38 @@ export const MenuModal = ({
           </div>
         </div>
       </div>
+
+      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              Start from scratch
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-2">
+            <DialogDescription className="text-base text-gray-600">
+              This will remove your current configuration and reset the room.
+            </DialogDescription>
+          </div>
+
+          <div className="mt-4 flex w-full flex-col gap-3">
+            <Button
+              variant="outline"
+              className="w-full rounded-full text-base font-semibold"
+              onClick={() => setIsConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="w-full rounded-full text-base font-bold"
+              onClick={handleConfirmStartFromScratch}
+            >
+              Reset
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

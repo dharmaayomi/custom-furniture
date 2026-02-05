@@ -19,7 +19,7 @@ export const setupLighting = (scene: BABYLON.Scene) => {
   // Ceiling Lamp (Main)
   const ceilingLamp = new BABYLON.PointLight(
     "ceilingLamp",
-    new BABYLON.Vector3(0, wallHeight - 10, 0),
+    new BABYLON.Vector3(0, wallHeight - 0.1, 0),
     scene,
   );
   ceilingLamp.intensity = 1.5; // Naikkan
@@ -49,7 +49,7 @@ export const setupLighting = (scene: BABYLON.Scene) => {
   // Main Spot Light
   const mainSpot = new BABYLON.SpotLight(
     "mainSpot",
-    new BABYLON.Vector3(0, wallHeight - 30, 0),
+    new BABYLON.Vector3(0, wallHeight + 0.9, 0),
     new BABYLON.Vector3(0, -1, 0),
     LIGHTING_CONFIG.mainSpot.angle,
     LIGHTING_CONFIG.mainSpot.exponent,
@@ -62,28 +62,30 @@ export const setupLighting = (scene: BABYLON.Scene) => {
   // Spot Light Kiri
   const spot2 = new BABYLON.SpotLight(
     "spot2",
-    new BABYLON.Vector3(-rw / 3, wallHeight - 50, 0),
-    new BABYLON.Vector3(-1, -0.9, 0),
-    Math.PI / 4,
-    5,
+    new BABYLON.Vector3(-rw / 4, wallHeight, 0),
+    new BABYLON.Vector3(-1, -1.1, 0),
+    Math.PI / 0.9, // semakin kecil semakin lebar
+    2,
     scene,
   );
-  spot2.intensity = 20.0; // Naikkan karena lampu dikurangi
+  spot2.intensity = 1.5; // Naikkan karena lampu dikurangi
   spot2.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
-  spot2.range = 1800;
+  spot2.range = 25;
+  spot2.exponent = 1.5;
 
   // Spot Light Kanan
   const spot3 = new BABYLON.SpotLight(
     "spot3",
-    new BABYLON.Vector3(rw / 3, wallHeight - 50, 0),
-    new BABYLON.Vector3(1, -0.9, 0),
-    Math.PI / 4,
-    5,
+    new BABYLON.Vector3(rw / 4, wallHeight, 0),
+    new BABYLON.Vector3(1, -1.1, 0),
+    Math.PI / 0.9, // LEBIH LEBAR (≈ 82°)
+    2,
     scene,
   );
-  spot3.intensity = 20.0;
+  spot3.intensity = 1.5;
   spot3.diffuse = new BABYLON.Color3(1, 0.93, 0.8);
-  spot3.range = 1800;
+  spot3.range = 25;
+  spot3.exponent = 1.5;
 
   // ========== HELPERS ==========
   // createLightHelpers(scene, {
@@ -116,7 +118,7 @@ const createLightHelpers = (
   // Helper untuk Point Light (Ceiling Lamp)
   const ceilingSphere = BABYLON.MeshBuilder.CreateSphere(
     "ceilingHelper",
-    { diameter: 20 },
+    { diameter: 0.2 },
     scene,
   );
   ceilingSphere.position = lights.ceilingLamp.position.clone();
@@ -167,22 +169,22 @@ const createDirectionalHelper = (
   name: string,
   color: BABYLON.Color3,
 ) => {
-  const position = new BABYLON.Vector3(0, 200, 0);
+  const position = new BABYLON.Vector3(0, 2, 0);
 
   // Sphere di posisi awal
   const sphere = BABYLON.MeshBuilder.CreateSphere(
     name + "Sphere",
-    { diameter: 15 },
+    { diameter: 0.15 },
     scene,
   );
   sphere.position = position;
 
   // Arrow menunjukkan arah
   const direction = light.direction.normalize();
-  const arrowLength = 100;
+  const arrowLength = 1;
   const arrow = BABYLON.MeshBuilder.CreateCylinder(
     name + "Arrow",
-    { height: arrowLength, diameter: 5 },
+    { height: arrowLength, diameter: 0.05 },
     scene,
   );
   arrow.position = position.add(direction.scale(arrowLength / 2));
@@ -213,14 +215,14 @@ const createSpotHelper = (
   // Sphere di posisi lampu
   const sphere = BABYLON.MeshBuilder.CreateSphere(
     name + "Sphere",
-    { diameter: 15 },
+    { diameter: 0.15 },
     scene,
   );
   sphere.position = light.position.clone();
 
   // Cone menunjukkan arah dan angle
   const direction = light.direction.normalize();
-  const coneHeight = 80;
+  const coneHeight = 0.8;
   const cone = BABYLON.MeshBuilder.CreateCylinder(
     name + "Cone",
     {

@@ -27,15 +27,23 @@ export const setupCamera = (
   camera.lowerRadiusLimit = CAMERA_CONFIG.lowerRadiusLimit;
   camera.upperRadiusLimit = CAMERA_CONFIG.upperRadiusLimit;
 
+  // scene.onBeforeRenderObservable.add(() => {
+  //   const lowerLimit = camera.lowerRadiusLimit ?? 0;
+  //   if (camera.radius <= lowerLimit + 0.01) {
+  //     camera.panningSensibility = 250;
+  //     camera.wheelPrecision = 20;
+  //   } else {
+  //     camera.panningSensibility = 390;
+  //     camera.wheelPrecision = CAMERA_CONFIG.wheelPrecision;
+  //   }
+  // });
+
   scene.onBeforeRenderObservable.add(() => {
     const lowerLimit = camera.lowerRadiusLimit ?? 0;
-    if (camera.radius <= lowerLimit + 1) {
-      camera.panningSensibility = 1000;
-      camera.wheelPrecision = 20;
-    } else {
-      camera.panningSensibility = 50;
-      camera.wheelPrecision = CAMERA_CONFIG.wheelPrecision;
-    }
+    const t = BABYLON.Scalar.Clamp((camera.radius - lowerLimit) / 1.2, 0, 1);
+
+    camera.panningSensibility = BABYLON.Scalar.Lerp(800, 350, t);
+    camera.wheelPrecision = BABYLON.Scalar.Lerp(120, 50, t);
   });
 
   let isPointerDown = false;
@@ -71,8 +79,8 @@ export const setupCamera = (
   );
 
   zoomInAnimation.setKeys([
-    { frame: 0, value: 600 },
-    { frame: 90, value: 250 },
+    { frame: 0, value: 6 },
+    { frame: 90, value: 2.5 },
   ]);
 
   const easing = new BABYLON.CubicEase();
