@@ -30,6 +30,18 @@ const calculateTotal = (
   return total;
 };
 
+const getBaseModelName = (modelName: string) =>
+  modelName.replace(/\.glb$/i, "");
+
+const getNextIndexedId = (modelName: string, additionalModels: string[]) => {
+  const base = getBaseModelName(modelName);
+  const count = additionalModels.filter((id) => {
+    const extracted = extractModelNameFromId(id);
+    return getBaseModelName(extracted) === base;
+  }).length;
+  return `${base}_${count + 1}`;
+};
+
 export interface RoomConfig {
   width: number; // meters
   depth: number; // meters
@@ -307,7 +319,10 @@ export const useRoomStore = create<RoomStore>((set) => ({
       if (!modelNameToDuplicate) return state;
 
       // Add as additional model
-      const uniqueId = `${modelNameToDuplicate}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const uniqueId = getNextIndexedId(
+        modelNameToDuplicate,
+        state.present.additionalModels,
+      );
       const newModels = [...state.present.additionalModels, uniqueId];
 
       const newTransforms = [
@@ -442,7 +457,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
   addAdditionalModel: (model) =>
     set((state) => {
       const currentPresent = state.present;
-      const uniqueId = `${model}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const uniqueId = getNextIndexedId(model, currentPresent.additionalModels);
       const newModels = [...currentPresent.additionalModels, uniqueId];
 
       const newTransforms = [

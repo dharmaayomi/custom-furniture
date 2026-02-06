@@ -1,6 +1,7 @@
 "use client";
 
 import { useRoomStore } from "@/store/useRoomStore";
+import { extractModelNameFromId } from "@/lib/price";
 import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders";
 import { useEffect, useRef } from "react";
@@ -291,9 +292,8 @@ export const RoomCanvasThree = ({
         const existingMesh = scene.getMeshByName(uniqueId);
 
         if (!existingMesh) {
-          // Extract nama file asli
-          const parts = uniqueId.split("_");
-          const modelName = parts.slice(0, -2).join("_");
+          // Extract original model name (supports indexed ids)
+          const modelName = extractModelNameFromId(uniqueId);
 
           // AMBIL TRANSFORM DARI STORE BERDASARKAN INDEX
           // Pastikan additionalTransforms di store sinkron dengan additionalModels array

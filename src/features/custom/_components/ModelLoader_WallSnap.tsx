@@ -15,6 +15,9 @@ import {
 } from "./MeshUtils_WallSnap";
 import { CONFIG, FLOOR_Y } from "./RoomConfig";
 
+const getBaseModelName = (modelName: string) =>
+  modelName.replace(/\.glb$/i, "");
+
 /**
  * Load main model and setup (always on back wall, centered)
  */
@@ -300,7 +303,8 @@ export const loadMainModel = async (
     if (meshes.length === 0) return null;
 
     const rootMesh = meshes[0];
-    const uniqueName = `${modelName}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const baseName = getBaseModelName(modelName);
+    const uniqueName = `${baseName}_0`;
     rootMesh.name = savedTransform ? savedTransform.modelName : uniqueName;
     rootMesh.metadata = "furniture";
 
@@ -873,9 +877,19 @@ export const loadAdditionalModel = async (
     let uniqueId = savedTransform?.modelName;
 
     if (!uniqueId) {
-      const timestamp = Date.now();
-      const random = Math.random().toString(36).substr(2, 9);
-      uniqueId = `${modelName}_${timestamp}_${random}`;
+      const baseName = getBaseModelName(modelName);
+      const { present } = useRoomStore.getState();
+      const count = present.additionalModels.filter((id) => {
+        const extracted = id.split("_");
+        if (
+          extracted.length >= 2 &&
+          /^\d+$/.test(extracted[extracted.length - 1])
+        ) {
+          return extracted.slice(0, -1).join("_") === baseName;
+        }
+        return false;
+      }).length;
+      uniqueId = `${baseName}_${count + 1}`;
     }
 
     const container = await BABYLON.LoadAssetContainerAsync(

@@ -36,12 +36,23 @@ export const formatPrice = (price: number): string => {
 
 export const extractModelNameFromId = (uniqueId: string): string => {
   // Extract original model name from uniqueId
-  // Format: model_timestamp_randomstring -> model
+  // Supported formats:
+  // - model_timestamp_randomstring
+  // - model_index
   const parts = uniqueId.split("_");
-  if (parts.length > 2) {
-    return parts.slice(0, -2).join("_");
+  let base = uniqueId;
+
+  if (parts.length >= 2 && /^\d+$/.test(parts[parts.length - 1])) {
+    base = parts.slice(0, -1).join("_");
+  } else if (parts.length > 2) {
+    base = parts.slice(0, -2).join("_");
   }
-  return uniqueId;
+
+  if (!base.includes(".") && ASSET_PRICES[`${base}.glb`]) {
+    return `${base}.glb`;
+  }
+
+  return base;
 };
 
 export const calculateTotalPrice = (

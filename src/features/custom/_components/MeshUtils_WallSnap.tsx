@@ -704,7 +704,7 @@ export const addDragBehavior = (
   let lastDragPlanePoint: BABYLON.Vector3 | null = null;
 
   // Drag sensitivity: 1 = raw pointer movement, lower = smoother/less sensitive
-  const DRAG_SENSITIVITY = 0.5;
+  const DRAG_SENSITIVITY = 0.3;
   // Maximum movement per drag frame in meters (prevents huge jumps when cursor is high)
   const DRAG_MAX_STEP = 0.35;
 
