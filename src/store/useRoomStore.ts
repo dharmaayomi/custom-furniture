@@ -41,6 +41,7 @@ export interface FurnitureTransform {
   modelName: string;
   position: { x: number; y: number; z: number };
   rotation: number;
+  scale?: { x: number; y: number; z: number };
   texture?: string;
 }
 
@@ -99,7 +100,7 @@ interface RoomStore {
 // State Awal
 const INITIAL_MAIN = "";
 const INITIAL_TEXTURE = "";
-const INITIAL_ROOM_CONFIG: RoomConfig = {
+export const DEFAULT_ROOM_CONFIG: RoomConfig = {
   width: 6.2,
   depth: 4.2,
   height: 3.0,
@@ -114,7 +115,7 @@ const INITIAL_STATE: RoomData = {
   totalPrice: calculateTotal(INITIAL_MAIN, [], INITIAL_TEXTURE),
   mainModelTransform: undefined,
   additionalTransforms: [],
-  roomConfig: INITIAL_ROOM_CONFIG,
+  roomConfig: DEFAULT_ROOM_CONFIG,
   showHuman: false,
   selectedFurniture: null,
 };

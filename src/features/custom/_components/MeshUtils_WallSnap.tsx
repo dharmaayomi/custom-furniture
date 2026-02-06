@@ -74,6 +74,13 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
 
         // Gunakan rotasi yang tersimpan
         mesh.rotation.y = savedTransform.rotation;
+        if (savedTransform.scale) {
+          mesh.scaling.set(
+            savedTransform.scale.x,
+            savedTransform.scale.y,
+            savedTransform.scale.z,
+          );
+        }
         mesh.computeWorldMatrix(true);
 
         // Snap ke wall dengan mempertahankan posisi relatif
@@ -99,6 +106,7 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
             z: mesh.position.z,
           },
           rotation: mesh.rotation.y,
+          scale: savedTransform?.scale,
           // Preserve texture if it existed in saved transform
           texture: savedTransform?.texture,
         };
@@ -1021,6 +1029,11 @@ export const addDragBehavior = (
           z: mesh.position.z,
         },
         rotation: mesh.rotation.y,
+        scale: {
+          x: mesh.scaling.x,
+          y: mesh.scaling.y,
+          z: mesh.scaling.z,
+        },
       };
 
       const allFurnitureMeshes = getAllFurniture(scene);

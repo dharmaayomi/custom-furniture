@@ -38,9 +38,8 @@ const data = {
   navMain: [
     {
       title: "Orders",
-      url: "#",
+      url: "/admin/orders",
       icon: SquareTerminal,
-      isActive: true,
       items: [
         {
           title: "History",
@@ -58,7 +57,7 @@ const data = {
     },
     {
       title: "Products",
-      url: "#",
+      url: "/admin/products",
       icon: Bot,
       items: [
         {
@@ -165,7 +164,6 @@ export function AdminSidebar({
               <div className="flex justify-center gap-2 md:justify-start">
                 <a href="/" className="flex items-center gap-2 font-medium">
                   <div className="text-primary-foreground flex size-6 items-center justify-center rounded-md">
-                    {/* <GalleryVerticalEnd className="size-4" /> */}
                     <Image src="/waw.jpg" alt="Logo" width={30} height={30} />
                   </div>
                   Custom Furniture

@@ -110,7 +110,6 @@ export const RoomCanvasThree = ({
         const hlLayer = hlRef.current;
         if (root) {
           if (hlLayer) hlLayer.removeAllMeshes();
-          console.log("PointerDown: selected furniture:", root.name);
 
           // Highlight root and its children
           if (hlLayer) {
@@ -315,10 +314,6 @@ export const RoomCanvasThree = ({
 
   // --- 4. UPDATE TEXTURE ---
   useEffect(() => {
-    console.log(
-      "Texture effect triggered, debouncedActiveTexture:",
-      debouncedActiveTexture,
-    );
     if (!sceneRef.current) return;
     const scene = sceneRef.current;
 
@@ -337,11 +332,6 @@ export const RoomCanvasThree = ({
       }
     });
 
-    console.log(
-      "Calling updateAllTextures with:",
-      debouncedActiveTexture,
-      meshTextureMap,
-    );
     updateAllTextures(
       scene,
       debouncedActiveTexture,
@@ -358,26 +348,20 @@ export const RoomCanvasThree = ({
 
   //  --- 5. RESTORE POSITIONS SAAT UNDO/REDO ---
   useEffect(() => {
-    // console.log("🔄 RESTORE EFFECT TRIGGERED");
-
     if (!sceneRef.current) {
-      // console.log("⚠️ No scene ref");
       return;
     }
 
     // Restore main model transform
     if (present.mainModelTransform && mainMeshRef.current) {
       const t = present.mainModelTransform;
-      // console.log("📍 Restoring main model to:", t);
       mainMeshRef.current.position.set(
         t.position.x,
         t.position.y,
         t.position.z,
       );
       mainMeshRef.current.rotation.y = t.rotation;
-      // console.log("✅ Main model restored");
     } else {
-      // console.log("⚠️ No main transform or mesh");
     }
 
     // Restore additional transforms
@@ -385,7 +369,6 @@ export const RoomCanvasThree = ({
       sceneRef.current,
       mainMeshRef.current,
     );
-    // console.log("🔍 Additional meshes found:", additionalMeshes.length);
 
     present.additionalTransforms.forEach((transform, index) => {
       const mesh = additionalMeshes[index];
@@ -396,9 +379,7 @@ export const RoomCanvasThree = ({
           transform.position.z,
         );
         mesh.rotation.y = transform.rotation;
-        // console.log(`✅ Mesh ${index} restored`);
       } else {
-        // console.log(`⚠️ No mesh at index ${index}`);
       }
     });
     if (hlRef.current) {

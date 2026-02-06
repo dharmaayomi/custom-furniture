@@ -123,4 +123,15 @@
   body {
     @apply bg-background text-foreground;
   }
+  [data-sonner-toaster] {
+    font-family: inherit !important;
+  }
+  [data-sonner-toast] [data-title] {
+    color: var(--foreground);
+    font-weight: 600 !important;
+  }
+  [data-sonner-toast] [data-description] {
+    color: var(--foreground) !important;
+    opacity: 0.75;
+  }
 }

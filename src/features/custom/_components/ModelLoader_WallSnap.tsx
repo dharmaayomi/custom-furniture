@@ -372,6 +372,13 @@ export const loadMainModel = async (
         savedTransform.position.z,
       );
       rootMesh.rotation.y = savedTransform.rotation;
+      if (savedTransform.scale) {
+        rootMesh.scaling.set(
+          savedTransform.scale.x,
+          savedTransform.scale.y,
+          savedTransform.scale.z,
+        );
+      }
 
       // Force final update
       rootMesh.computeWorldMatrix(true);
@@ -415,6 +422,11 @@ export const loadMainModel = async (
           z: rootMesh.position.z,
         },
         rotation: rootMesh.rotation.y,
+        scale: {
+          x: rootMesh.scaling.x,
+          y: rootMesh.scaling.y,
+          z: rootMesh.scaling.z,
+        },
       };
 
       updateTransformSilent(0, initialTransform, true);
@@ -928,6 +940,13 @@ export const loadAdditionalModel = async (
         savedTransform.position.z,
       );
       rootMesh.rotation.y = savedTransform!.rotation;
+      if (savedTransform?.scale) {
+        rootMesh.scaling.set(
+          savedTransform.scale.x,
+          savedTransform.scale.y,
+          savedTransform.scale.z,
+        );
+      }
       rootMesh.computeWorldMatrix(true);
     } else {
       // 👌start: LOGIKA BARU - SMART SNAP (CENTER-OUT) & ROTATION CHECK
@@ -1034,10 +1053,10 @@ export const loadAdditionalModel = async (
           // PENTING: Gunakan currentModelWidth/Depth yang sudah memperhitungkan rotasi tadi
           // Kasih buffer sedikit (~1 cm) biar gak dideteksi tabrakan kalo cuma nempel doang
           const testBox = {
-            minX: snapPos.x - currentModelWidth / 2 + 0.01,
-            maxX: snapPos.x + currentModelWidth / 2 - 0.01,
-            minZ: snapPos.z - currentModelDepth / 2 + 0.01,
-            maxZ: snapPos.z + currentModelDepth / 2 - 0.01,
+            minX: snapPos.x - currentModelWidth / 2 + 0.005,
+            maxX: snapPos.x + currentModelWidth / 2 - 0.005,
+            minZ: snapPos.z - currentModelDepth / 2 + 0.005,
+            maxZ: snapPos.z + currentModelDepth / 2 - 0.005,
           };
 
           // Cek tabrakan dengan SEMUA furniture
@@ -1088,6 +1107,11 @@ export const loadAdditionalModel = async (
             z: rootMesh.position.z,
           },
           rotation: rootMesh.rotation.y,
+          scale: {
+            x: rootMesh.scaling.x,
+            y: rootMesh.scaling.y,
+            z: rootMesh.scaling.z,
+          },
         };
 
         if (meshIndex === 0) {
