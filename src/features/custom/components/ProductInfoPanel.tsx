@@ -23,6 +23,10 @@ const getProductName = (
       description:
         "Premium wine storage unit with elegant design and multiple shelves for wine bottles and glasses",
     },
+    "BoomBox.glb": {
+      name: "BoomBox",
+      description: "Music player with built-in speakers and USB port",
+    },
     "wooden_cupboard.glb": {
       name: "Wooden Cupboard",
       description:

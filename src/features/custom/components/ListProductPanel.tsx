@@ -29,6 +29,10 @@ const getProductName = (
       name: "Wooden Cupboard",
       description: "Wooden storage unit",
     },
+    "BoomBox.glb": {
+      name: "BoomBox",
+      description: "Music player",
+    },
     "lemaritest.glb": {
       name: "TEST BENER",
       description: "test",

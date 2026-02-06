@@ -27,6 +27,7 @@ import { ProductInfoPanel } from "./ProductInfoPanel";
 const ASSETS_3D = [
   "lemaritest.glb",
   "wine_cabinet.glb",
+  "BoomBox.glb",
   "wooden_cupboard.glb",
   "cabinet-2.glb",
   "cabinet.glb",

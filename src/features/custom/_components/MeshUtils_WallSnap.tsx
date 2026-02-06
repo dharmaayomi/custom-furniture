@@ -701,6 +701,12 @@ export const addDragBehavior = (
   let previousValidPosition = mesh.position.clone();
   let previousValidRotation = mesh.rotation.y;
   let currentWall: WallSide | null = null;
+  let lastDragPlanePoint: BABYLON.Vector3 | null = null;
+
+  // Drag sensitivity: 1 = raw pointer movement, lower = smoother/less sensitive
+  const DRAG_SENSITIVITY = 0.5;
+  // Maximum movement per drag frame in meters (prevents huge jumps when cursor is high)
+  const DRAG_MAX_STEP = 0.35;
 
   // ==================== DRAG START ====================
   dragBehavior.onDragStartObservable.add(() => {
@@ -746,6 +752,7 @@ export const addDragBehavior = (
 
     previousValidPosition = mesh.position.clone();
     previousValidRotation = mesh.rotation.y;
+    lastDragPlanePoint = null;
 
     const { captureCurrentState } = useRoomStore.getState();
     captureCurrentState();
@@ -914,7 +921,20 @@ export const addDragBehavior = (
   // });
   // ==================== DRAG (MOVING) ====================
   dragBehavior.onDragObservable.add((event) => {
-    const pointerPos = event.dragPlanePoint;
+    if (!event.dragPlanePoint) return;
+
+    let pointerPos = event.dragPlanePoint;
+    if (lastDragPlanePoint) {
+      const delta = pointerPos.subtract(lastDragPlanePoint);
+      const deltaLen = delta.length();
+      if (deltaLen > DRAG_MAX_STEP) {
+        delta.normalize().scaleInPlace(DRAG_MAX_STEP);
+      }
+      pointerPos = lastDragPlanePoint.add(delta.scale(DRAG_SENSITIVITY));
+      lastDragPlanePoint.copyFrom(pointerPos);
+    } else {
+      lastDragPlanePoint = pointerPos.clone();
+    }
 
     const { roomConfig } = useRoomStore.getState().present;
     const rw = roomConfig.width;
