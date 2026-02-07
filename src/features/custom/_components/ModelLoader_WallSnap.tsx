@@ -15,249 +15,10 @@ import {
 } from "./MeshUtils_WallSnap";
 import { CONFIG, FLOOR_Y } from "./RoomConfig";
 
-/**
- * Load main model and setup (always on back wall, centered)
- */
-// export const loadMainModel = async (
-//   modelName: string,
-//   activeTexture: string,
-//   scene: BABYLON.Scene,
-//   savedTransform?: FurnitureTransform,
-// ): Promise<BABYLON.AbstractMesh | null> => {
-//   try {
-//     updateRoomDimensions();
-//     const container = await BABYLON.LoadAssetContainerAsync(
-//       "/assets/3d/" + modelName,
-//       scene,
-//     );
+const getBaseModelName = (modelName: string) =>
+  modelName.replace(/\.glb$/i, "");
 
-//     container.addAllToScene();
-//     const meshes = container.meshes;
-//     if (meshes.length === 0) return null;
-
-//     const rootMesh = meshes[0];
-//     // rootMesh.metadata = "furniture";
-//     const uniqueName = `${modelName}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-//     rootMesh.name = savedTransform ? savedTransform.modelName : uniqueName;
-//     rootMesh.metadata = "furniture";
-
-//     // Apply texture to all child meshes
-//     rootMesh.getChildMeshes().forEach((m) => {
-//       if (activeTexture) applyTextureToMesh(m, activeTexture, scene);
-//     });
-
-//     // Auto scale
-//     const scaleFactor = autoScaleMesh(rootMesh, 240);
-//     rootMesh.refreshBoundingInfo(true, true);
-
-//     // 2. Pastikan semua child mesh (bagian-bagian model) bersifat 'pickable'
-//     rootMesh.getChildMeshes().forEach((m) => {
-//       m.isPickable = true;
-//       // Opsional: Memastikan bounding info anak juga terupdate
-//       m.refreshBoundingInfo(true, true);
-//     });
-
-//     // Calculate dimensions after scaling
-//     rootMesh.computeWorldMatrix(true);
-//     const box = getMeshAABB(rootMesh);
-//     const boundsInfo = rootMesh.getHierarchyBoundingVectors(true);
-
-//     console.log("=== MAIN MODEL ===");
-//     console.log("Model:", modelName);
-//     console.log("Scale:", scaleFactor.toFixed(2));
-//     console.log(
-//       "Dimensions (WxD):",
-//       box.width.toFixed(1),
-//       "x",
-//       box.depth.toFixed(1),
-//     );
-
-//     if (savedTransform) {
-//       // KASUS 1: REDO / UNDO (Gunakan data history)
-//       console.log("↺ Restoring Main Model from History...");
-
-//       // Langsung set posisi & rotasi dari history
-//       rootMesh.position.set(
-//         savedTransform.position.x,
-//         savedTransform.position.y,
-//         savedTransform.position.z,
-//       );
-//       rootMesh.rotation.y = savedTransform.rotation;
-//     } else {
-//       // KASUS 2: MODEL BARU (Auto Snap)
-//       console.log("✨ New Main Model Auto-Snap...");
-
-//       const wallPos = getWallSnapPosition(
-//         "back",
-//         rootMesh,
-//         new BABYLON.Vector3(0, 0, 0),
-//       );
-
-//       rootMesh.position.set(wallPos.x, 10 - boundsInfo.min.y, wallPos.z);
-//       rootMesh.rotation.y = wallPos.rotation;
-
-//       // UPDATE STORE LANGSUNG (TANPA SETTIMEOUT)
-//       const { updateTransformSilent } = useRoomStore.getState();
-
-//       const initialTransform: FurnitureTransform = {
-//         modelName: rootMesh.name,
-//         position: {
-//           x: rootMesh.position.x,
-//           y: rootMesh.position.y,
-//           z: rootMesh.position.z,
-//         },
-//         rotation: rootMesh.rotation.y,
-//       };
-
-//       updateTransformSilent(0, initialTransform, true);
-//     }
-//     // DEBUGGING: Visualisasikan Bounding Box
-//     // rootMesh.showBoundingBox = true;
-//     // rootMesh.getChildMeshes().forEach((m) => {
-//     //   m.showBoundingBox = true;
-//     // });
-
-//     // Add drag behavior
-
-//     addDragBehavior(rootMesh, scene);
-
-//     return rootMesh;
-//   } catch (error) {
-//     console.error("Error loading main model:", error);
-//     return null;
-//   }
-// };
-// export const loadMainModel = async (
-//   modelName: string,
-//   activeTexture: string,
-//   scene: BABYLON.Scene,
-//   savedTransform?: FurnitureTransform,
-// ): Promise<BABYLON.AbstractMesh | null> => {
-//   try {
-//     updateRoomDimensions();
-//     const container = await BABYLON.LoadAssetContainerAsync(
-//       "/assets/3d/" + modelName,
-//       scene,
-//     );
-
-//     container.addAllToScene();
-//     const meshes = container.meshes;
-//     if (meshes.length === 0) return null;
-
-//     const rootMesh = meshes[0];
-//     const uniqueName = `${modelName}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-//     rootMesh.name = savedTransform ? savedTransform.modelName : uniqueName;
-//     rootMesh.metadata = "furniture";
-
-//     // Apply texture to all child meshes
-//     rootMesh.getChildMeshes().forEach((m) => {
-//       if (activeTexture) applyTextureToMesh(m, activeTexture, scene);
-//     });
-
-//     // Auto scale
-//     const scaleFactor = autoScaleMesh(rootMesh, 240);
-//     rootMesh.refreshBoundingInfo(true, true);
-
-//     // Make all child meshes pickable
-//     rootMesh.getChildMeshes().forEach((m) => {
-//       m.isPickable = true;
-//       m.refreshBoundingInfo(true, true);
-//     });
-
-//     // Calculate dimensions and anchor point after scaling
-//     rootMesh.computeWorldMatrix(true);
-//     const boundsInfo = rootMesh.getHierarchyBoundingVectors(true);
-
-//     // DETECT ANCHOR POINT POSITION
-//     // Check where the anchor (0,0,0) is relative to the bounding box
-//     const anchorOffsetX = -boundsInfo.min.x; // Distance from left edge
-//     const anchorOffsetZ = -boundsInfo.min.z; // Distance from front edge
-//     const anchorOffsetY = -boundsInfo.min.y; // Distance from bottom
-
-//     const sizeX = boundsInfo.max.x - boundsInfo.min.x;
-//     const sizeZ = boundsInfo.max.z - boundsInfo.min.z;
-//     const sizeY = boundsInfo.max.y - boundsInfo.min.y;
-
-//     // Calculate anchor position as percentage (0 = min edge, 0.5 = center, 1 = max edge)
-//     const anchorPosX = anchorOffsetX / sizeX; // 0 = left, 0.5 = center, 1 = right
-//     const anchorPosZ = anchorOffsetZ / sizeZ; // 0 = front, 0.5 = center, 1 = back
-//     const anchorPosY = anchorOffsetY / sizeY; // 0 = bottom, 0.5 = center, 1 = top
-
-//     console.log("=== MAIN MODEL ===");
-//     console.log("Model:", modelName);
-//     console.log("Scale:", scaleFactor.toFixed(2));
-//     console.log("Anchor Point Detection:");
-//     console.log("  X:", anchorPosX.toFixed(2), "(0=left, 0.5=center, 1=right)");
-//     console.log("  Y:", anchorPosY.toFixed(2), "(0=bottom, 0.5=center, 1=top)");
-//     console.log("  Z:", anchorPosZ.toFixed(2), "(0=front, 0.5=center, 1=back)");
-
-//     const box = getMeshAABB(rootMesh);
-//     console.log(
-//       "Dimensions (WxD):",
-//       box.width.toFixed(1),
-//       "x",
-//       box.depth.toFixed(1),
-//     );
-
-//     if (savedTransform) {
-//       // CASE 1: REDO / UNDO (Use history data)
-//       console.log("↺ Restoring Main Model from History...");
-
-//       rootMesh.position.set(
-//         savedTransform.position.x,
-//         savedTransform.position.y,
-//         savedTransform.position.z,
-//       );
-//       rootMesh.rotation.y = savedTransform.rotation;
-//     } else {
-//       // CASE 2: NEW MODEL (Auto Snap with anchor point correction)
-//       console.log("✨ New Main Model Auto-Snap...");
-
-//       const wallPos = getWallSnapPosition(
-//         "back",
-//         rootMesh,
-//         new BABYLON.Vector3(0, 0, 0),
-//       );
-
-//       // Apply position with Y-axis correction based on anchor point
-//       // If anchor is at bottom (anchorPosY ≈ 0), we need: 10 - boundsInfo.min.y
-//       // If anchor is at center (anchorPosY ≈ 0.5), we need: 10 + sizeY/2
-//       const yPosition = 10 - boundsInfo.min.y;
-
-//       rootMesh.position.set(wallPos.x, yPosition, wallPos.z);
-//       rootMesh.rotation.y = wallPos.rotation;
-
-//       // UPDATE STORE IMMEDIATELY (NO SETTIMEOUT)
-//       const { updateTransformSilent } = useRoomStore.getState();
-
-//       const initialTransform: FurnitureTransform = {
-//         modelName: rootMesh.name,
-//         position: {
-//           x: rootMesh.position.x,
-//           y: rootMesh.position.y,
-//           z: rootMesh.position.z,
-//         },
-//         rotation: rootMesh.rotation.y,
-//       };
-
-//       updateTransformSilent(0, initialTransform, true);
-//     }
-
-//     // DEBUGGING: Visualize Bounding Box
-//     // rootMesh.showBoundingBox = true;
-//     // rootMesh.getChildMeshes().forEach((m) => {
-//     //   m.showBoundingBox = true;
-//     // });
-
-//     // Add drag behavior
-//     addDragBehavior(rootMesh, scene);
-
-//     return rootMesh;
-//   } catch (error) {
-//     console.error("Error loading main model:", error);
-//     return null;
-//   }
-// };
+// ===========load main model ===========
 export const loadMainModel = async (
   modelName: string,
   activeTexture: string,
@@ -300,7 +61,8 @@ export const loadMainModel = async (
     if (meshes.length === 0) return null;
 
     const rootMesh = meshes[0];
-    const uniqueName = `${modelName}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const baseName = getBaseModelName(modelName);
+    const uniqueName = `${baseName}_0`;
     rootMesh.name = savedTransform ? savedTransform.modelName : uniqueName;
     rootMesh.metadata = "furniture";
 
@@ -364,7 +126,6 @@ export const loadMainModel = async (
 
     if (savedTransform) {
       // CASE 1: REDO / UNDO (Use history data)
-      console.log("↺ Restoring Main Model from History...");
 
       rootMesh.position.set(
         savedTransform.position.x,
@@ -372,12 +133,18 @@ export const loadMainModel = async (
         savedTransform.position.z,
       );
       rootMesh.rotation.y = savedTransform.rotation;
+      if (savedTransform.scale) {
+        rootMesh.scaling.set(
+          savedTransform.scale.x,
+          savedTransform.scale.y,
+          savedTransform.scale.z,
+        );
+      }
 
       // Force final update
       rootMesh.computeWorldMatrix(true);
     } else {
       // CASE 2: NEW MODEL (Auto Snap)
-      console.log("✨ New Main Model Auto-Snap...");
 
       const wallPos = getWallSnapPosition(
         "back",
@@ -415,6 +182,11 @@ export const loadMainModel = async (
           z: rootMesh.position.z,
         },
         rotation: rootMesh.rotation.y,
+        scale: {
+          x: rootMesh.scaling.x,
+          y: rootMesh.scaling.y,
+          z: rootMesh.scaling.z,
+        },
       };
 
       updateTransformSilent(0, initialTransform, true);
@@ -439,414 +211,6 @@ export const loadMainModel = async (
  * Load additional model with AUTO-SNAP (only left/right)
  * Always stays on walls, rotates when switching walls
  */
-// export const loadAdditionalModel = async (
-//   modelName: string,
-//   activeTexture: string,
-//   scene: BABYLON.Scene,
-//   mainMeshRef: BABYLON.AbstractMesh | null,
-//   savedTransform?: FurnitureTransform,
-// ): Promise<void> => {
-//   try {
-//     if (!savedTransform) {
-//       const { present } = useRoomStore.getState();
-//       if (present.additionalTransforms) {
-//         const existingMainModel = scene.getMeshByName(
-//           present.additionalTransforms[0].modelName,
-//         );
-//         if (existingMainModel) {
-//           console.log("Disposing previous main model:", existingMainModel.name);
-//           existingMainModel.dispose();
-//         }
-//       }
-//     }
-//     updateRoomDimensions();
-
-//     let uniqueId = savedTransform?.modelName;
-
-//     if (!uniqueId) {
-//       const { present } = useRoomStore.getState();
-//       uniqueId =
-//         present.additionalModels.find((id) =>
-//           id.includes(modelName.split(".")[0]),
-//         ) || modelName;
-//     }
-
-//     const container = await BABYLON.LoadAssetContainerAsync(
-//       "/assets/3d/" + modelName,
-//       scene,
-//     );
-
-//     container.addAllToScene();
-//     const meshes = container.meshes;
-
-//     if (meshes.length === 0) return;
-
-//     const rootMesh = meshes[0];
-//     rootMesh.name = uniqueId;
-//     rootMesh.metadata = "furniture";
-
-//     // Apply texture to all child meshes
-//     rootMesh.getChildMeshes().forEach((m) => {
-//       if (activeTexture) applyTextureToMesh(m, activeTexture, scene);
-//     });
-
-//     // Auto scale
-//     autoScaleMesh(rootMesh, 240);
-//     rootMesh.refreshBoundingInfo(true, true);
-
-//     rootMesh.getChildMeshes().forEach((m) => {
-//       m.isPickable = true;
-//       m.refreshBoundingInfo(true, true);
-//     });
-
-//     // Calculate dimensions after scaling
-//     rootMesh.computeWorldMatrix(true);
-//     const boundsInfoOriginal = rootMesh.getHierarchyBoundingVectors(true);
-
-//     // Get dimensions
-//     const box = getMeshAABB(rootMesh);
-//     const { width, depth } = box;
-
-//     console.log("\n=== ADDITIONAL MODEL ===");
-//     console.log("Model:", modelName);
-//     console.log("Dimensions:", width.toFixed(1), "x", depth.toFixed(1));
-
-//     const isValidHistory =
-//       savedTransform &&
-//       !(
-//         savedTransform.position.x === 0 &&
-//         savedTransform.position.y === 0 &&
-//         savedTransform.position.z === 0
-//       );
-//     if (isValidHistory) {
-//       // --------------------------------------------------------
-//       // KASUS 1: REDO / UNDO (Gunakan data history)
-//       // --------------------------------------------------------
-//       console.log("↺ Restoring Additional Model from History...");
-
-//       // Langsung set posisi & rotasi dari history
-//       rootMesh.position.set(
-//         savedTransform.position.x,
-//         savedTransform.position.y,
-//         savedTransform.position.z,
-//       );
-//       rootMesh.rotation.y = savedTransform!.rotation;
-
-//       // NOTE: Tidak perlu update store di sini karena data sudah ada di history
-//     } else {
-//       // --------------------------------------------------------
-//       // KASUS 2: MODEL BARU (Jalankan Auto Snap Original Anda)
-//       // --------------------------------------------------------
-//       console.log("✨ New Additional Model Auto-Snap...");
-
-//       // Get all existing furniture
-//       const allFurniture = getAllFurniture(scene, rootMesh);
-//       let finalPosition: WallSnapPosition | null = null;
-
-//       // A. Try to snap next to main furniture first (only left/right)
-//       if (mainMeshRef) {
-//         console.log("🎯 Trying to snap next to main furniture...");
-
-//         if (rootMesh.rotationQuaternion) {
-//           rootMesh.rotationQuaternion = null;
-//         }
-//         //  Set rotasi DULU sama dengan main furniture
-//         rootMesh.rotation.y = mainMeshRef.rotation.y;
-//         rootMesh.computeWorldMatrix(true);
-
-//         finalPosition = findAutoSnapPosition(
-//           mainMeshRef,
-//           width,
-//           depth,
-//           allFurniture,
-//         );
-
-//         if (finalPosition) {
-//           //  OVERRIDE rotasi dari findAutoSnapPosition dengan rotasi main furniture
-//           finalPosition.rotation = mainMeshRef.rotation.y;
-
-//           console.log(`✅ AUTO-SNAPPED next to main furniture`);
-//           console.log(
-//             `   Position: (${finalPosition.x.toFixed(1)}, ${finalPosition.z.toFixed(1)})`,
-//           );
-//           console.log(`   Wall: ${finalPosition.wall}`);
-//           console.log(
-//             `   Rotation: ${((finalPosition.rotation * 180) / Math.PI).toFixed(0)}°`,
-//           );
-//         }
-//       }
-
-//       // B. If can't snap to main, try other furniture
-//       if (!finalPosition && allFurniture.length > 0) {
-//         console.log("🔍 Trying to snap next to other furniture...");
-//         for (const furniture of allFurniture) {
-//           finalPosition = findAutoSnapPosition(
-//             furniture,
-//             width,
-//             depth,
-//             allFurniture,
-//           );
-//           if (finalPosition) {
-//             console.log(`✅ AUTO-SNAPPED next to ${furniture.name}`);
-//             console.log(`   Wall: ${finalPosition.wall}`);
-//             break;
-//           }
-//         }
-//       }
-
-//       // C. Fallback: place on back wall at available X position
-//       // if (!finalPosition) {
-//       //   let posX = 0;
-//       //   const maxX = CONFIG.rw / 2 - width / 2 - 15;
-
-//       //   // Try different X positions on back wall
-//       //   const tryXPositions = [
-//       //     0,
-//       //     maxX / 2,
-//       //     -maxX / 2,
-//       //     maxX * 0.75,
-//       //     -maxX * 0.75,
-//       //   ];
-
-//       //   for (const testX of tryXPositions) {
-//       //     // Menggunakan signature (wall, mesh, pointerPos)
-//       //     // Kita simulasikan pointer position di koordinat testX
-//       //     const testWallPos = getWallSnapPosition(
-//       //       "back",
-//       //       rootMesh,
-//       //       new BABYLON.Vector3(testX, 0, 0),
-//       //     );
-
-//       //     const testBox = {
-//       //       minX: testWallPos.x - width / 2,
-//       //       maxX: testWallPos.x + width / 2,
-//       //       minZ: testWallPos.z - depth / 2,
-//       //       maxZ: testWallPos.z + depth / 2,
-//       //       width,
-//       //       depth,
-//       //     };
-
-//       //     let hasCollision = false;
-//       //     for (const other of allFurniture) {
-//       //       const otherBox = getMeshAABB(other);
-//       //       if (
-//       //         testBox.minX < otherBox.maxX &&
-//       //         testBox.maxX > otherBox.minX &&
-//       //         testBox.minZ < otherBox.maxZ &&
-//       //         testBox.maxZ > otherBox.minZ
-//       //       ) {
-//       //         hasCollision = true;
-//       //         break;
-//       //       }
-//       //     }
-
-//       //     if (!hasCollision) {
-//       //       posX = testX;
-//       //       break;
-//       //     }
-//       //   }
-
-//       //   finalPosition = getWallSnapPosition(
-//       //     "back",
-//       //     rootMesh,
-//       //     new BABYLON.Vector3(posX, 0, 0),
-//       //   );
-//       // }
-//       // C. Fallback: place on available wall (back → left → right → front)
-//       if (!finalPosition) {
-//         console.log("🔍 Finding available wall position...");
-
-//         const wallsToTry: ("back" | "left" | "right" | "front")[] = [
-//           "back",
-//           "left",
-//           "right",
-//           "front",
-//         ];
-
-//         for (const wall of wallsToTry) {
-//           console.log(`   Trying ${wall} wall...`);
-
-//           let positionFound = false;
-
-//           if (wall === "back" || wall === "front") {
-//             // For back/front walls, try different X positions
-//             const maxX = CONFIG.rw / 2 - width / 2 - 15;
-//             const tryXPositions = [
-//               0,
-//               maxX / 2,
-//               -maxX / 2,
-//               maxX * 0.75,
-//               -maxX * 0.75,
-//               maxX,
-//               -maxX,
-//             ];
-
-//             for (const testX of tryXPositions) {
-//               const testWallPos = getWallSnapPosition(
-//                 wall,
-//                 rootMesh,
-//                 new BABYLON.Vector3(testX, 0, 0),
-//               );
-
-//               const testBox = {
-//                 minX: testWallPos.x - width / 2,
-//                 maxX: testWallPos.x + width / 2,
-//                 minZ: testWallPos.z - depth / 2,
-//                 maxZ: testWallPos.z + depth / 2,
-//                 width,
-//                 depth,
-//               };
-
-//               let hasCollision = false;
-//               for (const other of allFurniture) {
-//                 const otherBox = getMeshAABB(other);
-//                 if (
-//                   testBox.minX < otherBox.maxX &&
-//                   testBox.maxX > otherBox.minX &&
-//                   testBox.minZ < otherBox.maxZ &&
-//                   testBox.maxZ > otherBox.minZ
-//                 ) {
-//                   hasCollision = true;
-//                   break;
-//                 }
-//               }
-
-//               if (!hasCollision) {
-//                 finalPosition = testWallPos;
-//                 positionFound = true;
-//                 console.log(
-//                   `   ✅ Found space on ${wall} wall at X=${testX.toFixed(1)}`,
-//                 );
-//                 break;
-//               }
-//             }
-//           } else {
-//             // For left/right walls, try different Z positions
-//             const maxZ = CONFIG.rd / 2 - depth / 2 - 15;
-//             const tryZPositions = [
-//               0,
-//               maxZ / 2,
-//               -maxZ / 2,
-//               maxZ * 0.75,
-//               -maxZ * 0.75,
-//               maxZ,
-//               -maxZ,
-//             ];
-
-//             for (const testZ of tryZPositions) {
-//               const testWallPos = getWallSnapPosition(
-//                 wall,
-//                 rootMesh,
-//                 new BABYLON.Vector3(0, 0, testZ),
-//               );
-
-//               const testBox = {
-//                 minX: testWallPos.x - width / 2,
-//                 maxX: testWallPos.x + width / 2,
-//                 minZ: testWallPos.z - depth / 2,
-//                 maxZ: testWallPos.z + depth / 2,
-//                 width,
-//                 depth,
-//               };
-
-//               let hasCollision = false;
-//               for (const other of allFurniture) {
-//                 const otherBox = getMeshAABB(other);
-//                 if (
-//                   testBox.minX < otherBox.maxX &&
-//                   testBox.maxX > otherBox.minX &&
-//                   testBox.minZ < otherBox.maxZ &&
-//                   testBox.maxZ > otherBox.minZ
-//                 ) {
-//                   hasCollision = true;
-//                   break;
-//                 }
-//               }
-
-//               if (!hasCollision) {
-//                 finalPosition = testWallPos;
-//                 positionFound = true;
-//                 console.log(
-//                   `   ✅ Found space on ${wall} wall at Z=${testZ.toFixed(1)}`,
-//                 );
-//                 break;
-//               }
-//             }
-//           }
-
-//           // If found position on this wall, break out of wall loop
-//           if (positionFound) {
-//             break;
-//           } else {
-//             console.log(`   ❌ ${wall} wall is full`);
-//           }
-//         }
-
-//         // If still no position found after trying all walls, use back wall center as last resort
-//         if (!finalPosition) {
-//           console.warn(
-//             "⚠️ All walls are full! Placing at back wall center as last resort",
-//           );
-//           finalPosition = getWallSnapPosition(
-//             "back",
-//             rootMesh,
-//             new BABYLON.Vector3(0, 0, 0),
-//           );
-//         }
-//       }
-
-//       // Set final position and rotation
-//       rootMesh.position.set(
-//         finalPosition.x,
-//         10 - boundsInfoOriginal.min.y,
-//         finalPosition.z,
-//       );
-//       rootMesh.rotation.y = finalPosition.rotation;
-
-//       // Set final position and rotation
-//       rootMesh.position.set(
-//         finalPosition.x,
-//         10 - boundsInfoOriginal.min.y,
-//         finalPosition.z,
-//       );
-//       rootMesh.rotation.y = finalPosition.rotation;
-
-//       // --------------------------------------------------------
-//       // UPDATE STORE LANGSUNG (TANPA SETTIMEOUT)
-//       // --------------------------------------------------------
-//       const { updateTransformSilent } = useRoomStore.getState();
-//       const allFurnitureForIndex = getAllFurniture(scene);
-//       const meshIndex = allFurnitureForIndex.indexOf(rootMesh);
-
-//       const initialTransform: FurnitureTransform = {
-//         modelName: rootMesh.name,
-//         position: {
-//           x: rootMesh.position.x,
-//           y: rootMesh.position.y,
-//           z: rootMesh.position.z,
-//         },
-//         rotation: rootMesh.rotation.y,
-//       };
-
-//       if (meshIndex === 0) {
-//         updateTransformSilent(0, initialTransform, true);
-//       } else {
-//         // Index - 1 karena index 0 biasanya main model
-//         updateTransformSilent(meshIndex - 1, initialTransform, false);
-//       }
-//     }
-//     // DEBUGGING: Visualisasikan Bounding Box
-//     // rootMesh.showBoundingBox = true;
-//     // rootMesh.getChildMeshes().forEach((m) => {
-//     //   m.showBoundingBox = true;
-//     // });
-
-//     // Add drag behavior (will handle wall switching)
-//     addDragBehavior(rootMesh, scene);
-//   } catch (error) {
-//     console.error("Error loading additional model:", error);
-//   }
-// };
 
 export const loadAdditionalModel = async (
   modelName: string,
@@ -861,9 +225,19 @@ export const loadAdditionalModel = async (
     let uniqueId = savedTransform?.modelName;
 
     if (!uniqueId) {
-      const timestamp = Date.now();
-      const random = Math.random().toString(36).substr(2, 9);
-      uniqueId = `${modelName}_${timestamp}_${random}`;
+      const baseName = getBaseModelName(modelName);
+      const { present } = useRoomStore.getState();
+      const count = present.additionalModels.filter((id) => {
+        const extracted = id.split("_");
+        if (
+          extracted.length >= 2 &&
+          /^\d+$/.test(extracted[extracted.length - 1])
+        ) {
+          return extracted.slice(0, -1).join("_") === baseName;
+        }
+        return false;
+      }).length;
+      uniqueId = `${baseName}_${count + 1}`;
     }
 
     const container = await BABYLON.LoadAssetContainerAsync(
@@ -928,15 +302,29 @@ export const loadAdditionalModel = async (
         savedTransform.position.z,
       );
       rootMesh.rotation.y = savedTransform!.rotation;
+      if (savedTransform?.scale) {
+        rootMesh.scaling.set(
+          savedTransform.scale.x,
+          savedTransform.scale.y,
+          savedTransform.scale.z,
+        );
+      }
       rootMesh.computeWorldMatrix(true);
     } else {
-      // 👌start: LOGIKA BARU - SMART SNAP (CENTER-OUT) & ROTATION CHECK
+      // 👌start: LOGIKA BARU - SMART SNAP v5 (FIX OVERLAP & CUSTOM FLOW)
+      console.log("✨ New Additional Model: Correct Orientation & Flow...");
 
-      console.log("✨ New Additional Model: Smart Wall Fill...");
       const allFurniture = getAllFurniture(scene, rootMesh);
-      let finalPosition: WallSnapPosition | null = null;
+      let finalPosition: {
+        x: number;
+        z: number;
+        rotation: number;
+        wall: string;
+      } | null = null;
+      let currentWall: "back" | "right" | "left" | "front" = "back";
 
-      // Urutan cek tembok: Belakang -> Kanan -> Depan -> Kiri
+      // 1. URUTAN SESUAI REQUEST
+      // Back -> Right -> Front -> Left
       const wallsToTry: ("back" | "right" | "front" | "left")[] = [
         "back",
         "right",
@@ -944,138 +332,209 @@ export const loadAdditionalModel = async (
         "left",
       ];
 
-      const snapGap = 0.00001; // Jarak antar furniture (biar ga nempel banget)
-      const wallPadding = 0; // Jarak aman dari ujung tembok
-      // Loop setiap tembok sampai nemu posisi kosong
+      const snapGap = 0.001;
+      const wallPadding = 0.02;
+      const MAX_CANDIDATES_PER_WALL = Math.max(30, allFurniture.length * 6);
+      const MAX_COLLISION_CHECKS = Math.max(
+        500,
+        allFurniture.length * MAX_CANDIDATES_PER_WALL,
+      );
+      let collisionChecks = 0;
+
+      // Loop setiap tembok
       for (const wall of wallsToTry) {
-        console.log(`🔍 Checking Wall: ${wall}`);
+        currentWall = wall;
 
         const isHorizontal = wall === "back" || wall === "front";
 
-        // 1. CEK ROTASI & DIMENSI
-        // Jika pindah ke tembok samping (vertikal), model harusnya diputar 90 derajat.
-        // Maka dimensi Width dan Depth yang kita pakai untuk hitung celah juga harus DITUKAR.
-        // Ini menjawab request: "sebelum nempel ke tembok kanan itu di puter dlu itemnya"
-        const currentModelWidth = isHorizontal ? width : depth;
-        const currentModelDepth = isHorizontal ? depth : width;
+        // 📐 2. TENTUKAN DIMENSI (FIX OVERLAP)
+        // KOREKSI: Apapun temboknya, "Lebar" barang (Local X) adalah dimensi yang menempel sepanjang tembok.
+        // "Kedalaman" barang (Local Z) adalah dimensi yang menonjol ke ruangan.
+        // Ini karena kita memutar barang agar punggungnya menempel tembok.
 
-        // Tentukan batas koordinat tembok (Limit scanning)
-        // Kita scan "sepanjang" tembok.
-        // Kalau tembok Horizontal (Back/Front), kita scan sumbu X (pakai Room Width).
-        // Kalau tembok Vertikal (Right/Left), kita scan sumbu Z (pakai Room Depth).
-        const roomDim = isHorizontal ? CONFIG.rw : CONFIG.rd;
-        const limit = roomDim / 2 - currentModelWidth / 2 - wallPadding;
+        const occupiesWallLength = width; // Selalu Width (Lebar Samping-ke-Samping)
+        const protrudesIntoRoom = depth; // Selalu Depth (Tebal Depan-ke-Belakang)
 
-        // 2. KUMPULKAN KANDIDAT POSISI (SNAP POINTS)
-        // Kita cari titik-titik potensial untuk menaruh barang.
+        const wallLengthTotal = isHorizontal ? CONFIG.rw : CONFIG.rd;
+        const limit =
+          wallLengthTotal / 2 - occupiesWallLength / 2 - wallPadding;
+
+        // 📍 3. CARI KANDIDAT POSISI
         let candidates: number[] = [];
 
-        // A. Titik di sebelah furniture yang sudah ada
-        if (allFurniture.length > 0) {
-          for (const other of allFurniture) {
+        // Filter furniture
+        const furnitureOnThisWall = allFurniture.filter((f) => {
+          const pos = f.position;
+          const tolerance = 1.5;
+          if (wall === "back")
+            return Math.abs(pos.z - CONFIG.rd / 2) < tolerance;
+          if (wall === "front")
+            return Math.abs(pos.z + CONFIG.rd / 2) < tolerance;
+          if (wall === "right")
+            return Math.abs(pos.x - CONFIG.rw / 2) < tolerance;
+          if (wall === "left")
+            return Math.abs(pos.x + CONFIG.rw / 2) < tolerance;
+          return false;
+        });
+
+        if (furnitureOnThisWall.length > 0) {
+          for (const other of furnitureOnThisWall) {
             const b = other.getHierarchyBoundingVectors(true);
 
+            let minPoint = 0;
+            let maxPoint = 0;
+
             if (isHorizontal) {
-              // Coba tempel di Kanan & Kiri furniture eksisting
-              // Rumus: Batas Furniture + Gap + Setengah Lebar Model Kita
-              candidates.push(b.max.x + snapGap + currentModelWidth / 2);
-              candidates.push(b.min.x - snapGap - currentModelWidth / 2);
+              // Scan X
+              minPoint = b.min.x;
+              maxPoint = b.max.x;
             } else {
-              // Coba tempel di Depan & Belakang furniture eksisting (Sumbu Z)
-              candidates.push(b.max.z + snapGap + currentModelWidth / 2);
-              candidates.push(b.min.z - snapGap - currentModelWidth / 2);
+              // Scan Z
+              minPoint = b.min.z;
+              maxPoint = b.max.z;
             }
+
+            // Hitung kandidat dari bounding box existing
+            candidates.push(minPoint - snapGap - occupiesWallLength / 2);
+            candidates.push(maxPoint + snapGap + occupiesWallLength / 2);
           }
         }
 
-        // B. Titik awal/pojok tembok (Fallback jika tidak ada furniture lain di tembok ini)
-        // Tambahkan kedua ujung batas tembok sebagai kandidat
+        // Ujung Tembok
         candidates.push(-limit);
         candidates.push(limit);
 
-        // Khusus Back wall, kalau kosong banget, coba taruh di tengah (0)
-        if (wall === "back" && allFurniture.length === 0) {
-          candidates.push(0);
-        }
+        // Back wall: Tambah tengah
+        if (wall === "back") candidates.push(0);
 
-        // 3. FILTER & SORTIR KANDIDAT
-        // Hapus kandidat yang tembus batas tembok
-        candidates = candidates.filter((p) => p >= -limit && p <= limit);
-        // Hapus duplikat (rounding dikit biar sama)
+        // Filter validasi batas
+        candidates = candidates.filter(
+          (p) => p >= -limit - 0.01 && p <= limit + 0.01,
+        );
+
+        // Rounding
         candidates = [
-          ...new Set(candidates.map((n) => Math.round(n * 100) / 100)),
+          ...new Set(candidates.map((n) => Math.round(n * 1000) / 1000)),
         ];
 
+        // 🔥 4. SORTING FLOW (Agar Nyambung)
+
         if (wall === "back") {
-          // KHUSUS TEMBOK BELAKANG: "Proses penempelan dari sebelah main model"
-          // Kita asumsikan Main Model ada di tengah (0).
-          // Jadi kita urutkan kandidat dari yang PALING DEKAT KE 0 (Tengah) lalu melebar keluar.
+          // Back: Isi dari Tengah ke Luar (Center Out)
           candidates.sort((a, b) => Math.abs(a) - Math.abs(b));
-        } else {
-          // UNTUK TEMBOK LAIN (Kanan/Kiri/Depan):
-          // Urutkan linear dari negatif ke positif (pojok ke pojok)
-          // Supaya ngisinya urut dari ujung tembok.
+        } else if (wall === "right") {
+          // Right (Z): Urut dari Belakang (+Z) ke Depan (-Z) -> Nyambung dari Back
+          candidates.sort((a, b) => b - a);
+        } else if (wall === "front") {
+          // Front (X): Urut dari Kanan (+X) ke Kiri (-X) -> Nyambung dari Right
+          candidates.sort((a, b) => b - a);
+        } else if (wall === "left") {
+          // Left (Z): Urut dari Depan (-Z) ke Belakang (+Z) -> Nyambung dari Front
           candidates.sort((a, b) => a - b);
         }
 
-        console.log(`   Candidates on ${wall}:`, candidates);
+        // Trim to keep loop bounded
+        if (candidates.length > MAX_CANDIDATES_PER_WALL) {
+          candidates = candidates.slice(0, MAX_CANDIDATES_PER_WALL);
+        }
 
-        // 4. TEST TABRAKAN (COLLISION CHECK)
+        // 🛡️ 5. CEK TABRAKAN
         for (const pos of candidates) {
-          // Siapkan vector test (getWallSnapPosition butuh ini untuk hitung rotasi dll)
-          const testVec = isHorizontal
-            ? new BABYLON.Vector3(pos, 0, 0)
-            : new BABYLON.Vector3(0, 0, pos);
+          if (collisionChecks > MAX_COLLISION_CHECKS) break;
+          let testMinX = 0,
+            testMaxX = 0,
+            testMinZ = 0,
+            testMaxZ = 0;
+          const buffer = 0.002;
 
-          // Dapatkan posisi final & rotasi dari helper (ini memastikan model nempel tembok)
-          const snapPos = getWallSnapPosition(wall, rootMesh, testVec);
+          if (isHorizontal) {
+            const centerX = pos;
+            const centerZ =
+              wall === "back"
+                ? CONFIG.rd / 2 - protrudesIntoRoom / 2
+                : -(CONFIG.rd / 2) + protrudesIntoRoom / 2;
 
-          // Bikin Bounding Box Simulasi di posisi tersebut
-          // PENTING: Gunakan currentModelWidth/Depth yang sudah memperhitungkan rotasi tadi
-          // Kasih buffer sedikit (~1 cm) biar gak dideteksi tabrakan kalo cuma nempel doang
-          const testBox = {
-            minX: snapPos.x - currentModelWidth / 2 + 0.01,
-            maxX: snapPos.x + currentModelWidth / 2 - 0.01,
-            minZ: snapPos.z - currentModelDepth / 2 + 0.01,
-            maxZ: snapPos.z + currentModelDepth / 2 - 0.01,
-          };
+            testMinX = centerX - occupiesWallLength / 2 + buffer;
+            testMaxX = centerX + occupiesWallLength / 2 - buffer;
+            testMinZ = centerZ - protrudesIntoRoom / 2 + buffer;
+            testMaxZ = centerZ + protrudesIntoRoom / 2 - buffer;
+          } else {
+            const centerZ = pos;
+            const centerX =
+              wall === "right"
+                ? CONFIG.rw / 2 - protrudesIntoRoom / 2
+                : -(CONFIG.rw / 2) + protrudesIntoRoom / 2;
 
-          // Cek tabrakan dengan SEMUA furniture
+            // PERHATIKAN: occupiesWallLength (Width) sekarang di sumbu Z (tembok)
+            // protrudesIntoRoom (Depth) di sumbu X (tebal)
+            testMinX = centerX - protrudesIntoRoom / 2 + buffer;
+            testMaxX = centerX + protrudesIntoRoom / 2 - buffer;
+            testMinZ = centerZ - occupiesWallLength / 2 + buffer;
+            testMaxZ = centerZ + occupiesWallLength / 2 - buffer;
+          }
+
           let collision = false;
           for (const other of allFurniture) {
+            collisionChecks += 1;
             const b = other.getHierarchyBoundingVectors(true);
-            // Simple AABB overlap check
             if (
-              testBox.minX < b.max.x &&
-              testBox.maxX > b.min.x &&
-              testBox.minZ < b.max.z &&
-              testBox.maxZ > b.min.z
+              testMinX < b.max.x &&
+              testMaxX > b.min.x &&
+              testMinZ < b.max.z &&
+              testMaxZ > b.min.z
             ) {
               collision = true;
               break;
             }
+            if (collisionChecks > MAX_COLLISION_CHECKS) break;
           }
 
           if (!collision) {
-            // Hore! Posisi valid ditemukan.
-            finalPosition = snapPos;
-            console.log(`✅ Valid spot found on ${wall} at ${pos}`);
-            break; // Keluar loop kandidat
+            // ✅ POSISI VALID
+            let finalX = 0;
+            let finalZ = 0;
+            let finalRot = 0;
+
+            if (wall === "back") {
+              finalX = pos;
+              finalZ = CONFIG.rd / 2 - protrudesIntoRoom / 2;
+              finalRot = Math.PI;
+            } else if (wall === "front") {
+              finalX = pos;
+              finalZ = -(CONFIG.rd / 2) + protrudesIntoRoom / 2;
+              finalRot = 0;
+            } else if (wall === "right") {
+              finalZ = pos;
+              finalX = CONFIG.rw / 2 - protrudesIntoRoom / 2;
+              finalRot = -Math.PI / 2;
+            } else if (wall === "left") {
+              finalZ = pos;
+              finalX = -(CONFIG.rw / 2) + protrudesIntoRoom / 2;
+              finalRot = Math.PI / 2;
+            }
+
+            finalPosition = {
+              x: finalX,
+              z: finalZ,
+              rotation: finalRot,
+              wall: wall,
+            };
+            break;
           }
         }
 
-        if (finalPosition) break; // Keluar loop tembok, karena sudah dapet posisi
+        if (finalPosition) break;
       }
 
       if (finalPosition) {
-        // APPLY POSISI & ROTASI
         const yPosition = FLOOR_Y - boundsInfoOriginal.min.y;
+
+        if (rootMesh.rotationQuaternion) rootMesh.rotationQuaternion = null;
 
         rootMesh.position.set(finalPosition.x, yPosition, finalPosition.z);
         rootMesh.rotation.y = finalPosition.rotation;
         rootMesh.computeWorldMatrix(true);
 
-        // UPDATE STORE
         const { updateTransformSilent } = useRoomStore.getState();
         const allFurnitureForIndex = getAllFurniture(scene);
         const meshIndex = allFurnitureForIndex.indexOf(rootMesh);
@@ -1088,6 +547,11 @@ export const loadAdditionalModel = async (
             z: rootMesh.position.z,
           },
           rotation: rootMesh.rotation.y,
+          scale: {
+            x: rootMesh.scaling.x,
+            y: rootMesh.scaling.y,
+            z: rootMesh.scaling.z,
+          },
         };
 
         if (meshIndex === 0) {
@@ -1098,9 +562,8 @@ export const loadAdditionalModel = async (
 
         addDragBehavior(rootMesh, scene);
       } else {
-        // KAMAR PENUH
-        console.warn("⛔ Room is full! Cannot place additional model.");
-        window.alert("Ruangan penuh! Semua tembok sudah terisi.");
+        console.warn("⛔ Room is full!");
+        window.alert("Ruangan penuh!");
         rootMesh.dispose();
         return;
       }
@@ -1153,7 +616,6 @@ export const updateAllTextures = (
       mesh.parent !== mainMeshRef
     ) {
       const tex = getTextureForMesh(mesh.name) ?? activeTexture;
-      console.log("Applying texture to additional mesh:", mesh.name, tex);
       applyTextureToMesh(mesh, tex, scene);
       mesh.getChildMeshes().forEach((m) => {
         const childTex = getTextureForMesh(m.name) ?? tex;

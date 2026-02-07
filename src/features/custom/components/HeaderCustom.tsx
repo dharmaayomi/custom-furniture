@@ -12,6 +12,13 @@ import { ListOrdered, Menu, MoveRight, Save } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
+import { DEFAULT_ROOM_CONFIG, useRoomStore } from "@/store/useRoomStore";
+import { toast } from "sonner";
+import {
+  generateDesignCode,
+  loadDesignCodeFromStorage,
+  saveDesignCodeToStorage,
+} from "@/lib/designCode";
 
 interface HeaderCustomProps {
   onMenuClick: () => void;
@@ -28,10 +35,94 @@ export const HeaderCustom = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
   const { status } = useSession();
+  const roomState = useRoomStore((state) => state.present);
+  const designCode = useRoomStore((state) => state.designCode);
+  const setDesignCode = useRoomStore((state) => state.setDesignCode);
 
   const handleSaveClick = () => {
     if (status === "authenticated") {
-      console.log("save (user is logged in)");
+      const isDefaultRoomConfig =
+        roomState.roomConfig.width === DEFAULT_ROOM_CONFIG.width &&
+        roomState.roomConfig.depth === DEFAULT_ROOM_CONFIG.depth &&
+        roomState.roomConfig.height === DEFAULT_ROOM_CONFIG.height &&
+        roomState.roomConfig.wallColor === DEFAULT_ROOM_CONFIG.wallColor &&
+        roomState.roomConfig.floorTexture === DEFAULT_ROOM_CONFIG.floorTexture;
+
+      const isEmptyDesign =
+        roomState.mainModel === "" &&
+        roomState.additionalModels.length === 0 &&
+        roomState.activeTexture === "" &&
+        !roomState.mainModelTransform &&
+        roomState.additionalTransforms.length === 0 &&
+        isDefaultRoomConfig;
+
+      if (isEmptyDesign) {
+        toast("Empty design", {
+          description:
+            "Add a room change or furniture before saving your design.",
+        });
+        return;
+      }
+
+      const mainTransform = roomState.mainModelTransform;
+      const designConfig = {
+        units: { distance: "m", rotation: "rad" },
+        room: roomState.roomConfig,
+        mainModel: {
+          id: mainTransform?.modelName ?? null,
+          model: roomState.mainModel,
+          position_m: mainTransform
+            ? [
+                mainTransform.position.x,
+                mainTransform.position.y,
+                mainTransform.position.z,
+              ]
+            : null,
+          rotation: [0, mainTransform?.rotation ?? 0, 0],
+          scale: mainTransform?.scale
+            ? [
+                mainTransform.scale.x,
+                mainTransform.scale.y,
+                mainTransform.scale.z,
+              ]
+            : null,
+          texture: mainTransform?.texture ?? null,
+        },
+        additionalModels: roomState.additionalModels.map((id, index) => {
+          const transform = roomState.additionalTransforms[index];
+          return {
+            id,
+            position_m: transform
+              ? [
+                  transform.position.x,
+                  transform.position.y,
+                  transform.position.z,
+                ]
+              : null,
+            rotation: [0, transform?.rotation ?? 0, 0],
+            scale: transform?.scale
+              ? [transform.scale.x, transform.scale.y, transform.scale.z]
+              : null,
+            texture: transform?.texture ?? null,
+          };
+        }),
+        activeTexture: roomState.activeTexture,
+        totalPrice: { amount: roomState.totalPrice, currency: "IDR" },
+      };
+
+      const storedCode = loadDesignCodeFromStorage();
+      const code = designCode || storedCode || generateDesignCode(6);
+      if (code !== designCode) {
+        setDesignCode(code);
+      }
+      saveDesignCodeToStorage(code);
+
+      console.log("Design code:", code);
+      console.log("Design config:", designConfig);
+      console.log(
+        "Design config (JSON):",
+        JSON.stringify(designConfig, null, 2),
+      );
     } else {
       setIsDialogOpen(true);
     }

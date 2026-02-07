@@ -56,11 +56,18 @@ export function LoginForm({
       return result.data;
     },
     onSuccess: async (result) => {
+      const payload = (result as any)?.data ?? result;
+      const userId = payload?.id;
+
+      if (userId === undefined || userId === null) {
+        toast.error("Login failed: missing user id");
+        return;
+      }
+
       await signIn("credentials", {
-        id: result.id,
-        email: result.email,
-        firstName: result.firstName,
-        accessToken: result.accessToken,
+        id: String(userId),
+        role: payload?.role ?? "",
+        accessToken: payload?.accessToken ?? "",
         redirect: false,
       });
 

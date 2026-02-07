@@ -65,11 +65,18 @@ export function RegisterForm({
       return result.data;
     },
     onSuccess: async (result) => {
+      const payload = (result as any)?.data ?? result;
+      const userId = payload?.id;
+
+      if (userId === undefined || userId === null) {
+        toast.error("Register failed: missing user id");
+        return;
+      }
+
       await signIn("credentials", {
-        id: result.id,
-        name: result.name,
-        email: result.email,
-        accessToken: result.accessToken,
+        id: String(userId),
+        role: payload?.role ?? "",
+        accessToken: payload?.accessToken ?? "",
         redirect: false,
       });
 

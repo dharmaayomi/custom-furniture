@@ -74,6 +74,13 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
 
         // Gunakan rotasi yang tersimpan
         mesh.rotation.y = savedTransform.rotation;
+        if (savedTransform.scale) {
+          mesh.scaling.set(
+            savedTransform.scale.x,
+            savedTransform.scale.y,
+            savedTransform.scale.z,
+          );
+        }
         mesh.computeWorldMatrix(true);
 
         // Snap ke wall dengan mempertahankan posisi relatif
@@ -99,6 +106,7 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
             z: mesh.position.z,
           },
           rotation: mesh.rotation.y,
+          scale: savedTransform?.scale,
           // Preserve texture if it existed in saved transform
           texture: savedTransform?.texture,
         };
@@ -693,6 +701,12 @@ export const addDragBehavior = (
   let previousValidPosition = mesh.position.clone();
   let previousValidRotation = mesh.rotation.y;
   let currentWall: WallSide | null = null;
+  let lastDragPlanePoint: BABYLON.Vector3 | null = null;
+
+  // Drag sensitivity: 1 = raw pointer movement, lower = smoother/less sensitive
+  const DRAG_SENSITIVITY = 0.3;
+  // Maximum movement per drag frame in meters (prevents huge jumps when cursor is high)
+  const DRAG_MAX_STEP = 0.35;
 
   // ==================== DRAG START ====================
   dragBehavior.onDragStartObservable.add(() => {
@@ -700,13 +714,6 @@ export const addDragBehavior = (
     mesh.refreshBoundingInfo(true, true);
 
     updateRoomDimensions();
-
-    // const furnitureY = mesh.position.y;
-
-    // const dragPlane = BABYLON.Plane.FromPositionAndNormal(
-    //   new BABYLON.Vector3(0, furnitureY, 0),
-    //   new BABYLON.Vector3(0, 1, 0),
-    // );
 
     const bounds = mesh.getHierarchyBoundingVectors(true);
     const furnitureHeight = bounds.max.y - bounds.min.y;
@@ -738,6 +745,7 @@ export const addDragBehavior = (
 
     previousValidPosition = mesh.position.clone();
     previousValidRotation = mesh.rotation.y;
+    lastDragPlanePoint = null;
 
     const { captureCurrentState } = useRoomStore.getState();
     captureCurrentState();
@@ -906,7 +914,20 @@ export const addDragBehavior = (
   // });
   // ==================== DRAG (MOVING) ====================
   dragBehavior.onDragObservable.add((event) => {
-    const pointerPos = event.dragPlanePoint;
+    if (!event.dragPlanePoint) return;
+
+    let pointerPos = event.dragPlanePoint;
+    if (lastDragPlanePoint) {
+      const delta = pointerPos.subtract(lastDragPlanePoint);
+      const deltaLen = delta.length();
+      if (deltaLen > DRAG_MAX_STEP) {
+        delta.normalize().scaleInPlace(DRAG_MAX_STEP);
+      }
+      pointerPos = lastDragPlanePoint.add(delta.scale(DRAG_SENSITIVITY));
+      lastDragPlanePoint.copyFrom(pointerPos);
+    } else {
+      lastDragPlanePoint = pointerPos.clone();
+    }
 
     const { roomConfig } = useRoomStore.getState().present;
     const rw = roomConfig.width;
@@ -1021,6 +1042,11 @@ export const addDragBehavior = (
           z: mesh.position.z,
         },
         rotation: mesh.rotation.y,
+        scale: {
+          x: mesh.scaling.x,
+          y: mesh.scaling.y,
+          z: mesh.scaling.z,
+        },
       };
 
       const allFurnitureMeshes = getAllFurniture(scene);

@@ -30,6 +30,18 @@ const calculateTotal = (
   return total;
 };
 
+const getBaseModelName = (modelName: string) =>
+  modelName.replace(/\.glb$/i, "");
+
+const getNextIndexedId = (modelName: string, additionalModels: string[]) => {
+  const base = getBaseModelName(modelName);
+  const count = additionalModels.filter((id) => {
+    const extracted = extractModelNameFromId(id);
+    return getBaseModelName(extracted) === base;
+  }).length;
+  return `${base}_${count + 1}`;
+};
+
 export interface RoomConfig {
   width: number; // meters
   depth: number; // meters
@@ -41,6 +53,7 @@ export interface FurnitureTransform {
   modelName: string;
   position: { x: number; y: number; z: number };
   rotation: number;
+  scale?: { x: number; y: number; z: number };
   texture?: string;
 }
 
@@ -61,6 +74,8 @@ interface RoomStore {
   past: RoomData[];
   present: RoomData;
   future: RoomData[];
+  designCode: string;
+  setDesignCode: (code: string) => void;
 
   setMainModel: (model: string) => void;
   setActiveTexture: (texture: string) => void;
@@ -99,7 +114,7 @@ interface RoomStore {
 // State Awal
 const INITIAL_MAIN = "";
 const INITIAL_TEXTURE = "";
-const INITIAL_ROOM_CONFIG: RoomConfig = {
+export const DEFAULT_ROOM_CONFIG: RoomConfig = {
   width: 6.2,
   depth: 4.2,
   height: 3.0,
@@ -114,7 +129,7 @@ const INITIAL_STATE: RoomData = {
   totalPrice: calculateTotal(INITIAL_MAIN, [], INITIAL_TEXTURE),
   mainModelTransform: undefined,
   additionalTransforms: [],
-  roomConfig: INITIAL_ROOM_CONFIG,
+  roomConfig: DEFAULT_ROOM_CONFIG,
   showHuman: false,
   selectedFurniture: null,
 };
@@ -123,6 +138,8 @@ export const useRoomStore = create<RoomStore>((set) => ({
   past: [],
   present: INITIAL_STATE,
   future: [],
+  designCode: "",
+  setDesignCode: (code) => set({ designCode: code }),
 
   // --- 3. ACTIONS DENGAN KALKULASI HARGA OTOMATIS ---
 
@@ -161,16 +178,8 @@ export const useRoomStore = create<RoomStore>((set) => ({
       // Skip update only if setting the same non-empty texture
       // Always allow clearing texture (texture === "") even if it's already empty
       if (state.present.activeTexture === texture && texture !== "") {
-        console.log("Skipping update - same non-empty texture");
         return state;
       }
-
-      console.log(
-        "Updating texture from",
-        state.present.activeTexture,
-        "to",
-        texture,
-      );
 
       const newPrice = calculateTotal(
         state.present.mainModel,
@@ -306,7 +315,10 @@ export const useRoomStore = create<RoomStore>((set) => ({
       if (!modelNameToDuplicate) return state;
 
       // Add as additional model
-      const uniqueId = `${modelNameToDuplicate}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const uniqueId = getNextIndexedId(
+        modelNameToDuplicate,
+        state.present.additionalModels,
+      );
       const newModels = [...state.present.additionalModels, uniqueId];
 
       const newTransforms = [
@@ -441,7 +453,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
   addAdditionalModel: (model) =>
     set((state) => {
       const currentPresent = state.present;
-      const uniqueId = `${model}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const uniqueId = getNextIndexedId(model, currentPresent.additionalModels);
       const newModels = [...currentPresent.additionalModels, uniqueId];
 
       const newTransforms = [
