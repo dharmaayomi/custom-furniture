@@ -616,7 +616,6 @@ export const updateAllTextures = (
       mesh.parent !== mainMeshRef
     ) {
       const tex = getTextureForMesh(mesh.name) ?? activeTexture;
-      console.log("Applying texture to additional mesh:", mesh.name, tex);
       applyTextureToMesh(mesh, tex, scene);
       mesh.getChildMeshes().forEach((m) => {
         const childTex = getTextureForMesh(m.name) ?? tex;

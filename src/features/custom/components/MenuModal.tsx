@@ -22,22 +22,34 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useRoomStore } from "@/store/useRoomStore";
 import { useState } from "react";
+import useGetUserDisplay from "@/hooks/api/user/useGetUserDisplay";
 
 interface MenuModalProps {
   isOpen: boolean;
   onClose: () => void;
   isLoggedIn?: boolean;
+  onOpenMyDesign?: () => void;
+  onOpenDesignCode?: () => void;
 }
 
 export const MenuModal = ({
   isOpen,
   onClose,
   isLoggedIn = false,
+  onOpenMyDesign,
+  onOpenDesignCode,
 }: MenuModalProps) => {
   const router = useRouter();
   const session = useSession();
   const resetRoom = useRoomStore((state) => state.reset);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
+  const userId = session.data?.user?.id
+    ? Number(session.data.user.id)
+    : undefined;
+
+  const { data: user, isLoading } = useGetUserDisplay(userId);
+
   const logout = () => {
     signOut({ redirect: false });
     router.push("/");
@@ -48,7 +60,13 @@ export const MenuModal = ({
   };
 
   const handleOpenDesignCode = () => {
-    console.log("Open design code");
+    onClose();
+    onOpenDesignCode?.();
+  };
+
+  const handleOpenMyDesign = () => {
+    onClose();
+    onOpenMyDesign?.();
   };
 
   const handleSave = () => {
@@ -80,7 +98,7 @@ export const MenuModal = ({
 
       {/* Modal */}
       <div
-        className={`fixed top-0 left-0 z-58 h-full w-80 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 z-58 h-full w-90 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -92,6 +110,8 @@ export const MenuModal = ({
               variant="ghost"
               size="icon"
               onClick={onClose}
+              id="menu-close-button"
+              name="menu-close"
               className="hover:bg-gray-100"
             >
               <X size={20} />
@@ -104,6 +124,8 @@ export const MenuModal = ({
               {/* Back */}
               <button
                 onClick={handleBack}
+                id="menu-back-button"
+                name="menu-back"
                 className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
               >
                 <ArrowLeft size={20} />
@@ -113,6 +135,8 @@ export const MenuModal = ({
               {/* Save (only visible on mobile in original design) */}
               <button
                 onClick={handleSave}
+                id="menu-save-button"
+                name="menu-save"
                 className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100 md:hidden"
               >
                 <Save size={20} />
@@ -122,6 +146,8 @@ export const MenuModal = ({
               {/* share design */}
               <button
                 onClick={handleSave}
+                id="menu-share-design-button"
+                name="menu-share-design"
                 className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
               >
                 <Share size={20} />
@@ -130,7 +156,9 @@ export const MenuModal = ({
 
               {/* My Design */}
               <button
-                onClick={handleOpenDesignCode}
+                onClick={handleOpenMyDesign}
+                id="menu-my-design-button"
+                name="menu-my-design"
                 className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
               >
                 <FolderClosed size={20} />
@@ -140,15 +168,19 @@ export const MenuModal = ({
               {/* Open Design Code */}
               <button
                 onClick={handleOpenDesignCode}
+                id="menu-open-design-code-button"
+                name="menu-open-design-code"
                 className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
               >
                 <FolderOpen size={20} />
-                <span className="font-medium">Open design code</span>
+                <span className="font-medium">Open Design Code</span>
               </button>
 
               {/* Start from Scratch */}
               <button
                 onClick={handleStartFromScratch}
+                id="menu-start-from-scratch-button"
+                name="menu-start-from-scratch"
                 className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
               >
                 <Frame size={20} />
@@ -169,7 +201,7 @@ export const MenuModal = ({
                   </Avatar>
                   <div className="flex flex-col">
                     <p className="truncate text-sm font-semibold text-gray-700 capitalize">
-                      {session.data?.user?.firstName || "User"}
+                      {user?.userName || "User"}
                     </p>
                     <p className="text-xs text-gray-500">Online</p>
                   </div>
@@ -179,6 +211,8 @@ export const MenuModal = ({
                   onClick={() => logout()}
                   variant="ghost"
                   size="icon"
+                  id="menu-logout-button"
+                  name="menu-logout"
                   className="text-red-500 hover:bg-red-50 hover:text-red-600"
                   title="Logout"
                 >
@@ -188,6 +222,8 @@ export const MenuModal = ({
             ) : (
               <button
                 onClick={handleLogin}
+                id="menu-login-button"
+                name="menu-login"
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-3 text-white transition-opacity hover:opacity-90"
               >
                 <LogIn size={20} />

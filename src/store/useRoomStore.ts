@@ -174,16 +174,8 @@ export const useRoomStore = create<RoomStore>((set) => ({
       // Skip update only if setting the same non-empty texture
       // Always allow clearing texture (texture === "") even if it's already empty
       if (state.present.activeTexture === texture && texture !== "") {
-        console.log("Skipping update - same non-empty texture");
         return state;
       }
-
-      console.log(
-        "Updating texture from",
-        state.present.activeTexture,
-        "to",
-        texture,
-      );
 
       const newPrice = calculateTotal(
         state.present.mainModel,

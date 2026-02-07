@@ -21,6 +21,8 @@ import { CustomizeRoomPanel } from "./CustomizeRoomPanel";
 import { FloatingToolPanel } from "./FloatingPanel";
 import { ListProductPanel } from "./ListProductPanel";
 import { MenuModal } from "./MenuModal";
+import { MyDesign } from "./MyDesign";
+import { OpenDesignCode } from "./OpenDesignCode";
 import { SidebarPanel } from "./SidebarPanel";
 import { ProductInfoPanel } from "./ProductInfoPanel";
 
@@ -52,6 +54,8 @@ const ASSETS_TEXTURE = [
 ];
 export const RoomPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMyDesignOpen, setIsMyDesignOpen] = useState(false);
+  const [isOpenDesignCodeOpen, setIsOpenDesignCodeOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showHomeSidebar, setShowHomeSidebar] = useState(false);
   const [scene, setScene] = useState<BABYLON.Scene | null>(null);
@@ -180,6 +184,26 @@ export const RoomPage = () => {
       <MenuModal
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}
+        onOpenMyDesign={() => setIsMyDesignOpen(true)}
+        onOpenDesignCode={() => setIsOpenDesignCodeOpen(true)}
+        isLoggedIn={false}
+      />
+      <MyDesign
+        isOpen={isMyDesignOpen}
+        onClose={() => setIsMyDesignOpen(false)}
+        onBackToMenu={() => {
+          setIsMyDesignOpen(false);
+          setIsMenuOpen(true);
+        }}
+        isLoggedIn={false}
+      />
+      <OpenDesignCode
+        isOpen={isOpenDesignCodeOpen}
+        onClose={() => setIsOpenDesignCodeOpen(false)}
+        onBackToMenu={() => {
+          setIsOpenDesignCodeOpen(false);
+          setIsMenuOpen(true);
+        }}
         isLoggedIn={false}
       />
       <CustomizeRoomPanel
