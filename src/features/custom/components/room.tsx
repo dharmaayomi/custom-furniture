@@ -7,6 +7,11 @@ import * as BABYLON from "@babylonjs/core";
 import { HeaderCustom } from "./HeaderCustom";
 import { calculateTotalPrice, formatPrice } from "@/lib/price";
 import { useRoomStore } from "@/store/useRoomStore";
+import {
+  generateDesignCode,
+  loadDesignCodeFromStorage,
+  saveDesignCodeToStorage,
+} from "@/lib/designCode";
 import { Tool, ToolType } from "@/types/toolType";
 import {
   DoorClosed,
@@ -23,6 +28,7 @@ import { ListProductPanel } from "./ListProductPanel";
 import { MenuModal } from "./MenuModal";
 import { MyDesign } from "./MyDesign";
 import { OpenDesignCode } from "./OpenDesignCode";
+import { ShareDesign } from "./ShareDesign";
 import { SidebarPanel } from "./SidebarPanel";
 import { ProductInfoPanel } from "./ProductInfoPanel";
 
@@ -56,6 +62,7 @@ export const RoomPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMyDesignOpen, setIsMyDesignOpen] = useState(false);
   const [isOpenDesignCodeOpen, setIsOpenDesignCodeOpen] = useState(false);
+  const [isShareDesignOpen, setIsShareDesignOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showHomeSidebar, setShowHomeSidebar] = useState(false);
   const [scene, setScene] = useState<BABYLON.Scene | null>(null);
@@ -71,6 +78,7 @@ export const RoomPage = () => {
     setActiveTexture,
     setMeshTexture,
     addAdditionalModel,
+    setDesignCode,
     undo,
     redo,
   } = useRoomStore();
@@ -129,6 +137,15 @@ export const RoomPage = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undo, redo]);
 
+  useEffect(() => {
+    const storedCode = loadDesignCodeFromStorage();
+    const code = storedCode || generateDesignCode(6);
+    setDesignCode(code);
+    if (!storedCode) {
+      saveDesignCodeToStorage(code);
+    }
+  }, [setDesignCode]);
+
   const handleToolClick = (toolId: ToolType) => {
     if (activePanel === "sidebar" && selectedTool === toolId) {
       closePanel();
@@ -186,6 +203,7 @@ export const RoomPage = () => {
         onClose={() => setIsMenuOpen(false)}
         onOpenMyDesign={() => setIsMyDesignOpen(true)}
         onOpenDesignCode={() => setIsOpenDesignCodeOpen(true)}
+        onOpenShareDesign={() => setIsShareDesignOpen(true)}
         isLoggedIn={false}
       />
       <MyDesign
@@ -202,6 +220,15 @@ export const RoomPage = () => {
         onClose={() => setIsOpenDesignCodeOpen(false)}
         onBackToMenu={() => {
           setIsOpenDesignCodeOpen(false);
+          setIsMenuOpen(true);
+        }}
+        isLoggedIn={false}
+      />
+      <ShareDesign
+        isOpen={isShareDesignOpen}
+        onClose={() => setIsShareDesignOpen(false)}
+        onBackToMenu={() => {
+          setIsShareDesignOpen(false);
           setIsMenuOpen(true);
         }}
         isLoggedIn={false}

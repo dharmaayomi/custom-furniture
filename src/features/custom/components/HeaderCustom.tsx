@@ -14,6 +14,11 @@ import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { DEFAULT_ROOM_CONFIG, useRoomStore } from "@/store/useRoomStore";
 import { toast } from "sonner";
+import {
+  generateDesignCode,
+  loadDesignCodeFromStorage,
+  saveDesignCodeToStorage,
+} from "@/lib/designCode";
 
 interface HeaderCustomProps {
   onMenuClick: () => void;
@@ -31,6 +36,8 @@ export const HeaderCustom = ({
   const router = useRouter();
   const { status } = useSession();
   const roomState = useRoomStore((state) => state.present);
+  const designCode = useRoomStore((state) => state.designCode);
+  const setDesignCode = useRoomStore((state) => state.setDesignCode);
 
   const handleSaveClick = () => {
     if (status === "authenticated") {
@@ -103,6 +110,14 @@ export const HeaderCustom = ({
         totalPrice: { amount: roomState.totalPrice, currency: "IDR" },
       };
 
+      const storedCode = loadDesignCodeFromStorage();
+      const code = designCode || storedCode || generateDesignCode(6);
+      if (code !== designCode) {
+        setDesignCode(code);
+      }
+      saveDesignCodeToStorage(code);
+
+      console.log("Design code:", code);
       console.log("Design config:", designConfig);
       console.log(
         "Design config (JSON):",

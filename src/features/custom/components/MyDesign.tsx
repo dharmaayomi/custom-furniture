@@ -117,8 +117,9 @@ export const MyDesign = ({
                     htmlFor="design-code-input"
                     className="text-sm font-medium text-gray-700"
                   >
-                    Input your design code
+                    Have a design code?
                   </label>
+                  <p>Enter it here to reopen your design instantly.</p>
                   <div className="flex items-center gap-2">
                     <Input
                       id="design-code-input"

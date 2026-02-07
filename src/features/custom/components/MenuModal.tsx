@@ -23,6 +23,11 @@ import { useRouter } from "next/navigation";
 import { useRoomStore } from "@/store/useRoomStore";
 import { useState } from "react";
 import useGetUserDisplay from "@/hooks/api/user/useGetUserDisplay";
+import {
+  generateDesignCode,
+  loadDesignCodeFromStorage,
+  saveDesignCodeToStorage,
+} from "@/lib/designCode";
 
 interface MenuModalProps {
   isOpen: boolean;
@@ -30,6 +35,7 @@ interface MenuModalProps {
   isLoggedIn?: boolean;
   onOpenMyDesign?: () => void;
   onOpenDesignCode?: () => void;
+  onOpenShareDesign?: () => void;
 }
 
 export const MenuModal = ({
@@ -38,10 +44,13 @@ export const MenuModal = ({
   isLoggedIn = false,
   onOpenMyDesign,
   onOpenDesignCode,
+  onOpenShareDesign,
 }: MenuModalProps) => {
   const router = useRouter();
   const session = useSession();
   const resetRoom = useRoomStore((state) => state.reset);
+  const designCode = useRoomStore((state) => state.designCode);
+  const setDesignCode = useRoomStore((state) => state.setDesignCode);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const userId = session.data?.user?.id
@@ -69,8 +78,19 @@ export const MenuModal = ({
     onOpenMyDesign?.();
   };
 
+  const handleOpenShareDesign = () => {
+    onClose();
+    onOpenShareDesign?.();
+  };
+
   const handleSave = () => {
-    console.log("Save");
+    const storedCode = loadDesignCodeFromStorage();
+    const code = designCode || storedCode || generateDesignCode(6);
+    if (code !== designCode) {
+      setDesignCode(code);
+    }
+    saveDesignCodeToStorage(code);
+    console.log("Design code:", code);
   };
 
   const handleStartFromScratch = () => {
@@ -145,7 +165,7 @@ export const MenuModal = ({
 
               {/* share design */}
               <button
-                onClick={handleSave}
+                onClick={handleOpenShareDesign}
                 id="menu-share-design-button"
                 name="menu-share-design"
                 className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"

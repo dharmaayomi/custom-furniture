@@ -74,6 +74,8 @@ interface RoomStore {
   past: RoomData[];
   present: RoomData;
   future: RoomData[];
+  designCode: string;
+  setDesignCode: (code: string) => void;
 
   setMainModel: (model: string) => void;
   setActiveTexture: (texture: string) => void;
@@ -136,6 +138,8 @@ export const useRoomStore = create<RoomStore>((set) => ({
   past: [],
   present: INITIAL_STATE,
   future: [],
+  designCode: "",
+  setDesignCode: (code) => set({ designCode: code }),
 
   // --- 3. ACTIONS DENGAN KALKULASI HARGA OTOMATIS ---
 
