@@ -24,22 +24,9 @@ export const loadMainModel = async (
   activeTexture: string,
   scene: BABYLON.Scene,
   savedTransform?: FurnitureTransform,
+  uniqueId?: string,
 ): Promise<BABYLON.AbstractMesh | null> => {
   try {
-    // IMPORTANT: Clear any previous main model first (only if not from history)
-    if (!savedTransform) {
-      const { present } = useRoomStore.getState();
-      if (present.mainModelTransform) {
-        const existingMainModel = scene.getMeshByName(
-          present.mainModelTransform.modelName,
-        );
-        if (existingMainModel) {
-          console.log("Disposing previous main model:", existingMainModel.name);
-          existingMainModel.dispose();
-        }
-      }
-    }
-
     updateRoomDimensions();
 
     const container = await BABYLON.LoadAssetContainerAsync(
@@ -62,8 +49,8 @@ export const loadMainModel = async (
 
     const rootMesh = meshes[0];
     const baseName = getBaseModelName(modelName);
-    const uniqueName = `${baseName}_0`;
-    rootMesh.name = savedTransform ? savedTransform.modelName : uniqueName;
+    const fallbackId = uniqueId || `${baseName}_0`;
+    rootMesh.name = savedTransform ? savedTransform.modelName : fallbackId;
     rootMesh.metadata = "furniture";
 
     // Pre-cache original materials so Reset/clear restores true originals
@@ -124,7 +111,15 @@ export const loadMainModel = async (
       (FLOOR_Y - boundsInfo.min.y).toFixed(1),
     );
 
-    if (savedTransform) {
+    const isValidHistory =
+      savedTransform &&
+      !(
+        savedTransform.position.x === 0 &&
+        savedTransform.position.y === 0 &&
+        savedTransform.position.z === 0
+      );
+
+    if (isValidHistory) {
       // CASE 1: REDO / UNDO (Use history data)
 
       rootMesh.position.set(
@@ -144,19 +139,206 @@ export const loadMainModel = async (
       // Force final update
       rootMesh.computeWorldMatrix(true);
     } else {
-      // CASE 2: NEW MODEL (Auto Snap)
+      // CASE 2: NEW MODEL (Use same smart snap logic as add-on)
+      console.log("✨ New Main Model: Smart Snap placement...");
 
-      const wallPos = getWallSnapPosition(
+      const allFurniture = getAllFurniture(scene, rootMesh);
+      let finalPosition: {
+        x: number;
+        z: number;
+        rotation: number;
+        wall: string;
+      } | null = null;
+      let currentWall: "back" | "right" | "left" | "front" = "back";
+
+      const width = Math.abs(boundsInfo.max.x - boundsInfo.min.x);
+      const depth = Math.abs(boundsInfo.max.z - boundsInfo.min.z);
+
+      const wallsToTry: ("back" | "right" | "front" | "left")[] = [
         "back",
-        rootMesh,
-        new BABYLON.Vector3(0, 0, 0),
-      );
+        "right",
+        "front",
+        "left",
+      ];
 
-      // Use THIS model's specific boundsInfo for Y position
+      const snapGap = 0.001;
+      const wallPadding = 0.02;
+      const MAX_CANDIDATES_PER_WALL = Math.max(30, allFurniture.length * 6);
+      const MAX_COLLISION_CHECKS = Math.max(
+        500,
+        allFurniture.length * MAX_CANDIDATES_PER_WALL,
+      );
+      let collisionChecks = 0;
+
+      for (const wall of wallsToTry) {
+        currentWall = wall;
+        const isHorizontal = wall === "back" || wall === "front";
+
+        const occupiesWallLength = width;
+        const protrudesIntoRoom = depth;
+
+        const wallLengthTotal = isHorizontal ? CONFIG.rw : CONFIG.rd;
+        const limit =
+          wallLengthTotal / 2 - occupiesWallLength / 2 - wallPadding;
+
+        let candidates: number[] = [];
+
+        const furnitureOnThisWall = allFurniture.filter((f) => {
+          const pos = f.position;
+          const tolerance = 1.5;
+          if (wall === "back")
+            return Math.abs(pos.z - CONFIG.rd / 2) < tolerance;
+          if (wall === "front")
+            return Math.abs(pos.z + CONFIG.rd / 2) < tolerance;
+          if (wall === "right")
+            return Math.abs(pos.x - CONFIG.rw / 2) < tolerance;
+          if (wall === "left")
+            return Math.abs(pos.x + CONFIG.rw / 2) < tolerance;
+          return false;
+        });
+
+        if (furnitureOnThisWall.length > 0) {
+          for (const other of furnitureOnThisWall) {
+            const b = other.getHierarchyBoundingVectors(true);
+
+            let minPoint = 0;
+            let maxPoint = 0;
+
+            if (isHorizontal) {
+              minPoint = b.min.x;
+              maxPoint = b.max.x;
+            } else {
+              minPoint = b.min.z;
+              maxPoint = b.max.z;
+            }
+
+            candidates.push(minPoint - snapGap - occupiesWallLength / 2);
+            candidates.push(maxPoint + snapGap + occupiesWallLength / 2);
+          }
+        }
+
+        candidates.push(-limit);
+        candidates.push(limit);
+        if (wall === "back") candidates.push(0);
+
+        candidates = candidates.filter(
+          (p) => p >= -limit - 0.01 && p <= limit + 0.01,
+        );
+
+        candidates = [
+          ...new Set(candidates.map((n) => Math.round(n * 1000) / 1000)),
+        ];
+
+        if (wall === "back") {
+          candidates.sort((a, b) => Math.abs(a) - Math.abs(b));
+        } else if (wall === "right") {
+          candidates.sort((a, b) => b - a);
+        } else if (wall === "front") {
+          candidates.sort((a, b) => b - a);
+        } else if (wall === "left") {
+          candidates.sort((a, b) => a - b);
+        }
+
+        if (candidates.length > MAX_CANDIDATES_PER_WALL) {
+          candidates = candidates.slice(0, MAX_CANDIDATES_PER_WALL);
+        }
+
+        for (const pos of candidates) {
+          if (collisionChecks > MAX_COLLISION_CHECKS) break;
+          let testMinX = 0,
+            testMaxX = 0,
+            testMinZ = 0,
+            testMaxZ = 0;
+          const buffer = 0.002;
+
+          if (isHorizontal) {
+            const centerX = pos;
+            const centerZ =
+              wall === "back"
+                ? CONFIG.rd / 2 - protrudesIntoRoom / 2
+                : -(CONFIG.rd / 2) + protrudesIntoRoom / 2;
+
+            testMinX = centerX - occupiesWallLength / 2 + buffer;
+            testMaxX = centerX + occupiesWallLength / 2 - buffer;
+            testMinZ = centerZ - protrudesIntoRoom / 2 + buffer;
+            testMaxZ = centerZ + protrudesIntoRoom / 2 - buffer;
+          } else {
+            const centerZ = pos;
+            const centerX =
+              wall === "right"
+                ? CONFIG.rw / 2 - protrudesIntoRoom / 2
+                : -(CONFIG.rw / 2) + protrudesIntoRoom / 2;
+
+            testMinX = centerX - protrudesIntoRoom / 2 + buffer;
+            testMaxX = centerX + protrudesIntoRoom / 2 - buffer;
+            testMinZ = centerZ - occupiesWallLength / 2 + buffer;
+            testMaxZ = centerZ + occupiesWallLength / 2 - buffer;
+          }
+
+          let collision = false;
+          for (const other of allFurniture) {
+            collisionChecks += 1;
+            const b = other.getHierarchyBoundingVectors(true);
+            if (
+              testMinX < b.max.x &&
+              testMaxX > b.min.x &&
+              testMinZ < b.max.z &&
+              testMaxZ > b.min.z
+            ) {
+              collision = true;
+              break;
+            }
+            if (collisionChecks > MAX_COLLISION_CHECKS) break;
+          }
+
+          if (!collision) {
+            let finalX = 0;
+            let finalZ = 0;
+            let finalRot = 0;
+
+            if (wall === "back") {
+              finalX = pos;
+              finalZ = CONFIG.rd / 2 - protrudesIntoRoom / 2;
+              finalRot = Math.PI;
+            } else if (wall === "front") {
+              finalX = pos;
+              finalZ = -(CONFIG.rd / 2) + protrudesIntoRoom / 2;
+              finalRot = 0;
+            } else if (wall === "right") {
+              finalZ = pos;
+              finalX = CONFIG.rw / 2 - protrudesIntoRoom / 2;
+              finalRot = -Math.PI / 2;
+            } else if (wall === "left") {
+              finalZ = pos;
+              finalX = -(CONFIG.rw / 2) + protrudesIntoRoom / 2;
+              finalRot = Math.PI / 2;
+            }
+
+            finalPosition = {
+              x: finalX,
+              z: finalZ,
+              rotation: finalRot,
+              wall: wall,
+            };
+            break;
+          }
+        }
+
+        if (finalPosition) break;
+      }
+
       const yPosition = FLOOR_Y - boundsInfo.min.y;
 
-      rootMesh.position.set(wallPos.x, yPosition, wallPos.z);
-      rootMesh.rotation.y = wallPos.rotation;
+      if (finalPosition) {
+        if (rootMesh.rotationQuaternion) rootMesh.rotationQuaternion = null;
+        rootMesh.position.set(finalPosition.x, yPosition, finalPosition.z);
+        rootMesh.rotation.y = finalPosition.rotation;
+      } else {
+        console.warn("⛔ Room is full!");
+        window.alert("Ruangan penuh!");
+        rootMesh.dispose();
+        return null;
+      }
 
       // Force final update
       rootMesh.computeWorldMatrix(true);
@@ -172,7 +354,7 @@ export const loadMainModel = async (
         ((rootMesh.rotation.y * 180) / Math.PI).toFixed(0) + "°",
       );
 
-      const { updateTransformSilent } = useRoomStore.getState();
+      const { updateTransformSilent, present } = useRoomStore.getState();
 
       const initialTransform: FurnitureTransform = {
         modelName: rootMesh.name,
@@ -189,7 +371,12 @@ export const loadMainModel = async (
         },
       };
 
-      updateTransformSilent(0, initialTransform, true);
+      const mainIndex = present.mainModels.findIndex(
+        (id) => id === rootMesh.name,
+      );
+      if (mainIndex !== -1) {
+        updateTransformSilent(mainIndex, initialTransform, true);
+      }
     }
 
     // DEBUGGING: Visualize Bounding Box
@@ -227,7 +414,7 @@ export const loadAdditionalModel = async (
     if (!uniqueId) {
       const baseName = getBaseModelName(modelName);
       const { present } = useRoomStore.getState();
-      const count = present.additionalModels.filter((id) => {
+      const count = present.addOnModels.filter((id) => {
         const extracted = id.split("_");
         if (
           extracted.length >= 2 &&
@@ -535,9 +722,10 @@ export const loadAdditionalModel = async (
         rootMesh.rotation.y = finalPosition.rotation;
         rootMesh.computeWorldMatrix(true);
 
-        const { updateTransformSilent } = useRoomStore.getState();
-        const allFurnitureForIndex = getAllFurniture(scene);
-        const meshIndex = allFurnitureForIndex.indexOf(rootMesh);
+        const { updateTransformSilent, present } = useRoomStore.getState();
+        const addOnIndex = present.addOnModels.findIndex(
+          (id) => id === rootMesh.name,
+        );
 
         const initialTransform: FurnitureTransform = {
           modelName: rootMesh.name,
@@ -554,10 +742,8 @@ export const loadAdditionalModel = async (
           },
         };
 
-        if (meshIndex === 0) {
-          updateTransformSilent(0, initialTransform, true);
-        } else {
-          updateTransformSilent(meshIndex - 1, initialTransform, false);
+        if (addOnIndex !== -1) {
+          updateTransformSilent(addOnIndex, initialTransform, false);
         }
 
         addDragBehavior(rootMesh, scene);
@@ -582,7 +768,7 @@ export const loadAdditionalModel = async (
 export const updateAllTextures = (
   scene: BABYLON.Scene,
   activeTexture: string,
-  mainMeshRef: BABYLON.AbstractMesh | null,
+  mainMeshes: BABYLON.AbstractMesh[],
   meshTextureMap?: Record<string, string>,
 ) => {
   // Skip if both global and per-mesh textures are empty
@@ -598,22 +784,21 @@ export const updateAllTextures = (
     // Only exact match to avoid applying one instance's texture to other instances
     return meshTextureMap[meshName];
   };
-  if (mainMeshRef) {
-    const mainTex = getTextureForMesh(mainMeshRef.name) ?? activeTexture;
-    // Apply texture to main mesh and all its children
-    applyTextureToMesh(mainMeshRef, mainTex, scene);
-    mainMeshRef.getChildMeshes().forEach((m) => {
+  mainMeshes.forEach((mainMesh) => {
+    const mainTex = getTextureForMesh(mainMesh.name) ?? activeTexture;
+    applyTextureToMesh(mainMesh, mainTex, scene);
+    mainMesh.getChildMeshes().forEach((m) => {
       const childTex = getTextureForMesh(m.name) ?? mainTex;
       applyTextureToMesh(m, childTex, scene);
     });
-  }
+  });
 
   // Apply texture to all additional furniture meshes
   scene.meshes.forEach((mesh) => {
     if (
       mesh.metadata === "furniture" &&
-      mesh !== mainMeshRef &&
-      mesh.parent !== mainMeshRef
+      !mainMeshes.includes(mesh) &&
+      !mainMeshes.includes(mesh.parent as BABYLON.AbstractMesh)
     ) {
       const tex = getTextureForMesh(mesh.name) ?? activeTexture;
       applyTextureToMesh(mesh, tex, scene);

@@ -77,13 +77,13 @@ export const RoomPage = () => {
     setMainModel,
     setActiveTexture,
     setMeshTexture,
-    addAdditionalModel,
+    addAddOnModel,
     setDesignCode,
     undo,
     redo,
   } = useRoomStore();
   const designCode = useRoomStore((state) => state.designCode);
-  const { mainModel, activeTexture, additionalModels } = present;
+  const { mainModels, activeTexture, addOnModels } = present;
   const tools: Tool[] = [
     {
       id: "furniture",
@@ -243,11 +243,11 @@ export const RoomPage = () => {
       <ListProductPanel
         isOpen={activePanel === "productList"}
         onClose={closePanel}
-        mainModel={mainModel}
-        additionalModels={additionalModels}
+        mainModels={mainModels}
+        addOnModels={addOnModels}
         totalPrice={calculateTotalPrice(
-          mainModel,
-          additionalModels,
+          mainModels,
+          addOnModels,
           activeTexture,
         )}
       />
@@ -269,12 +269,12 @@ export const RoomPage = () => {
               onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
               onListClick={handleOpenProductList}
               totalPrice={calculateTotalPrice(
-                mainModel,
-                additionalModels,
+                mainModels,
+                addOnModels,
                 activeTexture,
               )}
               formattedPrice={formatPrice(
-                calculateTotalPrice(mainModel, additionalModels, activeTexture),
+                calculateTotalPrice(mainModels, addOnModels, activeTexture),
               )}
             />
           </div>
@@ -283,9 +283,9 @@ export const RoomPage = () => {
         {/* Room Canvas */}
         <div className="relative h-screen flex-1">
           <RoomCanvasThree
-            mainModel={mainModel}
+            mainModels={mainModels}
             activeTexture={activeTexture}
-            additionalModels={additionalModels}
+            addOnModels={addOnModels}
             onSceneReady={setScene}
           />
         </div>
@@ -321,10 +321,10 @@ export const RoomPage = () => {
         onClose={closeSidebar}
         assetList3D={ASSETS_3D}
         assetListTexture={ASSETS_TEXTURE}
-        mainModel={mainModel}
+        mainModels={mainModels}
         selectedFurniture={present.selectedFurniture}
         onSelectMainModel={(model) => setMainModel(model)}
-        onAddAdditionalModel={addAdditionalModel}
+        onAddAdditionalModel={addAddOnModel}
         onSelectTexture={(tex) => {
           // If a mesh is selected, apply texture to that mesh only
           if (present.selectedFurniture) {

@@ -1,5 +1,4 @@
 import { updateRoomDimensions } from "@/features/custom/_components/MeshUtils_WallSnap";
-import { CONFIG } from "@/features/custom/_components/RoomConfig";
 import * as BABYLON from "@babylonjs/core";
 import {
   ASSET_PRICES,
@@ -13,14 +12,18 @@ import { create } from "zustand";
 
 // Helper untuk hitung total harga saat ini
 const calculateTotal = (
-  mainModel: string,
-  additionalModels: string[],
+  mainModels: string[],
+  addOnModels: string[],
   activeTexture: string,
 ) => {
-  let total = ASSET_PRICES[mainModel] || 0;
+  let total = 0;
 
-  additionalModels.forEach((model) => {
-    // Extract the actual model name from unique ID
+  mainModels.forEach((model) => {
+    const modelName = extractModelNameFromId(model);
+    total += ASSET_PRICES[modelName] || 0;
+  });
+
+  addOnModels.forEach((model) => {
     const modelName = extractModelNameFromId(model);
     total += ASSET_PRICES[modelName] || 0;
   });
@@ -33,9 +36,9 @@ const calculateTotal = (
 const getBaseModelName = (modelName: string) =>
   modelName.replace(/\.glb$/i, "");
 
-const getNextIndexedId = (modelName: string, additionalModels: string[]) => {
+const getNextIndexedId = (modelName: string, existingModels: string[]) => {
   const base = getBaseModelName(modelName);
-  const count = additionalModels.filter((id) => {
+  const count = existingModels.filter((id) => {
     const extracted = extractModelNameFromId(id);
     return getBaseModelName(extracted) === base;
   }).length;
@@ -59,12 +62,12 @@ export interface FurnitureTransform {
 
 // --- 2. UPDATE INTERFACE ---
 interface RoomData {
-  mainModel: string;
+  mainModels: string[];
+  addOnModels: string[];
   activeTexture: string;
-  additionalModels: string[];
   totalPrice: number; // Tambahkan field ini
-  mainModelTransform?: FurnitureTransform; // Posisi & rotasi main model
-  additionalTransforms: FurnitureTransform[];
+  mainModelTransforms: FurnitureTransform[]; // Posisi & rotasi main models
+  addOnTransforms: FurnitureTransform[];
   roomConfig: RoomConfig;
   showHuman: boolean;
   selectedFurniture: string | null; // Track selected furniture mesh name
@@ -81,7 +84,7 @@ interface RoomStore {
   setMainModel: (model: string) => void;
   setActiveTexture: (texture: string) => void;
   setMeshTexture: (meshName: string, texture: string) => void;
-  addAdditionalModel: (model: string) => void;
+  addAddOnModel: (model: string) => void;
   setSelectedFurniture: (meshName: string | null) => void;
   duplicateSelectedFurniture: () => void;
   deleteSelectedFurniture: () => void;
@@ -93,11 +96,11 @@ interface RoomStore {
   reset: () => void;
   shadowGenerator: BABYLON.ShadowGenerator | null;
   setShadowGenerator: (generator: BABYLON.ShadowGenerator | null) => void;
-  updateMainModelTransform: (transform: FurnitureTransform) => void;
-  updateAdditionalTransform: (
+  updateMainModelTransform: (
     index: number,
     transform: FurnitureTransform,
   ) => void;
+  updateAddOnTransform: (index: number, transform: FurnitureTransform) => void;
   saveTransformToHistory: (
     index: number,
     transform: FurnitureTransform,
@@ -113,7 +116,6 @@ interface RoomStore {
 }
 
 // State Awal
-const INITIAL_MAIN = "";
 const INITIAL_TEXTURE = "";
 export const DEFAULT_ROOM_CONFIG: RoomConfig = {
   width: 6.2,
@@ -124,32 +126,33 @@ export const DEFAULT_ROOM_CONFIG: RoomConfig = {
 };
 
 const INITIAL_STATE: RoomData = {
-  mainModel: INITIAL_MAIN,
+  mainModels: [],
+  addOnModels: [],
   activeTexture: INITIAL_TEXTURE,
-  additionalModels: [],
-  totalPrice: calculateTotal(INITIAL_MAIN, [], INITIAL_TEXTURE),
-  mainModelTransform: undefined,
-  additionalTransforms: [],
+  totalPrice: calculateTotal([], [], INITIAL_TEXTURE),
+  mainModelTransforms: [],
+  addOnTransforms: [],
   roomConfig: DEFAULT_ROOM_CONFIG,
   showHuman: false,
   selectedFurniture: null,
 };
 
 const normalizeRoomState = (data: Partial<RoomData>): RoomData => {
-  const mainModel = data.mainModel ?? INITIAL_MAIN;
+  const mainModels = data.mainModels ?? [];
+  const addOnModels = data.addOnModels ?? [];
   const activeTexture = data.activeTexture ?? INITIAL_TEXTURE;
-  const additionalModels = data.additionalModels ?? [];
   const totalPrice =
     data.totalPrice ??
-    calculateTotal(mainModel, additionalModels, activeTexture);
+    calculateTotal(mainModels, addOnModels, activeTexture);
 
   return {
     ...INITIAL_STATE,
     ...data,
-    mainModel,
+    mainModels,
+    addOnModels,
     activeTexture,
-    additionalModels,
-    additionalTransforms: data.additionalTransforms ?? [],
+    mainModelTransforms: data.mainModelTransforms ?? [],
+    addOnTransforms: data.addOnTransforms ?? [],
     roomConfig: { ...DEFAULT_ROOM_CONFIG, ...(data.roomConfig ?? {}) },
     totalPrice,
     showHuman: data.showHuman ?? false,
@@ -174,26 +177,34 @@ export const useRoomStore = create<RoomStore>((set) => ({
 
   setMainModel: (model) =>
     set((state) => {
-      if (state.present.mainModel === model) return state;
+      const currentPresent = state.present;
+      const existing = [...currentPresent.mainModels, ...currentPresent.addOnModels];
+      const uniqueId = getNextIndexedId(model, existing);
+      const newMainModels = [...currentPresent.mainModels, uniqueId];
+      const newMainTransforms = [
+        ...currentPresent.mainModelTransforms,
+        {
+          modelName: uniqueId,
+          position: { x: 0, y: 0, z: 0 },
+          rotation: 0,
+        },
+      ];
 
-      // Hitung harga baru
       const newPrice = calculateTotal(
-        model,
-        state.present.additionalModels,
-        state.present.activeTexture,
+        newMainModels,
+        currentPresent.addOnModels,
+        currentPresent.activeTexture,
       );
 
       const newPresent = {
-        ...state.present,
-        mainModel: model,
+        ...currentPresent,
+        mainModels: newMainModels,
+        mainModelTransforms: newMainTransforms,
         totalPrice: newPrice,
-        // changes
-
-        mainModelTransform: undefined,
       };
 
       return {
-        past: [...state.past, state.present],
+        past: [...state.past, currentPresent],
         present: newPresent,
         future: [],
       };
@@ -211,8 +222,8 @@ export const useRoomStore = create<RoomStore>((set) => ({
       }
 
       const newPrice = calculateTotal(
-        state.present.mainModel,
-        state.present.additionalModels,
+        state.present.mainModels,
+        state.present.addOnModels,
         texture,
       );
 
@@ -234,28 +245,39 @@ export const useRoomStore = create<RoomStore>((set) => ({
       // Persist texture on the corresponding FurnitureTransform so it survives undo/redo
       const extracted = meshName; // meshName is expected to be the unique id used in transforms
 
-      // Determine whether the meshName corresponds to the main model transform
-      const mainTransformName = state.present.mainModelTransform?.modelName;
-      if (mainTransformName && extracted === mainTransformName) {
-        const current = state.present.mainModelTransform || {
-          modelName: state.present.mainModel,
-          position: { x: 0, y: 0, z: 0 },
-          rotation: 0,
-        };
+      // Determine whether the meshName corresponds to a main model transform
+      const mainIdx = state.present.mainModelTransforms.findIndex(
+        (t) => t.modelName === extracted,
+      );
+      const fallbackMainIdx =
+        mainIdx === -1
+          ? state.present.mainModels.findIndex((id) => id === extracted)
+          : mainIdx;
+
+      if (fallbackMainIdx !== -1) {
+        const currentTransforms = [...state.present.mainModelTransforms];
+        const current =
+          currentTransforms[fallbackMainIdx] || {
+            modelName: state.present.mainModels[fallbackMainIdx],
+            position: { x: 0, y: 0, z: 0 },
+            rotation: 0,
+          };
 
         const existing = current.texture || "";
         if (existing === texture && texture !== "") return state;
 
-        const newMainTransform = { ...current };
+        const newTransform = { ...current };
         if (!texture || texture === "") {
-          delete newMainTransform.texture;
+          delete newTransform.texture;
         } else {
-          newMainTransform.texture = texture;
+          newTransform.texture = texture;
         }
+
+        currentTransforms[fallbackMainIdx] = newTransform;
 
         const newPresent = {
           ...state.present,
-          mainModelTransform: newMainTransform,
+          mainModelTransforms: currentTransforms,
         };
 
         return {
@@ -265,19 +287,17 @@ export const useRoomStore = create<RoomStore>((set) => ({
         };
       }
 
-      // Otherwise try to find a matching additional model by exact unique id
-      const idx = state.present.additionalModels.findIndex(
-        (id) => id === extracted,
-      );
+      // Otherwise try to find a matching add-on model by exact unique id
+      const idx = state.present.addOnModels.findIndex((id) => id === extracted);
 
       if (idx === -1) {
         // Fallback: no matching transform found, no-op
         return state;
       }
 
-      const currentTransforms = [...state.present.additionalTransforms];
+      const currentTransforms = [...state.present.addOnTransforms];
       const current = currentTransforms[idx] || {
-        modelName: state.present.additionalModels[idx],
+        modelName: state.present.addOnModels[idx],
         position: { x: 0, y: 0, z: 0 },
         rotation: 0,
       };
@@ -296,7 +316,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
 
       const newPresent = {
         ...state.present,
-        additionalTransforms: currentTransforms,
+        addOnTransforms: currentTransforms,
       };
 
       return {
@@ -322,62 +342,88 @@ export const useRoomStore = create<RoomStore>((set) => ({
       const selected = state.present.selectedFurniture;
       if (!selected) return state;
 
-      // Extract the actual model name from selected furniture
+      const allModels = [
+        ...state.present.mainModels,
+        ...state.present.addOnModels,
+      ];
       const extractedSelected = extractModelNameFromId(selected);
 
-      let modelNameToDuplicate = "";
+      const mainIndex = state.present.mainModels.findIndex(
+        (id) => id === selected || extractModelNameFromId(id) === extractedSelected,
+      );
+      const addOnIndex = state.present.addOnModels.findIndex(
+        (id) => id === selected || extractModelNameFromId(id) === extractedSelected,
+      );
 
-      // Check if it's main model
-      if (extractedSelected === state.present.mainModel) {
-        modelNameToDuplicate = state.present.mainModel;
-      } else {
-        // Find the additional model name from the selected mesh name
-        const found = state.present.additionalModels.find(
-          (id) =>
-            id === selected || extractModelNameFromId(id) === extractedSelected,
+      if (mainIndex !== -1) {
+        const modelNameToDuplicate = extractModelNameFromId(
+          state.present.mainModels[mainIndex],
         );
-        if (found) {
-          modelNameToDuplicate = extractModelNameFromId(found);
-        }
+        const uniqueId = getNextIndexedId(modelNameToDuplicate, allModels);
+        const newMainModels = [...state.present.mainModels, uniqueId];
+        const newMainTransforms = [
+          ...state.present.mainModelTransforms,
+          {
+            modelName: uniqueId,
+            position: { x: 0, y: 0, z: 0 },
+            rotation: 0,
+          },
+        ];
+
+        const newPrice = calculateTotal(
+          newMainModels,
+          state.present.addOnModels,
+          state.present.activeTexture,
+        );
+
+        return {
+          past: [...state.past, state.present],
+          present: {
+            ...state.present,
+            mainModels: newMainModels,
+            mainModelTransforms: newMainTransforms,
+            totalPrice: newPrice,
+            selectedFurniture: null,
+          },
+          future: [],
+        };
       }
 
-      if (!modelNameToDuplicate) return state;
+      if (addOnIndex !== -1) {
+        const modelNameToDuplicate = extractModelNameFromId(
+          state.present.addOnModels[addOnIndex],
+        );
+        const uniqueId = getNextIndexedId(modelNameToDuplicate, allModels);
+        const newModels = [...state.present.addOnModels, uniqueId];
+        const newTransforms = [
+          ...state.present.addOnTransforms,
+          {
+            modelName: uniqueId,
+            position: { x: 0, y: 0, z: 0 },
+            rotation: 0,
+          },
+        ];
 
-      // Add as additional model
-      const uniqueId = getNextIndexedId(
-        modelNameToDuplicate,
-        state.present.additionalModels,
-      );
-      const newModels = [...state.present.additionalModels, uniqueId];
+        const newPrice = calculateTotal(
+          state.present.mainModels,
+          newModels,
+          state.present.activeTexture,
+        );
 
-      const newTransforms = [
-        ...state.present.additionalTransforms,
-        {
-          modelName: uniqueId,
-          position: { x: 0, y: 0, z: 0 },
-          rotation: 0,
-        },
-      ];
+        return {
+          past: [...state.past, state.present],
+          present: {
+            ...state.present,
+            addOnModels: newModels,
+            addOnTransforms: newTransforms,
+            totalPrice: newPrice,
+            selectedFurniture: null,
+          },
+          future: [],
+        };
+      }
 
-      const newPrice = calculateTotal(
-        state.present.mainModel,
-        newModels,
-        state.present.activeTexture,
-      );
-
-      const newPresent = {
-        ...state.present,
-        additionalModels: newModels,
-        totalPrice: newPrice,
-        additionalTransforms: newTransforms,
-        selectedFurniture: null,
-      };
-
-      return {
-        past: [...state.past, state.present],
-        present: newPresent,
-        future: [],
-      };
+      return state;
     }),
 
   deleteSelectedFurniture: () =>
@@ -385,108 +431,82 @@ export const useRoomStore = create<RoomStore>((set) => ({
       const selected = state.present.selectedFurniture;
       if (!selected) return state;
 
-      // Extract the actual model name from selected furniture
       const extractedSelected = extractModelNameFromId(selected);
 
-      // Check if it's main model
-      if (extractedSelected === state.present.mainModel) {
-        // If there are additional models, promote the first one to main model
-        if (state.present.additionalModels.length > 0) {
-          const promotedModelId = state.present.additionalModels[0];
-          const promotedModelName = extractModelNameFromId(promotedModelId);
-          const promotedTransform = state.present.additionalTransforms[0];
+      const mainIndex = state.present.mainModels.findIndex(
+        (id) => id === selected || extractModelNameFromId(id) === extractedSelected,
+      );
+      if (mainIndex !== -1) {
+        const newMainModels = state.present.mainModels.filter(
+          (_, idx) => idx !== mainIndex,
+        );
+        const newMainTransforms = state.present.mainModelTransforms.filter(
+          (_, idx) => idx !== mainIndex,
+        );
 
-          // Remove from additional models
-          const newAdditionalModels = state.present.additionalModels.slice(1);
-          const newAdditionalTransforms =
-            state.present.additionalTransforms.slice(1);
+        const newPrice = calculateTotal(
+          newMainModels,
+          state.present.addOnModels,
+          state.present.activeTexture,
+        );
 
-          const newPrice = calculateTotal(
-            promotedModelName,
-            newAdditionalModels,
-            state.present.activeTexture,
-          );
-
-          const newPresent = {
+        return {
+          past: [...state.past, state.present],
+          present: {
             ...state.present,
-            mainModel: promotedModelName,
-            mainModelTransform: promotedTransform,
-            additionalModels: newAdditionalModels,
-            additionalTransforms: newAdditionalTransforms,
+            mainModels: newMainModels,
+            mainModelTransforms: newMainTransforms,
             totalPrice: newPrice,
             selectedFurniture: null,
-          };
-
-          return {
-            past: [...state.past, state.present],
-            present: newPresent,
-            future: [],
-          };
-        } else {
-          // No additional models, just clear the main model
-          const newPresent = {
-            ...state.present,
-            mainModel: "",
-            mainModelTransform: undefined,
-            selectedFurniture: null,
-            totalPrice: calculateTotal(
-              "",
-              state.present.additionalModels,
-              state.present.activeTexture,
-            ),
-          };
-          return {
-            past: [...state.past, state.present],
-            present: newPresent,
-            future: [],
-          };
-        }
+          },
+          future: [],
+        };
       }
 
-      // Find and remove from additional models
-      const modelIndex = state.present.additionalModels.findIndex(
-        (id) =>
-          id === selected || extractModelNameFromId(id) === extractedSelected,
+      const modelIndex = state.present.addOnModels.findIndex(
+        (id) => id === selected || extractModelNameFromId(id) === extractedSelected,
       );
 
       if (modelIndex === -1) return state;
 
-      const newModels = state.present.additionalModels.filter(
+      const newModels = state.present.addOnModels.filter(
         (_, idx) => idx !== modelIndex,
       );
-      const newTransforms = state.present.additionalTransforms.filter(
+      const newTransforms = state.present.addOnTransforms.filter(
         (_, idx) => idx !== modelIndex,
       );
 
       const newPrice = calculateTotal(
-        state.present.mainModel,
+        state.present.mainModels,
         newModels,
         state.present.activeTexture,
       );
 
-      const newPresent = {
-        ...state.present,
-        additionalModels: newModels,
-        additionalTransforms: newTransforms,
-        totalPrice: newPrice,
-        selectedFurniture: null,
-      };
-
       return {
         past: [...state.past, state.present],
-        present: newPresent,
+        present: {
+          ...state.present,
+          addOnModels: newModels,
+          addOnTransforms: newTransforms,
+          totalPrice: newPrice,
+          selectedFurniture: null,
+        },
         future: [],
       };
     }),
 
-  addAdditionalModel: (model) =>
+  addAddOnModel: (model) =>
     set((state) => {
       const currentPresent = state.present;
-      const uniqueId = getNextIndexedId(model, currentPresent.additionalModels);
-      const newModels = [...currentPresent.additionalModels, uniqueId];
+      const existing = [
+        ...currentPresent.mainModels,
+        ...currentPresent.addOnModels,
+      ];
+      const uniqueId = getNextIndexedId(model, existing);
+      const newModels = [...currentPresent.addOnModels, uniqueId];
 
       const newTransforms = [
-        ...currentPresent.additionalTransforms,
+        ...currentPresent.addOnTransforms,
         {
           modelName: uniqueId,
           position: { x: 0, y: 0, z: 0 },
@@ -494,18 +514,17 @@ export const useRoomStore = create<RoomStore>((set) => ({
         },
       ];
 
-      // Calculate price using the new models list (which contains uniqueIds)
       const newPrice = calculateTotal(
-        state.present.mainModel,
-        newModels, // Pass uniqueIds, calculateTotal will extract model names
-        state.present.activeTexture,
+        currentPresent.mainModels,
+        newModels,
+        currentPresent.activeTexture,
       );
 
       const newPresent = {
         ...currentPresent,
-        additionalModels: newModels,
+        addOnModels: newModels,
         totalPrice: newPrice,
-        additionalTransforms: newTransforms,
+        addOnTransforms: newTransforms,
       };
 
       return {
@@ -528,23 +547,27 @@ export const useRoomStore = create<RoomStore>((set) => ({
       };
     }),
 
-  updateMainModelTransform: (transform) =>
-    set((state) => ({
-      present: {
-        ...state.present,
-        mainModelTransform: transform,
-      },
-    })),
-
-  updateAdditionalTransform: (index, transform) =>
+  updateMainModelTransform: (index, transform) =>
     set((state) => {
-      const newTransforms = [...state.present.additionalTransforms];
+      const newTransforms = [...state.present.mainModelTransforms];
+      newTransforms[index] = transform;
+      return {
+        present: {
+          ...state.present,
+          mainModelTransforms: newTransforms,
+        },
+      };
+    }),
+
+  updateAddOnTransform: (index, transform) =>
+    set((state) => {
+      const newTransforms = [...state.present.addOnTransforms];
       newTransforms[index] = transform;
 
       return {
         present: {
           ...state.present,
-          additionalTransforms: newTransforms,
+          addOnTransforms: newTransforms,
         },
       };
     }),
@@ -558,16 +581,18 @@ export const useRoomStore = create<RoomStore>((set) => ({
       let newPresent: RoomData;
 
       if (isMainModel) {
-        newPresent = {
-          ...state.present,
-          mainModelTransform: transform,
-        };
-      } else {
-        const newTransforms = [...state.present.additionalTransforms];
+        const newTransforms = [...state.present.mainModelTransforms];
         newTransforms[index] = transform;
         newPresent = {
           ...state.present,
-          additionalTransforms: newTransforms,
+          mainModelTransforms: newTransforms,
+        };
+      } else {
+        const newTransforms = [...state.present.addOnTransforms];
+        newTransforms[index] = transform;
+        newPresent = {
+          ...state.present,
+          addOnTransforms: newTransforms,
         };
       }
 
@@ -592,16 +617,18 @@ export const useRoomStore = create<RoomStore>((set) => ({
       let newPresent;
 
       if (isMainModel) {
-        newPresent = {
-          ...state.present,
-          mainModelTransform: transform,
-        };
-      } else {
-        const newTransforms = [...state.present.additionalTransforms];
+        const newTransforms = [...state.present.mainModelTransforms];
         newTransforms[index] = transform;
         newPresent = {
           ...state.present,
-          additionalTransforms: newTransforms,
+          mainModelTransforms: newTransforms,
+        };
+      } else {
+        const newTransforms = [...state.present.addOnTransforms];
+        newTransforms[index] = transform;
+        newPresent = {
+          ...state.present,
+          addOnTransforms: newTransforms,
         };
       }
       // Return state tanpa mengubah 'past'

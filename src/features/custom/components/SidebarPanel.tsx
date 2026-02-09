@@ -11,7 +11,7 @@ interface SidebarPanelProps {
   onClose: () => void;
   assetList3D: string[];
   assetListTexture: string[];
-  mainModel: string;
+  mainModels: string[];
   onSelectMainModel: (name: string) => void;
   onAddAdditionalModel: (name: string) => void;
   onSelectTexture: (name: string) => void;
@@ -26,7 +26,7 @@ export const SidebarPanel = ({
   onClose,
   assetList3D,
   assetListTexture,
-  mainModel,
+  mainModels,
   onSelectMainModel,
   onAddAdditionalModel,
   onSelectTexture,
@@ -72,7 +72,7 @@ export const SidebarPanel = ({
         <div className="space-y-4">
           <p className="text-sm text-gray-600">Kategori: {tool.category}</p>
 
-          {tool.id === "tambahan" && !mainModel && (
+          {tool.id === "tambahan" && mainModels.length === 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
               <p className="text-sm font-medium text-amber-900">
                 ⚠️ Please select a model first
@@ -84,7 +84,7 @@ export const SidebarPanel = ({
             </div>
           )}
 
-          {tool.id === "paint" && !mainModel && (
+          {tool.id === "paint" && mainModels.length === 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
               <p className="text-sm font-medium text-amber-900">
                 ⚠️ Please select a model first
@@ -100,13 +100,13 @@ export const SidebarPanel = ({
               <div
                 key={idx}
                 onClick={() => {
-                  if (tool.id === "tambahan" && !mainModel) {
+                  if (tool.id === "tambahan" && mainModels.length === 0) {
                     return; // Prevent click if main model doesn't exist
                   }
                   handleItemClick(item);
                 }}
                 className={`relative aspect-square cursor-pointer overflow-hidden rounded-lg border-2 border-gray-200 bg-gray-100 transition-all hover:border-blue-500 ${
-                  tool.id === "tambahan" && !mainModel
+                  tool.id === "tambahan" && mainModels.length === 0
                     ? "cursor-not-allowed opacity-50"
                     : ""
                 }`}

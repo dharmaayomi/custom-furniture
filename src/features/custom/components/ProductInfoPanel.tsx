@@ -62,35 +62,30 @@ export const ProductInfoPanel = ({
   onClose,
 }: ProductInfoPanelProps) => {
   const { present } = useRoomStore();
-  const { selectedFurniture, mainModel, additionalModels } = present;
+  const { selectedFurniture, mainModels, addOnModels } = present;
 
   if (!isOpen) return null;
 
   // Determine which model is selected
   let selectedModelName = "";
-  let isMainModelSelected = false;
 
   if (selectedFurniture) {
-    // First, try to extract model name from selectedFurniture (handles unique IDs)
-    const extractedFromSelected = extractModelNameFromId(selectedFurniture);
-
-    // Check if it's the main model by comparing extracted names
-    if (extractedFromSelected === mainModel) {
-      selectedModelName = mainModel;
-      isMainModelSelected = true;
+    const mainMatch = mainModels.find(
+      (id) => id === selectedFurniture || id.includes(selectedFurniture),
+    );
+    if (mainMatch) {
+      selectedModelName = extractModelNameFromId(mainMatch);
     } else {
-      // Find the model from additionalModels
-      const found = additionalModels.find(
+      const addOnMatch = addOnModels.find(
         (id) => id === selectedFurniture || id.includes(selectedFurniture),
       );
-      if (found) {
-        selectedModelName = extractModelNameFromId(found);
+      if (addOnMatch) {
+        selectedModelName = extractModelNameFromId(addOnMatch);
       }
     }
-  } else if (mainModel) {
-    // If nothing is selected, default to main model
-    selectedModelName = mainModel;
-    isMainModelSelected = true;
+  } else if (mainModels.length > 0) {
+    // If nothing is selected, default to first main model
+    selectedModelName = extractModelNameFromId(mainModels[0]);
   }
 
   if (!selectedModelName) {

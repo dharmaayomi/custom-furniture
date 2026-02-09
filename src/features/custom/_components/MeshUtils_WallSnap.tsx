@@ -28,8 +28,13 @@ export interface WallSnapPosition {
 // DYNAMIC ROOM DIMENSIONS - TAMBAHAN BARU
 // ============================================================================
 export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
-  const { roomConfig, mainModelTransform, additionalTransforms } =
-    useRoomStore.getState().present;
+  const {
+    roomConfig,
+    mainModelTransforms,
+    addOnTransforms,
+    mainModels,
+    addOnModels,
+  } = useRoomStore.getState().present;
   CONFIG.rw = roomConfig.width;
   CONFIG.rd = roomConfig.depth;
 
@@ -42,12 +47,21 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
       const rd = CONFIG.rd;
 
       let savedTransform: FurnitureTransform | undefined;
-      if (index === 0 && mainModelTransform) {
-        // Main model (index 0)
-        savedTransform = mainModelTransform;
-      } else if (index > 0 && additionalTransforms[index - 1]) {
-        // Additional models (index > 0)
-        savedTransform = additionalTransforms[index - 1];
+      let isMainModel = false;
+      let storeIndex = -1;
+
+      const mainIndex = mainModels.findIndex((id) => id === mesh.name);
+      if (mainIndex !== -1) {
+        savedTransform = mainModelTransforms[mainIndex];
+        isMainModel = true;
+        storeIndex = mainIndex;
+      } else {
+        const addOnIndex = addOnModels.findIndex((id) => id === mesh.name);
+        if (addOnIndex !== -1) {
+          savedTransform = addOnTransforms[addOnIndex];
+          isMainModel = false;
+          storeIndex = addOnIndex;
+        }
       }
 
       // Jika ada saved transform, gunakan posisi yang tersimpan
@@ -111,10 +125,8 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
           texture: savedTransform?.texture,
         };
 
-        if (index === 0) {
-          updateTransformSilent(0, updatedTransform, true);
-        } else {
-          updateTransformSilent(index - 1, updatedTransform, false);
+        if (storeIndex !== -1) {
+          updateTransformSilent(storeIndex, updatedTransform, isMainModel);
         }
       } else {
         // Fallback: jika tidak ada saved transform, gunakan logic lama
@@ -1049,13 +1061,15 @@ export const addDragBehavior = (
         },
       };
 
-      const allFurnitureMeshes = getAllFurniture(scene);
-      const meshIndex = allFurnitureMeshes.indexOf(mesh);
-
-      if (meshIndex === 0) {
-        saveTransformToHistory(0, transform, true);
-      } else if (meshIndex > 0) {
-        saveTransformToHistory(meshIndex - 1, transform, false);
+      const { mainModels, addOnModels } = useRoomStore.getState().present;
+      const mainIndex = mainModels.findIndex((id) => id === mesh.name);
+      if (mainIndex !== -1) {
+        saveTransformToHistory(mainIndex, transform, true);
+      } else {
+        const addOnIndex = addOnModels.findIndex((id) => id === mesh.name);
+        if (addOnIndex !== -1) {
+          saveTransformToHistory(addOnIndex, transform, false);
+        }
       }
     }
 
