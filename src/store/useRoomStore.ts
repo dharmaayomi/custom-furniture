@@ -137,13 +137,123 @@ const INITIAL_STATE: RoomData = {
   selectedFurniture: null,
 };
 
+const normalizeTransform = (
+  transform: Partial<FurnitureTransform> | undefined | null,
+  fallbackModelName?: string,
+): FurnitureTransform | undefined => {
+  if (!transform) return undefined;
+
+  const rawRotation = (transform as any).rotation;
+  const rotation = Array.isArray(rawRotation)
+    ? rawRotation[1] ?? rawRotation[0] ?? 0
+    : typeof rawRotation === "number"
+      ? rawRotation
+      : 0;
+
+  const rawPos = (transform as any).position ?? (transform as any).position_m;
+  const position = Array.isArray(rawPos)
+    ? {
+        x: rawPos[0] ?? 0,
+        y: rawPos[1] ?? 0,
+        z: rawPos[2] ?? 0,
+      }
+    : rawPos ?? { x: 0, y: 0, z: 0 };
+
+  const rawScale = (transform as any).scale ?? (transform as any).scale_m;
+  const scale = Array.isArray(rawScale)
+    ? {
+        x: rawScale[0] ?? 1,
+        y: rawScale[1] ?? 1,
+        z: rawScale[2] ?? 1,
+      }
+    : rawScale;
+
+  const modelName =
+    transform.modelName || (transform as any).id || fallbackModelName || "";
+
+  const next: FurnitureTransform = {
+    modelName,
+    position,
+    rotation,
+  };
+
+  if (scale) {
+    next.scale = scale;
+  }
+  if ((transform as any).texture) {
+    next.texture = (transform as any).texture;
+  }
+
+  return next;
+};
+
 const normalizeRoomState = (data: Partial<RoomData>): RoomData => {
-  const mainModels = data.mainModels ?? [];
-  const addOnModels = data.addOnModels ?? [];
+  const rawMainModels = (data as any).mainModels ?? [];
+  const rawAddOnModels = (data as any).addOnModels ?? [];
+
+  let mainModels: string[] = [];
+  let addOnModels: string[] = [];
+  let mainModelTransforms: FurnitureTransform[] = [];
+  let addOnTransforms: FurnitureTransform[] = [];
+
+  if (rawMainModels.length > 0 && typeof rawMainModels[0] === "object") {
+    rawMainModels.forEach((item: any) => {
+      const id = item?.id || item?.modelName || "";
+      if (!id) return;
+      mainModels.push(id);
+      const t = normalizeTransform(
+        {
+          modelName: id,
+          position_m: item.position_m,
+          rotation: item.rotation,
+          scale: item.scale,
+          texture: item.texture,
+        } as any,
+        id,
+      );
+      if (t) mainModelTransforms.push(t);
+    });
+  } else {
+    mainModels = rawMainModels as string[];
+    mainModelTransforms = (data.mainModelTransforms ?? []).map(
+      (t, idx) => normalizeTransform(t, mainModels[idx])!,
+    );
+  }
+
+  if (rawAddOnModels.length > 0 && typeof rawAddOnModels[0] === "object") {
+    rawAddOnModels.forEach((item: any) => {
+      const id = item?.id || item?.modelName || "";
+      if (!id) return;
+      addOnModels.push(id);
+      const t = normalizeTransform(
+        {
+          modelName: id,
+          position_m: item.position_m,
+          rotation: item.rotation,
+          scale: item.scale,
+          texture: item.texture,
+        } as any,
+        id,
+      );
+      if (t) addOnTransforms.push(t);
+    });
+  } else {
+    addOnModels = rawAddOnModels as string[];
+    addOnTransforms = (data.addOnTransforms ?? []).map((t, idx) =>
+      normalizeTransform(t, addOnModels[idx]),
+    );
+  }
+
   const activeTexture = data.activeTexture ?? INITIAL_TEXTURE;
+  const totalPriceValue =
+    typeof (data as any).totalPrice === "object"
+      ? (data as any).totalPrice?.amount
+      : data.totalPrice;
   const totalPrice =
-    data.totalPrice ??
+    totalPriceValue ??
     calculateTotal(mainModels, addOnModels, activeTexture);
+
+  const roomConfig = (data as any).roomConfig ?? (data as any).room ?? {};
 
   return {
     ...INITIAL_STATE,
@@ -151,9 +261,9 @@ const normalizeRoomState = (data: Partial<RoomData>): RoomData => {
     mainModels,
     addOnModels,
     activeTexture,
-    mainModelTransforms: data.mainModelTransforms ?? [],
-    addOnTransforms: data.addOnTransforms ?? [],
-    roomConfig: { ...DEFAULT_ROOM_CONFIG, ...(data.roomConfig ?? {}) },
+    mainModelTransforms,
+    addOnTransforms,
+    roomConfig: { ...DEFAULT_ROOM_CONFIG, ...roomConfig },
     totalPrice,
     showHuman: data.showHuman ?? false,
     selectedFurniture: null,

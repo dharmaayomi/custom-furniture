@@ -66,27 +66,46 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
 
       // Jika ada saved transform, gunakan posisi yang tersimpan
       if (savedTransform && savedTransform.modelName === mesh.name) {
-        // Hitung jarak ke setiap tembok dari posisi yang tersimpan
+        // Prefer saved rotation to decide wall to avoid snapping to wrong wall
         const savedPos = savedTransform.position;
-        const distToBack = Math.abs(savedPos.z - rd / 2);
-        const distToFront = Math.abs(savedPos.z + rd / 2);
-        const distToRight = Math.abs(savedPos.x - rw / 2);
-        const distToLeft = Math.abs(savedPos.x + rw / 2);
-
-        const minDist = Math.min(
-          distToBack,
-          distToFront,
-          distToRight,
-          distToLeft,
-        );
+        const normalizedRotation =
+          ((savedTransform.rotation % (Math.PI * 2)) + Math.PI * 2) %
+          (Math.PI * 2);
 
         let currentWall: WallSide = "back";
-        if (minDist === distToBack) currentWall = "back";
-        else if (minDist === distToFront) currentWall = "front";
-        else if (minDist === distToRight) currentWall = "right";
-        else currentWall = "left";
+        const rotEps = Math.PI / 4; // 45deg tolerance
+        if (Math.abs(normalizedRotation - Math.PI) <= rotEps) {
+          currentWall = "back";
+        } else if (Math.abs(normalizedRotation - 0) <= rotEps) {
+          currentWall = "front";
+        } else if (Math.abs(normalizedRotation - Math.PI / 2) <= rotEps) {
+          currentWall = "left";
+        } else if (Math.abs(normalizedRotation - (Math.PI * 3) / 2) <= rotEps) {
+          currentWall = "right";
+        } else {
+          // Fallback: choose closest wall by distance
+          const distToBack = Math.abs(savedPos.z - rd / 2);
+          const distToFront = Math.abs(savedPos.z + rd / 2);
+          const distToRight = Math.abs(savedPos.x - rw / 2);
+          const distToLeft = Math.abs(savedPos.x + rw / 2);
+
+          const minDist = Math.min(
+            distToBack,
+            distToFront,
+            distToRight,
+            distToLeft,
+          );
+
+          if (minDist === distToBack) currentWall = "back";
+          else if (minDist === distToFront) currentWall = "front";
+          else if (minDist === distToRight) currentWall = "right";
+          else currentWall = "left";
+        }
 
         // Gunakan rotasi yang tersimpan
+        if (mesh.rotationQuaternion) {
+          mesh.rotationQuaternion = null;
+        }
         mesh.rotation.y = savedTransform.rotation;
         if (savedTransform.scale) {
           mesh.scaling.set(

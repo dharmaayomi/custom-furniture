@@ -67,6 +67,55 @@ export const ShareDesign = ({
     },
     onError: (error: AxiosError<{ message: string }>) => {},
   });
+
+  const buildDesignConfig = () => {
+    return {
+      units: { distance: "m", rotation: "rad" },
+      room: roomState.roomConfig,
+      mainModels: roomState.mainModels.map((id, index) => {
+        const transform = roomState.mainModelTransforms[index];
+        return {
+          id,
+          position_m: transform
+            ? [
+                transform.position.x,
+                transform.position.y,
+                transform.position.z,
+              ]
+            : null,
+          rotation: [0, transform?.rotation ?? 0, 0],
+          scale: transform?.scale
+            ? [
+                transform.scale.x,
+                transform.scale.y,
+                transform.scale.z,
+              ]
+            : null,
+          texture: transform?.texture ?? null,
+        };
+      }),
+      addOnModels: roomState.addOnModels.map((id, index) => {
+        const transform = roomState.addOnTransforms[index];
+        return {
+          id,
+          position_m: transform
+            ? [
+                transform.position.x,
+                transform.position.y,
+                transform.position.z,
+              ]
+            : null,
+          rotation: [0, transform?.rotation ?? 0, 0],
+          scale: transform?.scale
+            ? [transform.scale.x, transform.scale.y, transform.scale.z]
+            : null,
+          texture: transform?.texture ?? null,
+        };
+      }),
+      activeTexture: roomState.activeTexture,
+      totalPrice: { amount: roomState.totalPrice, currency: "IDR" },
+    };
+  };
   const logout = () => {
     signOut({ redirect: false });
     router.push("/");
@@ -97,7 +146,7 @@ export const ShareDesign = ({
 
   const handleGenerateShareable = async () => {
     await shareableLink({
-      configuration: roomState,
+      configuration: buildDesignConfig(),
     });
   };
 

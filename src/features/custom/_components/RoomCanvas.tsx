@@ -370,6 +370,9 @@ export const RoomCanvasThree = ({
     present.mainModelTransforms.forEach((transform) => {
       const mesh = sceneRef.current!.getMeshByName(transform.modelName);
       if (mesh) {
+        if (mesh.rotationQuaternion) {
+          mesh.rotationQuaternion = null;
+        }
         mesh.position.set(
           transform.position.x,
           transform.position.y,
@@ -384,6 +387,9 @@ export const RoomCanvasThree = ({
       const id = present.addOnModels[index] || transform.modelName;
       const mesh = sceneRef.current!.getMeshByName(id);
       if (mesh) {
+        if (mesh.rotationQuaternion) {
+          mesh.rotationQuaternion = null;
+        }
         mesh.position.set(
           transform.position.x,
           transform.position.y,
