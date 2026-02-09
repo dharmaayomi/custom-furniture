@@ -22,6 +22,7 @@ import {
   PaintBucket,
 } from "lucide-react";
 import { RoomCanvasThree } from "../_components/RoomCanvas";
+import { preloadTextures } from "../_components/RoomSetup";
 import { CustomizeRoomPanel } from "./CustomizeRoomPanel";
 import { FloatingToolPanel } from "./FloatingPanel";
 import { ListProductPanel } from "./ListProductPanel";
@@ -31,6 +32,7 @@ import { OpenDesignCode } from "./OpenDesignCode";
 import { ShareDesign } from "./ShareDesign";
 import { SidebarPanel } from "./SidebarPanel";
 import { ProductInfoPanel } from "./ProductInfoPanel";
+import { CAMERA_CONFIG } from "../_components/RoomConfig";
 
 const ASSETS_3D = [
   "lemaritest.glb",
@@ -77,13 +79,13 @@ export const RoomPage = () => {
     setMainModel,
     setActiveTexture,
     setMeshTexture,
-    addAdditionalModel,
+    addAddOnModel,
     setDesignCode,
     undo,
     redo,
   } = useRoomStore();
   const designCode = useRoomStore((state) => state.designCode);
-  const { mainModel, activeTexture, additionalModels } = present;
+  const { mainModels, activeTexture, addOnModels } = present;
   const tools: Tool[] = [
     {
       id: "furniture",
@@ -148,6 +150,15 @@ export const RoomPage = () => {
     }
   }, [designCode, setDesignCode]);
 
+  useEffect(() => {
+    if (!scene) return;
+    const texturePaths = [
+      present.roomConfig.floorTexture,
+      ...ASSETS_TEXTURE.map((t) => `/assets/texture/${t}`),
+    ];
+    preloadTextures(scene, texturePaths);
+  }, [scene, present.roomConfig.floorTexture]);
+
   const handleToolClick = (toolId: ToolType) => {
     if (activePanel === "sidebar" && selectedTool === toolId) {
       closePanel();
@@ -198,6 +209,73 @@ export const RoomPage = () => {
     setActivePanel("productInfo");
   };
 
+  const handleResetRoom = () => {
+    if (!scene) return;
+    const camera = scene.activeCamera;
+    if (!camera || !(camera instanceof BABYLON.ArcRotateCamera)) return;
+
+    camera.inertialAlphaOffset = 0;
+    camera.inertialBetaOffset = 0;
+    camera.inertialRadiusOffset = 0;
+    camera.inertialPanningX = 0;
+    camera.inertialPanningY = 0;
+
+    const frameRate = 60;
+    const totalFrames = 100;
+
+    const makeAnim = (name: string, prop: string, from: number, to: number) => {
+      const anim = new BABYLON.Animation(
+        name,
+        prop,
+        frameRate,
+        BABYLON.Animation.ANIMATIONTYPE_FLOAT,
+        BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT,
+      );
+      anim.setKeys([
+        { frame: 0, value: from },
+        { frame: totalFrames, value: to },
+      ]);
+      const easing = new BABYLON.CubicEase();
+      easing.setEasingMode(BABYLON.EasingFunction.EASINGMODE_EASEINOUT);
+      anim.setEasingFunction(easing);
+      return anim;
+    };
+
+    const animations: BABYLON.Animation[] = [
+      makeAnim("camAlphaReset", "alpha", camera.alpha, CAMERA_CONFIG.alpha),
+      makeAnim("camBetaReset", "beta", camera.beta, CAMERA_CONFIG.beta),
+      makeAnim(
+        "camRadiusReset",
+        "radius",
+        camera.radius,
+        CAMERA_CONFIG.zoomInRadius,
+      ),
+      makeAnim(
+        "camTargetYReset",
+        "target.y",
+        camera.target.y,
+        CAMERA_CONFIG.targetY,
+      ),
+      makeAnim("camTargetXReset", "target.x", camera.target.x, 0),
+      makeAnim("camTargetZReset", "target.z", camera.target.z, 0),
+    ];
+
+    scene.beginDirectAnimation(
+      camera,
+      animations,
+      0,
+      totalFrames,
+      false,
+      1,
+      () => {
+        camera.setTarget(new BABYLON.Vector3(0, CAMERA_CONFIG.targetY, 0));
+        camera.alpha = CAMERA_CONFIG.alpha;
+        camera.beta = CAMERA_CONFIG.beta;
+        camera.radius = CAMERA_CONFIG.zoomInRadius;
+      },
+    );
+  };
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-100">
       <MenuModal
@@ -206,6 +284,7 @@ export const RoomPage = () => {
         onOpenMyDesign={() => setIsMyDesignOpen(true)}
         onOpenDesignCode={() => setIsOpenDesignCodeOpen(true)}
         onOpenShareDesign={() => setIsShareDesignOpen(true)}
+        onResetRoom={handleResetRoom}
         isLoggedIn={false}
       />
       <MyDesign
@@ -243,13 +322,9 @@ export const RoomPage = () => {
       <ListProductPanel
         isOpen={activePanel === "productList"}
         onClose={closePanel}
-        mainModel={mainModel}
-        additionalModels={additionalModels}
-        totalPrice={calculateTotalPrice(
-          mainModel,
-          additionalModels,
-          activeTexture,
-        )}
+        mainModels={mainModels}
+        addOnModels={addOnModels}
+        totalPrice={calculateTotalPrice(mainModels, addOnModels, activeTexture)}
       />
       <ProductInfoPanel
         isOpen={activePanel === "productInfo"}
@@ -269,12 +344,12 @@ export const RoomPage = () => {
               onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
               onListClick={handleOpenProductList}
               totalPrice={calculateTotalPrice(
-                mainModel,
-                additionalModels,
+                mainModels,
+                addOnModels,
                 activeTexture,
               )}
               formattedPrice={formatPrice(
-                calculateTotalPrice(mainModel, additionalModels, activeTexture),
+                calculateTotalPrice(mainModels, addOnModels, activeTexture),
               )}
             />
           </div>
@@ -283,23 +358,24 @@ export const RoomPage = () => {
         {/* Room Canvas */}
         <div className="relative h-screen flex-1">
           <RoomCanvasThree
-            mainModel={mainModel}
+            mainModels={mainModels}
             activeTexture={activeTexture}
-            additionalModels={additionalModels}
+            addOnModels={addOnModels}
             onSceneReady={setScene}
           />
         </div>
 
         {/* floating tool panel */}
-        <FloatingToolPanel
-          tools={tools}
-          selectedTool={selectedTool}
-          showHomeSidebar={showHomeSidebar}
-          isSidebarOpen={isSidebarOpen}
-          onToolClick={handleToolClick}
-          onHomeClick={handleHomeClick}
-          onCustomizeClick={handleCustomizeClick}
-        />
+      <FloatingToolPanel
+        tools={tools}
+        selectedTool={selectedTool}
+        showHomeSidebar={showHomeSidebar}
+        isSidebarOpen={isSidebarOpen}
+        selectedFurniture={present.selectedFurniture}
+        onToolClick={handleToolClick}
+        onHomeClick={handleHomeClick}
+        onCustomizeClick={handleCustomizeClick}
+      />
 
         {/* Footer */}
         <div className="pointer-events-none absolute bottom-0 left-0 z-40 w-full">
@@ -321,17 +397,14 @@ export const RoomPage = () => {
         onClose={closeSidebar}
         assetList3D={ASSETS_3D}
         assetListTexture={ASSETS_TEXTURE}
-        mainModel={mainModel}
+        mainModels={mainModels}
         selectedFurniture={present.selectedFurniture}
         onSelectMainModel={(model) => setMainModel(model)}
-        onAddAdditionalModel={addAdditionalModel}
+        onAddAdditionalModel={addAddOnModel}
         onSelectTexture={(tex) => {
-          // If a mesh is selected, apply texture to that mesh only
-          if (present.selectedFurniture) {
-            setMeshTexture(present.selectedFurniture, tex);
-          } else {
-            setActiveTexture(tex);
-          }
+          // Apply texture only to the selected mesh
+          if (!present.selectedFurniture) return;
+          setMeshTexture(present.selectedFurniture, tex);
         }}
       />
     </div>

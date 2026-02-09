@@ -35,10 +35,6 @@ export const formatPrice = (price: number): string => {
 };
 
 export const extractModelNameFromId = (uniqueId: string): string => {
-  // Extract original model name from uniqueId
-  // Supported formats:
-  // - model_timestamp_randomstring
-  // - model_index
   const parts = uniqueId.split("_");
   let base = uniqueId;
 
@@ -56,18 +52,18 @@ export const extractModelNameFromId = (uniqueId: string): string => {
 };
 
 export const calculateTotalPrice = (
-  mainModel: string,
-  additionalModels: string[],
+  mainModels: string[],
+  addOnModels: string[],
   activeTexture: string,
 ): number => {
   let total = 0;
 
-  if (mainModel) {
-    total += getAssetPrice(mainModel);
-  }
+  mainModels.forEach((model) => {
+    const modelName = extractModelNameFromId(model);
+    total += getAssetPrice(modelName);
+  });
 
-  additionalModels.forEach((model) => {
-    // Extract the actual model name if it's a unique ID
+  addOnModels.forEach((model) => {
     const modelName = extractModelNameFromId(model);
     total += getAssetPrice(modelName);
   });

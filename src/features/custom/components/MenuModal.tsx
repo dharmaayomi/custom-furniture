@@ -25,6 +25,7 @@ import { useState } from "react";
 import useGetUserDisplay from "@/hooks/api/user/useGetUserDisplay";
 import {
   generateDesignCode,
+  clearDesignCodeFromStorage,
   loadDesignCodeFromStorage,
   saveDesignCodeToStorage,
 } from "@/lib/designCode";
@@ -36,6 +37,7 @@ interface MenuModalProps {
   onOpenMyDesign?: () => void;
   onOpenDesignCode?: () => void;
   onOpenShareDesign?: () => void;
+  onResetRoom?: () => void;
 }
 
 export const MenuModal = ({
@@ -45,6 +47,7 @@ export const MenuModal = ({
   onOpenMyDesign,
   onOpenDesignCode,
   onOpenShareDesign,
+  onResetRoom,
 }: MenuModalProps) => {
   const router = useRouter();
   const session = useSession();
@@ -99,6 +102,9 @@ export const MenuModal = ({
 
   const handleConfirmStartFromScratch = () => {
     resetRoom();
+    setDesignCode("");
+    clearDesignCodeFromStorage();
+    onResetRoom?.();
     setIsConfirmOpen(false);
     onClose();
   };

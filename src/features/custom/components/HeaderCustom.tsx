@@ -49,11 +49,11 @@ export const HeaderCustom = ({
         roomState.roomConfig.floorTexture === DEFAULT_ROOM_CONFIG.floorTexture;
 
       const isEmptyDesign =
-        roomState.mainModel === "" &&
-        roomState.additionalModels.length === 0 &&
+        roomState.mainModels.length === 0 &&
+        roomState.addOnModels.length === 0 &&
         roomState.activeTexture === "" &&
-        !roomState.mainModelTransform &&
-        roomState.additionalTransforms.length === 0 &&
+        roomState.mainModelTransforms.length === 0 &&
+        roomState.addOnTransforms.length === 0 &&
         isDefaultRoomConfig;
 
       if (isEmptyDesign) {
@@ -64,32 +64,29 @@ export const HeaderCustom = ({
         return;
       }
 
-      const mainTransform = roomState.mainModelTransform;
       const designConfig = {
         units: { distance: "m", rotation: "rad" },
         room: roomState.roomConfig,
-        mainModel: {
-          id: mainTransform?.modelName ?? null,
-          model: roomState.mainModel,
-          position_m: mainTransform
-            ? [
-                mainTransform.position.x,
-                mainTransform.position.y,
-                mainTransform.position.z,
-              ]
-            : null,
-          rotation: [0, mainTransform?.rotation ?? 0, 0],
-          scale: mainTransform?.scale
-            ? [
-                mainTransform.scale.x,
-                mainTransform.scale.y,
-                mainTransform.scale.z,
-              ]
-            : null,
-          texture: mainTransform?.texture ?? null,
-        },
-        additionalModels: roomState.additionalModels.map((id, index) => {
-          const transform = roomState.additionalTransforms[index];
+        mainModels: roomState.mainModels.map((id, index) => {
+          const transform = roomState.mainModelTransforms[index];
+          return {
+            id,
+            position_m: transform
+              ? [
+                  transform.position.x,
+                  transform.position.y,
+                  transform.position.z,
+                ]
+              : null,
+            rotation: [0, transform?.rotation ?? 0, 0],
+            scale: transform?.scale
+              ? [transform.scale.x, transform.scale.y, transform.scale.z]
+              : null,
+            texture: transform?.texture ?? null,
+          };
+        }),
+        addOnModels: roomState.addOnModels.map((id, index) => {
+          const transform = roomState.addOnTransforms[index];
           return {
             id,
             position_m: transform
