@@ -1,5 +1,3 @@
-import { en } from "zod/v4/locales";
-
 export type User = {
   id: number;
   email: string;

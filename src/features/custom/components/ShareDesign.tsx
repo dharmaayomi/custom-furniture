@@ -7,11 +7,15 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useRoomStore } from "@/store/useRoomStore";
 import {
-  generateDesignCode,
   loadDesignCodeFromStorage,
   saveDesignCodeToStorage,
 } from "@/lib/designCode";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+import { axiosInstance } from "@/lib/axios";
+import z from "zod";
+import { toast } from "sonner";
 
 interface MenuModalProps {
   isOpen: boolean;
@@ -20,6 +24,13 @@ interface MenuModalProps {
   onBackToMenu?: () => void;
 }
 
+export const createSharableDesignSchema = z.object({
+  configuration: z.record(z.string(), z.any()),
+});
+
+export type CreateSharableDesignInput = z.infer<
+  typeof createSharableDesignSchema
+>;
 export const ShareDesign = ({
   isOpen,
   onClose,
@@ -29,9 +40,33 @@ export const ShareDesign = ({
   const session = useSession();
   const designCode = useRoomStore((state) => state.designCode);
   const setDesignCode = useRoomStore((state) => state.setDesignCode);
+  const roomState = useRoomStore((state) => state.present);
   const [shareLink, setShareLink] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
 
+  const { mutateAsync: shareableLink, isPending } = useMutation({
+    mutationFn: async (data: CreateSharableDesignInput) => {
+      const result = await axiosInstance.post("/design/create-shareable-code", {
+        configuration: data.configuration,
+      });
+      return result.data;
+    },
+    onSuccess: (result) => {
+      const payload = (result as any)?.data ?? result;
+      const designCode = payload?.designCode;
+      if (!designCode) {
+        toast.error("Failed to create shareable design");
+        return;
+      }
+      const shareableUrl = `${window.location.origin}/custom/${designCode}`;
+      setDesignCode(designCode);
+      saveDesignCodeToStorage(designCode);
+      setShareLink(shareableUrl);
+      setCopyStatus("");
+      toast.success("Shareable link generated");
+    },
+    onError: (error: AxiosError<{ message: string }>) => {},
+  });
   const logout = () => {
     signOut({ redirect: false });
     router.push("/");
@@ -40,19 +75,12 @@ export const ShareDesign = ({
   const buildShareLink = (code: string) => {
     if (!code) return "";
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    return `${origin || ""}/design/${code}`;
+    return `${origin || ""}/custom/${code}`;
   };
 
-  const ensureShareData = () => {
+  const getStoredCode = () => {
     const storedCode = loadDesignCodeFromStorage();
-    const code = designCode || storedCode || generateDesignCode(6);
-    if (code !== designCode) {
-      setDesignCode(code);
-    }
-    saveDesignCodeToStorage(code);
-    const link = buildShareLink(code);
-    setShareLink(link);
-    return { code, link };
+    return designCode || storedCode || "";
   };
 
   const handleLogin = () => {
@@ -67,21 +95,18 @@ export const ShareDesign = ({
     onClose();
   };
 
-  const handleGetLink = () => {
-    ensureShareData();
-    setCopyStatus("");
+  const handleGenerateShareable = async () => {
+    await shareableLink({
+      configuration: roomState,
+    });
   };
 
-  const handleGenerateCode = () => {
-    const code = generateDesignCode(6);
-    setDesignCode(code);
-    saveDesignCodeToStorage(code);
-    setShareLink(buildShareLink(code));
-    setCopyStatus("");
-  };
-
-  const handleShareViaEmail = () => {
-    const { code, link } = ensureShareData();
+  const handleShareViaEmail = async () => {
+    if (!getStoredCode()) {
+      await handleGenerateShareable();
+    }
+    const code = getStoredCode();
+    const link = shareLink || buildShareLink(code);
     const subject = encodeURIComponent("My Custom Furniture Design");
     const body = encodeURIComponent(
       `Here is my design.\n\nDesign code: ${code}\nLink: ${link}`,
@@ -92,10 +117,9 @@ export const ShareDesign = ({
   };
 
   const handleCopyLink = async () => {
-    const { link } = ensureShareData();
-    if (!link) return;
+    if (!shareLink) return;
     try {
-      await navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(shareLink);
       setCopyStatus("Link copied!");
     } catch {
       setCopyStatus("Copy failed");
@@ -103,7 +127,7 @@ export const ShareDesign = ({
   };
 
   const handleCopyCode = async () => {
-    const { code } = ensureShareData();
+    const code = getStoredCode();
     if (!code) return;
     try {
       await navigator.clipboard.writeText(code);
@@ -165,6 +189,7 @@ export const ShareDesign = ({
                   id="share-email-button"
                   name="share-email"
                   className="w-full"
+                  variant="outline"
                 >
                   Share via Email
                 </Button>
@@ -211,10 +236,22 @@ export const ShareDesign = ({
                         name="share-copy-link"
                         variant="secondary"
                         className="gap-2"
+                        disabled={!shareLink || isPending}
                       >
                         <Copy size={16} />
                       </Button>
                     </div>
+                    <p className="text-xs font-light text-gray-500 italic">
+                      This link represents a snapshot of your design at the time
+                      it was generated.
+                    </p>
+                    <Button
+                      className="w-full"
+                      onClick={handleGenerateShareable}
+                      disabled={isPending}
+                    >
+                      {isPending ? "Generating..." : "Generate Link"}
+                    </Button>
                   </div>
                 </TabsContent>
 
@@ -231,7 +268,7 @@ export const ShareDesign = ({
                         type="text"
                         name="share-design-code"
                         id="share-design-code"
-                        value={designCode}
+                        value={getStoredCode()}
                         readOnly
                         placeholder="Click Generate Code"
                         className="uppercase"
@@ -242,6 +279,7 @@ export const ShareDesign = ({
                         name="share-copy-code"
                         variant="secondary"
                         className="gap-2"
+                        disabled={!getStoredCode() || isPending}
                       >
                         <Copy size={16} />
                       </Button>
@@ -249,6 +287,17 @@ export const ShareDesign = ({
                     <p className="text-xs text-gray-500">
                       Codes are 5-6 characters long (letters & numbers)
                     </p>
+                    <p className="text-xs font-light text-gray-500 italic">
+                      This code represents a snapshot of your design at the time
+                      it was generated.
+                    </p>
+                    <Button
+                      className="w-full"
+                      onClick={handleGenerateShareable}
+                      disabled={isPending}
+                    >
+                      {isPending ? "Generating..." : "Generate Code"}
+                    </Button>
                   </div>
                 </TabsContent>
               </Tabs>
