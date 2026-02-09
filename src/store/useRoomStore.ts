@@ -76,6 +76,7 @@ interface RoomStore {
   future: RoomData[];
   designCode: string;
   setDesignCode: (code: string) => void;
+  loadRoomState: (data: Partial<RoomData>) => void;
 
   setMainModel: (model: string) => void;
   setActiveTexture: (texture: string) => void;
@@ -134,12 +135,40 @@ const INITIAL_STATE: RoomData = {
   selectedFurniture: null,
 };
 
+const normalizeRoomState = (data: Partial<RoomData>): RoomData => {
+  const mainModel = data.mainModel ?? INITIAL_MAIN;
+  const activeTexture = data.activeTexture ?? INITIAL_TEXTURE;
+  const additionalModels = data.additionalModels ?? [];
+  const totalPrice =
+    data.totalPrice ??
+    calculateTotal(mainModel, additionalModels, activeTexture);
+
+  return {
+    ...INITIAL_STATE,
+    ...data,
+    mainModel,
+    activeTexture,
+    additionalModels,
+    additionalTransforms: data.additionalTransforms ?? [],
+    roomConfig: { ...DEFAULT_ROOM_CONFIG, ...(data.roomConfig ?? {}) },
+    totalPrice,
+    showHuman: data.showHuman ?? false,
+    selectedFurniture: null,
+  };
+};
+
 export const useRoomStore = create<RoomStore>((set) => ({
   past: [],
   present: INITIAL_STATE,
   future: [],
   designCode: "",
   setDesignCode: (code) => set({ designCode: code }),
+  loadRoomState: (data) =>
+    set(() => ({
+      past: [],
+      present: normalizeRoomState(data),
+      future: [],
+    })),
 
   // --- 3. ACTIONS DENGAN KALKULASI HARGA OTOMATIS ---
 

@@ -82,6 +82,7 @@ export const RoomPage = () => {
     undo,
     redo,
   } = useRoomStore();
+  const designCode = useRoomStore((state) => state.designCode);
   const { mainModel, activeTexture, additionalModels } = present;
   const tools: Tool[] = [
     {
@@ -138,13 +139,14 @@ export const RoomPage = () => {
   }, [undo, redo]);
 
   useEffect(() => {
+    if (designCode) return;
     const storedCode = loadDesignCodeFromStorage();
     const code = storedCode || generateDesignCode(6);
     setDesignCode(code);
     if (!storedCode) {
       saveDesignCodeToStorage(code);
     }
-  }, [setDesignCode]);
+  }, [designCode, setDesignCode]);
 
   const handleToolClick = (toolId: ToolType) => {
     if (activePanel === "sidebar" && selectedTool === toolId) {
