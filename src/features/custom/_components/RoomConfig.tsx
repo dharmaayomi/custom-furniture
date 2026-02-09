@@ -23,6 +23,7 @@ export const CAMERA_CONFIG = {
   alpha: -Math.PI / 2,
   beta: Math.PI / 2,
   radius: 6,
+  zoomInRadius: 2.5,
   targetY: 1.2,
   wheelPrecision: 60,
   lowerBetaLimit: 0.1,

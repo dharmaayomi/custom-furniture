@@ -77,19 +77,11 @@ export const ShareDesign = ({
         return {
           id,
           position_m: transform
-            ? [
-                transform.position.x,
-                transform.position.y,
-                transform.position.z,
-              ]
+            ? [transform.position.x, transform.position.y, transform.position.z]
             : null,
           rotation: [0, transform?.rotation ?? 0, 0],
           scale: transform?.scale
-            ? [
-                transform.scale.x,
-                transform.scale.y,
-                transform.scale.z,
-              ]
+            ? [transform.scale.x, transform.scale.y, transform.scale.z]
             : null,
           texture: transform?.texture ?? null,
         };
@@ -99,11 +91,7 @@ export const ShareDesign = ({
         return {
           id,
           position_m: transform
-            ? [
-                transform.position.x,
-                transform.position.y,
-                transform.position.z,
-              ]
+            ? [transform.position.x, transform.position.y, transform.position.z]
             : null,
           rotation: [0, transform?.rotation ?? 0, 0],
           scale: transform?.scale
@@ -317,8 +305,8 @@ export const ShareDesign = ({
                         type="text"
                         name="share-design-code"
                         id="share-design-code"
-                        value={getStoredCode()}
                         readOnly
+                        disabled
                         placeholder="Click Generate Code"
                         className="uppercase"
                       />{" "}

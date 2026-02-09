@@ -31,6 +31,7 @@ import { OpenDesignCode } from "./OpenDesignCode";
 import { ShareDesign } from "./ShareDesign";
 import { SidebarPanel } from "./SidebarPanel";
 import { ProductInfoPanel } from "./ProductInfoPanel";
+import { CAMERA_CONFIG } from "../_components/RoomConfig";
 
 const ASSETS_3D = [
   "lemaritest.glb",
@@ -198,6 +199,73 @@ export const RoomPage = () => {
     setActivePanel("productInfo");
   };
 
+  const handleResetRoom = () => {
+    if (!scene) return;
+    const camera = scene.activeCamera;
+    if (!camera || !(camera instanceof BABYLON.ArcRotateCamera)) return;
+
+    camera.inertialAlphaOffset = 0;
+    camera.inertialBetaOffset = 0;
+    camera.inertialRadiusOffset = 0;
+    camera.inertialPanningX = 0;
+    camera.inertialPanningY = 0;
+
+    const frameRate = 60;
+    const totalFrames = 100;
+
+    const makeAnim = (name: string, prop: string, from: number, to: number) => {
+      const anim = new BABYLON.Animation(
+        name,
+        prop,
+        frameRate,
+        BABYLON.Animation.ANIMATIONTYPE_FLOAT,
+        BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT,
+      );
+      anim.setKeys([
+        { frame: 0, value: from },
+        { frame: totalFrames, value: to },
+      ]);
+      const easing = new BABYLON.CubicEase();
+      easing.setEasingMode(BABYLON.EasingFunction.EASINGMODE_EASEINOUT);
+      anim.setEasingFunction(easing);
+      return anim;
+    };
+
+    const animations: BABYLON.Animation[] = [
+      makeAnim("camAlphaReset", "alpha", camera.alpha, CAMERA_CONFIG.alpha),
+      makeAnim("camBetaReset", "beta", camera.beta, CAMERA_CONFIG.beta),
+      makeAnim(
+        "camRadiusReset",
+        "radius",
+        camera.radius,
+        CAMERA_CONFIG.zoomInRadius,
+      ),
+      makeAnim(
+        "camTargetYReset",
+        "target.y",
+        camera.target.y,
+        CAMERA_CONFIG.targetY,
+      ),
+      makeAnim("camTargetXReset", "target.x", camera.target.x, 0),
+      makeAnim("camTargetZReset", "target.z", camera.target.z, 0),
+    ];
+
+    scene.beginDirectAnimation(
+      camera,
+      animations,
+      0,
+      totalFrames,
+      false,
+      1,
+      () => {
+        camera.setTarget(new BABYLON.Vector3(0, CAMERA_CONFIG.targetY, 0));
+        camera.alpha = CAMERA_CONFIG.alpha;
+        camera.beta = CAMERA_CONFIG.beta;
+        camera.radius = CAMERA_CONFIG.zoomInRadius;
+      },
+    );
+  };
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-100">
       <MenuModal
@@ -206,6 +274,7 @@ export const RoomPage = () => {
         onOpenMyDesign={() => setIsMyDesignOpen(true)}
         onOpenDesignCode={() => setIsOpenDesignCodeOpen(true)}
         onOpenShareDesign={() => setIsShareDesignOpen(true)}
+        onResetRoom={handleResetRoom}
         isLoggedIn={false}
       />
       <MyDesign
@@ -245,11 +314,7 @@ export const RoomPage = () => {
         onClose={closePanel}
         mainModels={mainModels}
         addOnModels={addOnModels}
-        totalPrice={calculateTotalPrice(
-          mainModels,
-          addOnModels,
-          activeTexture,
-        )}
+        totalPrice={calculateTotalPrice(mainModels, addOnModels, activeTexture)}
       />
       <ProductInfoPanel
         isOpen={activePanel === "productInfo"}

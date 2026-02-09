@@ -48,32 +48,26 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   floorVinylMat.directIntensity = 1.5;
 
   let texture = textureCache.get(floorTexturePath);
+  if (texture && texture.isDisposed()) {
+    textureCache.delete(floorTexturePath);
+    texture = undefined;
+  }
 
   if (!texture) {
     texture = new BABYLON.Texture(floorTexturePath, scene);
-    texture.uScale = rw;
-    texture.vScale = rd;
-    texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
-    texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
     texture.onLoadObservable.addOnce(() => {
       textureCache.set(floorTexturePath, texture!);
     });
   }
 
-  // Check apakah texture sudah ready
-  if (texture.isReady()) {
-    // Texture sudah loaded, langsung apply
-    floorVinylMat.albedoTexture = texture;
-    floorVinylMat.albedoColor = new BABYLON.Color3(1, 1, 1);
-  } else {
-    // Texture belum loaded, pakai placeholder
-    floorVinylMat.albedoColor = new BABYLON.Color3(0.9, 0.9, 0.9);
+  // Always apply texture (even if not ready yet) to avoid blank floor on first load
+  texture.uScale = rw;
+  texture.vScale = rd;
+  texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+  texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 
-    texture.onLoadObservable.addOnce(() => {
-      floorVinylMat.albedoTexture = texture;
-      floorVinylMat.albedoColor = new BABYLON.Color3(1, 1, 1);
-    });
-  }
+  floorVinylMat.albedoTexture = texture;
+  floorVinylMat.albedoColor = new BABYLON.Color3(1, 1, 1);
 
   floorVinyl.material = floorVinylMat;
 

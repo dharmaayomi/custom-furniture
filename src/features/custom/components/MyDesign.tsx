@@ -53,6 +53,12 @@ export const MyDesign = ({
     }
     onClose();
   };
+  const handleOpenDesignCode = () => {
+    const code = designCode.trim();
+    if (!code) return;
+    onClose();
+    window.open(`/custom/${code}`, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <>
@@ -134,7 +140,13 @@ export const MyDesign = ({
                       maxLength={6}
                       className="uppercase"
                     />
-                    <Button variant="secondary">Open</Button>
+                    <Button
+                      variant="secondary"
+                      onClick={handleOpenDesignCode}
+                      disabled={!designCode.trim()}
+                    >
+                      Open
+                    </Button>
                   </div>
                   <p className="text-xs text-gray-500">
                     A 5-6 character code using letters and numbers (e.g. SK9CP8)
