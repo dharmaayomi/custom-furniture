@@ -13,6 +13,21 @@ if (typeof window !== "undefined") {
 
 const materialCache = new Map<string, BABYLON.PBRMaterial>();
 const textureCache = new Map<string, BABYLON.Texture>();
+
+export const preloadTextures = (
+  scene: BABYLON.Scene,
+  texturePaths: string[],
+) => {
+  texturePaths.forEach((path) => {
+    if (!path) return;
+    const cached = textureCache.get(path);
+    if (cached) return;
+    const texture = new BABYLON.Texture(path, scene);
+    texture.onLoadObservable.addOnce(() => {
+      textureCache.set(path, texture);
+    });
+  });
+};
 export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   const {
     width: rw,
@@ -48,7 +63,7 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   floorVinylMat.directIntensity = 1.5;
 
   let texture = textureCache.get(floorTexturePath);
-  if (texture && texture.isDisposed()) {
+  if (texture && (texture as any).isDisposed?.()) {
     textureCache.delete(floorTexturePath);
     texture = undefined;
   }

@@ -67,7 +67,6 @@ export const RoomCanvasThree = ({
     floorBase: BABYLON.Mesh;
   } | null>(null);
   const [debouncedRoomConfig] = useDebounceValue(roomConfig, 150);
-  const [debouncedActiveTexture] = useDebounceValue(activeTexture, 150);
 
   // --- 1. INITIAL SCENE SETUP ---
 
@@ -334,13 +333,13 @@ export const RoomCanvasThree = ({
     // Build per-mesh texture map from transforms (persisted on transforms)
     const meshTextureMap: Record<string, string> = {};
     present.mainModelTransforms.forEach((t) => {
-      if (t && t.texture) {
+      if (t && t.texture !== undefined) {
         meshTextureMap[t.modelName] = t.texture as string;
       }
     });
 
     present.addOnTransforms.forEach((t, idx) => {
-      if (t && t.texture) {
+      if (t && t.texture !== undefined) {
         const key = present.addOnModels[idx] || t.modelName;
         meshTextureMap[key] = t.texture as string;
       }
@@ -348,12 +347,10 @@ export const RoomCanvasThree = ({
 
     updateAllTextures(
       scene,
-      debouncedActiveTexture,
       mainMeshesRef.current,
       meshTextureMap,
     );
   }, [
-    debouncedActiveTexture,
     present.mainModelTransforms,
     present.addOnTransforms,
     present.addOnModels,

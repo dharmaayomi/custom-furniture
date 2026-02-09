@@ -56,10 +56,7 @@ export const loadMainModel = async (
     // Pre-cache original materials so Reset/clear restores true originals
     cacheOriginalMaterials(rootMesh);
 
-    // Apply texture to all child meshes
-    rootMesh.getChildMeshes().forEach((m) => {
-      if (activeTexture) applyTextureToMesh(m, activeTexture, scene);
-    });
+    // No global texture application here; textures are per-mesh only
 
     // Auto scale
     const scaleFactor = autoScaleMesh(rootMesh);
@@ -453,9 +450,7 @@ export const loadAdditionalModel = async (
     // Pre-cache original materials so Reset/clear restores true originals
     cacheOriginalMaterials(rootMesh);
 
-    rootMesh.getChildMeshes().forEach((m) => {
-      if (activeTexture) applyTextureToMesh(m, activeTexture, scene);
-    });
+    // No global texture application here; textures are per-mesh only
 
     autoScaleMesh(rootMesh);
 
@@ -767,15 +762,12 @@ export const loadAdditionalModel = async (
 
 export const updateAllTextures = (
   scene: BABYLON.Scene,
-  activeTexture: string,
   mainMeshes: BABYLON.AbstractMesh[],
   meshTextureMap?: Record<string, string>,
 ) => {
-  // Skip if both global and per-mesh textures are empty
-  const hasGlobalTexture = activeTexture && activeTexture !== "";
   const hasPerMeshTextures =
     meshTextureMap && Object.keys(meshTextureMap).length > 0;
-  if (!hasGlobalTexture && !hasPerMeshTextures) {
+  if (!hasPerMeshTextures) {
     return; // Nothing to apply
   }
 
@@ -785,7 +777,8 @@ export const updateAllTextures = (
     return meshTextureMap[meshName];
   };
   mainMeshes.forEach((mainMesh) => {
-    const mainTex = getTextureForMesh(mainMesh.name) ?? activeTexture;
+    const mainTex = getTextureForMesh(mainMesh.name);
+    if (mainTex === undefined) return;
     applyTextureToMesh(mainMesh, mainTex, scene);
     mainMesh.getChildMeshes().forEach((m) => {
       const childTex = getTextureForMesh(m.name) ?? mainTex;
@@ -800,7 +793,8 @@ export const updateAllTextures = (
       !mainMeshes.includes(mesh) &&
       !mainMeshes.includes(mesh.parent as BABYLON.AbstractMesh)
     ) {
-      const tex = getTextureForMesh(mesh.name) ?? activeTexture;
+      const tex = getTextureForMesh(mesh.name);
+      if (tex === undefined) return;
       applyTextureToMesh(mesh, tex, scene);
       mesh.getChildMeshes().forEach((m) => {
         const childTex = getTextureForMesh(m.name) ?? tex;

@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { Tool, ToolType } from "@/types/toolType";
 import { useState } from "react";
@@ -75,11 +75,10 @@ export const SidebarPanel = ({
           {tool.id === "tambahan" && mainModels.length === 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
               <p className="text-sm font-medium text-amber-900">
-                ⚠️ Please select a model first
+                Please select a model first
               </p>
               <p className="mt-1 text-xs text-amber-700">
-                You need to place the main furniture before adding additional
-                items.
+                You need to place the furniture before adding additional items.
               </p>
             </div>
           )}
@@ -87,11 +86,20 @@ export const SidebarPanel = ({
           {tool.id === "paint" && mainModels.length === 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
               <p className="text-sm font-medium text-amber-900">
-                ⚠️ Please select a model first
+                Please select a model first
               </p>
               <p className="mt-1 text-xs text-amber-700">
-                You need to place the main furniture before adding paint
-                textures.
+                You need to place the furniture before adding paint textures.
+              </p>
+            </div>
+          )}
+          {tool.id === "paint" && mainModels.length > 0 && !selectedFurniture && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <p className="text-sm font-medium text-amber-900">
+                Please select a model
+              </p>
+              <p className="mt-1 text-xs text-amber-700">
+                Select a furniture item to apply a texture.
               </p>
             </div>
           )}
@@ -103,11 +111,15 @@ export const SidebarPanel = ({
                   if (tool.id === "tambahan" && mainModels.length === 0) {
                     return; // Prevent click if main model doesn't exist
                   }
+                  if (tool.id === "paint" && !selectedFurniture) {
+                    return; // Prevent texture when no selection
+                  }
                   handleItemClick(item);
                 }}
                 className={`relative aspect-square cursor-pointer overflow-hidden rounded-lg border-2 border-gray-200 bg-gray-100 transition-all hover:border-blue-500 ${
-                  tool.id === "tambahan" && mainModels.length === 0
-                    ? "cursor-not-allowed opacity-50"
+                  (tool.id === "tambahan" && mainModels.length === 0) ||
+                  (tool.id === "paint" && !selectedFurniture)
+                    ? "pointer-events-none cursor-not-allowed opacity-50"
                     : ""
                 }`}
               >

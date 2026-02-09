@@ -134,4 +134,10 @@
     color: var(--foreground) !important;
     opacity: 0.75;
   }
+  .maplibregl-popup-content {
+    @apply bg-transparent! shadow-none! p-0! rounded-none!;
+  }
+  .maplibregl-popup-tip {
+    @apply hidden!;
+  }
 }

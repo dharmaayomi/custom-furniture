@@ -377,7 +377,9 @@ export const useRoomStore = create<RoomStore>((set) => ({
         if (existing === texture && texture !== "") return state;
 
         const newTransform = { ...current };
-        if (!texture || texture === "") {
+        if (texture === "") {
+          newTransform.texture = "";
+        } else if (!texture) {
           delete newTransform.texture;
         } else {
           newTransform.texture = texture;
@@ -416,7 +418,9 @@ export const useRoomStore = create<RoomStore>((set) => ({
       if (existing === texture && texture !== "") return state;
 
       const newTransform = { ...current };
-      if (!texture || texture === "") {
+      if (texture === "") {
+        newTransform.texture = "";
+      } else if (!texture) {
         delete newTransform.texture;
       } else {
         newTransform.texture = texture;
@@ -691,15 +695,29 @@ export const useRoomStore = create<RoomStore>((set) => ({
       let newPresent: RoomData;
 
       if (isMainModel) {
+        const existing = state.present.mainModelTransforms[index];
+        const merged = {
+          ...existing,
+          ...transform,
+          texture:
+            transform.texture === undefined ? existing?.texture : transform.texture,
+        };
         const newTransforms = [...state.present.mainModelTransforms];
-        newTransforms[index] = transform;
+        newTransforms[index] = merged;
         newPresent = {
           ...state.present,
           mainModelTransforms: newTransforms,
         };
       } else {
+        const existing = state.present.addOnTransforms[index];
+        const merged = {
+          ...existing,
+          ...transform,
+          texture:
+            transform.texture === undefined ? existing?.texture : transform.texture,
+        };
         const newTransforms = [...state.present.addOnTransforms];
-        newTransforms[index] = transform;
+        newTransforms[index] = merged;
         newPresent = {
           ...state.present,
           addOnTransforms: newTransforms,

@@ -22,6 +22,7 @@ import {
   PaintBucket,
 } from "lucide-react";
 import { RoomCanvasThree } from "../_components/RoomCanvas";
+import { preloadTextures } from "../_components/RoomSetup";
 import { CustomizeRoomPanel } from "./CustomizeRoomPanel";
 import { FloatingToolPanel } from "./FloatingPanel";
 import { ListProductPanel } from "./ListProductPanel";
@@ -148,6 +149,15 @@ export const RoomPage = () => {
       saveDesignCodeToStorage(code);
     }
   }, [designCode, setDesignCode]);
+
+  useEffect(() => {
+    if (!scene) return;
+    const texturePaths = [
+      present.roomConfig.floorTexture,
+      ...ASSETS_TEXTURE.map((t) => `/assets/texture/${t}`),
+    ];
+    preloadTextures(scene, texturePaths);
+  }, [scene, present.roomConfig.floorTexture]);
 
   const handleToolClick = (toolId: ToolType) => {
     if (activePanel === "sidebar" && selectedTool === toolId) {
@@ -356,15 +366,16 @@ export const RoomPage = () => {
         </div>
 
         {/* floating tool panel */}
-        <FloatingToolPanel
-          tools={tools}
-          selectedTool={selectedTool}
-          showHomeSidebar={showHomeSidebar}
-          isSidebarOpen={isSidebarOpen}
-          onToolClick={handleToolClick}
-          onHomeClick={handleHomeClick}
-          onCustomizeClick={handleCustomizeClick}
-        />
+      <FloatingToolPanel
+        tools={tools}
+        selectedTool={selectedTool}
+        showHomeSidebar={showHomeSidebar}
+        isSidebarOpen={isSidebarOpen}
+        selectedFurniture={present.selectedFurniture}
+        onToolClick={handleToolClick}
+        onHomeClick={handleHomeClick}
+        onCustomizeClick={handleCustomizeClick}
+      />
 
         {/* Footer */}
         <div className="pointer-events-none absolute bottom-0 left-0 z-40 w-full">
@@ -391,12 +402,9 @@ export const RoomPage = () => {
         onSelectMainModel={(model) => setMainModel(model)}
         onAddAdditionalModel={addAddOnModel}
         onSelectTexture={(tex) => {
-          // If a mesh is selected, apply texture to that mesh only
-          if (present.selectedFurniture) {
-            setMeshTexture(present.selectedFurniture, tex);
-          } else {
-            setActiveTexture(tex);
-          }
+          // Apply texture only to the selected mesh
+          if (!present.selectedFurniture) return;
+          setMeshTexture(present.selectedFurniture, tex);
         }}
       />
     </div>

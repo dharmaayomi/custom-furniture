@@ -14,6 +14,7 @@ interface FloatingToolPanelProps {
   selectedTool: ToolType;
   showHomeSidebar: boolean;
   isSidebarOpen: boolean;
+  selectedFurniture: string | null;
   onToolClick: (toolId: ToolType) => void;
   onHomeClick: () => void;
   onCustomizeClick: () => void;
@@ -24,6 +25,7 @@ export const FloatingToolPanel = ({
   selectedTool,
   showHomeSidebar,
   isSidebarOpen,
+  selectedFurniture,
   onToolClick,
   onHomeClick,
   onCustomizeClick,
@@ -64,16 +66,22 @@ export const FloatingToolPanel = ({
         <div className="flex flex-col overflow-hidden rounded-sm bg-slate-900 shadow-lg">
           {tools.map((tool, index) => {
             const Icon = tool.icon;
+            const isPaintDisabled =
+              tool.id === "paint" && !selectedFurniture;
             return (
               <Tooltip key={index}>
                 <TooltipTrigger asChild>
                   <Button
-                    onClick={() => onToolClick(tool.id)}
+                    onClick={() => {
+                      if (isPaintDisabled) return;
+                      onToolClick(tool.id);
+                    }}
+                    disabled={isPaintDisabled}
                     className={`rounded-none border-none transition-all ${
                       selectedTool === tool.id
                         ? "bg-white text-black hover:bg-white hover:text-black"
                         : "bg-slate-900 text-white hover:bg-slate-800"
-                    }`}
+                    } ${isPaintDisabled ? "cursor-not-allowed opacity-50" : ""}`}
                     size="icon"
                   >
                     <Icon size={20} />
