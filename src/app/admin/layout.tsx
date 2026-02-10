@@ -26,12 +26,12 @@ export default function AdminLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="hidden md:block">
+    <div className="min-h-dvh w-full">
       <SidebarProvider>
         <AdminSidebar />
         <SidebarInset className="dark:border">
-          <header className="flex h-16 shrink-0 items-center gap-2">
-            <div className="flex items-center gap-2 px-4">
+          <header className="flex h-14 shrink-0 items-center gap-2 sm:h-16">
+            <div className="flex items-center gap-2 px-3 sm:px-4">
               <SidebarTrigger className="-ml-1" />
               <Separator
                 orientation="vertical"
@@ -54,7 +54,7 @@ export default function AdminLayout({
           </header>
           <main>
             <div className="flex flex-1 flex-col">
-              <div className="@container/main m-5 flex flex-1 flex-col gap-2">
+              <div className="@container/main m-3 flex flex-1 flex-col gap-2 sm:m-5">
                 {children}
               </div>
             </div>
