@@ -8,6 +8,7 @@ import {
   Frame,
   LifeBuoy,
   Map,
+  MapPin,
   PieChart,
   Send,
   Settings2,
@@ -33,12 +34,13 @@ const data = {
   user: {
     name: "shadcn",
     email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    avatar:
+      "https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png",
   },
   navMain: [
     {
       title: "Orders",
-      url: "/admin/orders",
+      url: "/dashboard/orders",
       icon: SquareTerminal,
       items: [
         {
@@ -57,7 +59,7 @@ const data = {
     },
     {
       title: "Products",
-      url: "/admin/products",
+      url: "/dashboard/products",
       icon: Bot,
       items: [
         {
@@ -75,9 +77,9 @@ const data = {
       ],
     },
     {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
+      title: "Address",
+      url: "/dashboard/address",
+      icon: MapPin,
       items: [
         {
           title: "Introduction",
@@ -99,7 +101,7 @@ const data = {
     },
     {
       title: "Settings",
-      url: "#",
+      url: "/dashboard/settings",
       icon: Settings2,
       items: [
         {
@@ -152,7 +154,7 @@ const data = {
   ],
 };
 
-export function AdminSidebar({
+export function DashboardSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   return (

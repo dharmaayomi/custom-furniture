@@ -332,10 +332,7 @@ export const RoomPage = () => {
       />
 
       <div
-        className="relative min-w-0 flex-1 bg-gray-200"
-        style={{
-          marginRight: isAnyPanelOpen ? "320px" : "0",
-        }}
+        className={`relative min-w-0 flex-1 bg-gray-200 ${isAnyPanelOpen ? "md:mr-80" : ""}`}
       >
         {/* Header */}
         <div className="pointer-events-none absolute top-0 left-0 z-40 w-full">

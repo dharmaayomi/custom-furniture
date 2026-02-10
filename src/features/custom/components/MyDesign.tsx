@@ -14,6 +14,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useRoomStore } from "@/store/useRoomStore";
 import { useState } from "react";
+import { getAvatarFallback } from "@/lib/avatar";
 
 interface MenuModalProps {
   isOpen: boolean;
@@ -33,6 +34,11 @@ export const MyDesign = ({
   const resetRoom = useRoomStore((state) => state.reset);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [designCode, setDesignCode] = useState("");
+  const avatarFallback = getAvatarFallback({
+    firstName: session.data?.user?.firstName,
+    lastName: session.data?.user?.lastName,
+    name: session.data?.user?.name ?? "User",
+  });
   const logout = () => {
     signOut({ redirect: false });
     router.push("/");
@@ -164,7 +170,7 @@ export const MyDesign = ({
                 <div className="flex items-center gap-3 overflow-hidden">
                   <Avatar>
                     <AvatarImage src="https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png" />
-                    <AvatarFallback>CN</AvatarFallback>
+                    <AvatarFallback>{avatarFallback}</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
                     <p className="truncate text-sm font-semibold text-gray-700 capitalize">

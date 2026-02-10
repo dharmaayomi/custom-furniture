@@ -93,16 +93,18 @@ export const SidebarPanel = ({
               </p>
             </div>
           )}
-          {tool.id === "paint" && mainModels.length > 0 && !selectedFurniture && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <p className="text-sm font-medium text-amber-900">
-                Please select a model
-              </p>
-              <p className="mt-1 text-xs text-amber-700">
-                Select a furniture item to apply a texture.
-              </p>
-            </div>
-          )}
+          {tool.id === "paint" &&
+            mainModels.length > 0 &&
+            !selectedFurniture && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <p className="text-sm font-medium text-amber-900">
+                  Please select a model
+                </p>
+                <p className="mt-1 text-xs text-amber-700">
+                  Select a furniture item to apply a texture.
+                </p>
+              </div>
+            )}
           <div className="mt-6 grid grid-cols-2 gap-4">
             {itemsToShow.map((item, idx) => (
               <div
@@ -220,7 +222,7 @@ export const SidebarPanel = ({
 
   return (
     <div
-      className={`fixed top-0 right-0 z-51 h-full w-80 bg-white shadow-md ${
+      className={`fixed top-0 right-0 z-60 h-full w-[85vw] max-w-88 bg-white shadow-md sm:w-80 sm:max-w-none ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
     >

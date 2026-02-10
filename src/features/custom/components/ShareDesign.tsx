@@ -16,6 +16,7 @@ import { AxiosError } from "axios";
 import { axiosInstance } from "@/lib/axios";
 import z from "zod";
 import { toast } from "sonner";
+import { getAvatarFallback } from "@/lib/avatar";
 
 interface MenuModalProps {
   isOpen: boolean;
@@ -43,6 +44,11 @@ export const ShareDesign = ({
   const roomState = useRoomStore((state) => state.present);
   const [shareLink, setShareLink] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
+  const avatarFallback = getAvatarFallback({
+    firstName: session.data?.user?.firstName,
+    lastName: session.data?.user?.lastName,
+    name: session.data?.user?.name ?? "User",
+  });
 
   const { mutateAsync: shareableLink, isPending } = useMutation({
     mutationFn: async (data: CreateSharableDesignInput) => {
@@ -352,7 +358,7 @@ export const ShareDesign = ({
                 <div className="flex items-center gap-3 overflow-hidden">
                   <Avatar>
                     <AvatarImage src="https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png" />
-                    <AvatarFallback>CN</AvatarFallback>
+                    <AvatarFallback>{avatarFallback}</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
                     <p className="truncate text-sm font-semibold text-gray-700 capitalize">

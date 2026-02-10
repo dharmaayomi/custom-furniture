@@ -29,6 +29,7 @@ import {
   loadDesignCodeFromStorage,
   saveDesignCodeToStorage,
 } from "@/lib/designCode";
+import { getAvatarFallback } from "@/lib/avatar";
 
 interface MenuModalProps {
   isOpen: boolean;
@@ -61,6 +62,11 @@ export const MenuModal = ({
     : undefined;
 
   const { data: user, isLoading } = useGetUserDisplay(userId);
+  const avatarFallback = getAvatarFallback({
+    firstName: user?.firstName ?? session.data?.user?.firstName,
+    lastName: user?.lastName ?? session.data?.user?.lastName,
+    name: user?.userName ?? session.data?.user?.name ?? "User",
+  });
 
   const logout = () => {
     signOut({ redirect: false });
@@ -223,7 +229,7 @@ export const MenuModal = ({
                 <div className="flex items-center gap-3 overflow-hidden">
                   <Avatar>
                     <AvatarImage src="https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png" />
-                    <AvatarFallback>CN</AvatarFallback>
+                    <AvatarFallback>{avatarFallback}</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
                     <p className="truncate text-sm font-semibold text-gray-700 capitalize">

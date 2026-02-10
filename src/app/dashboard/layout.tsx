@@ -12,7 +12,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { AdminSidebar } from "@/features/admin/components/AdminSidebar";
+import { DashboardSidebar } from "@/features/dashboard/components/DashboardSidebar";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -28,7 +28,7 @@ export default function AdminLayout({
   return (
     <div className="min-h-dvh w-full">
       <SidebarProvider>
-        <AdminSidebar />
+        <DashboardSidebar />
         <SidebarInset className="dark:border">
           <header className="flex h-14 shrink-0 items-center gap-2 sm:h-16">
             <div className="flex items-center gap-2 px-3 sm:px-4">
