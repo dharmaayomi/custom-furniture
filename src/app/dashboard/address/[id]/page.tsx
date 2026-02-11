@@ -8,7 +8,7 @@ const AddressEditPage = async ({
   const { id } = await params;
   const addressId = Number(id);
 
-  return (
+  return +(
     <div className="w-full px-4 py-8 sm:px-6 lg:px-8">
       <AddressEditForm addressId={addressId} />
     </div>

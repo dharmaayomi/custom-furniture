@@ -47,7 +47,7 @@ export const ShareDesign = ({
   const avatarFallback = getAvatarFallback({
     firstName: session.data?.user?.firstName,
     lastName: session.data?.user?.lastName,
-    name: session.data?.user?.name ?? "User",
+    name: session.data?.user?.userName ?? "User",
   });
 
   const { mutateAsync: shareableLink, isPending } = useMutation({
