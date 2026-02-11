@@ -11,12 +11,8 @@ import {
   saveDesignCodeToStorage,
 } from "@/lib/designCode";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { AxiosError } from "axios";
-import { axiosInstance } from "@/lib/axios";
-import z from "zod";
-import { toast } from "sonner";
 import { getAvatarFallback } from "@/lib/avatar";
+import useGenerateDesignCode from "@/hooks/api/design/useGenerateDesignCode";
 
 interface MenuModalProps {
   isOpen: boolean;
@@ -25,13 +21,6 @@ interface MenuModalProps {
   onBackToMenu?: () => void;
 }
 
-export const createSharableDesignSchema = z.object({
-  configuration: z.record(z.string(), z.any()),
-});
-
-export type CreateSharableDesignInput = z.infer<
-  typeof createSharableDesignSchema
->;
 export const ShareDesign = ({
   isOpen,
   onClose,
@@ -50,28 +39,13 @@ export const ShareDesign = ({
     name: session.data?.user?.userName ?? "User",
   });
 
-  const { mutateAsync: shareableLink, isPending } = useMutation({
-    mutationFn: async (data: CreateSharableDesignInput) => {
-      const result = await axiosInstance.post("/design/create-shareable-code", {
-        configuration: data.configuration,
-      });
-      return result.data;
-    },
-    onSuccess: (result) => {
-      const payload = (result as any)?.data ?? result;
-      const designCode = payload?.designCode;
-      if (!designCode) {
-        toast.error("Failed to create shareable design");
-        return;
-      }
-      const shareableUrl = `${window.location.origin}/custom/${designCode}`;
-      setDesignCode(designCode);
-      saveDesignCodeToStorage(designCode);
+  const { mutateAsync: shareableLink, isPending } = useGenerateDesignCode({
+    onGenerated: ({ designCode: generatedCode, shareableUrl }) => {
+      setDesignCode(generatedCode);
+      saveDesignCodeToStorage(generatedCode);
       setShareLink(shareableUrl);
       setCopyStatus("");
-      toast.success("Shareable link generated");
     },
-    onError: (error: AxiosError<{ message: string }>) => {},
   });
 
   const buildDesignConfig = () => {
@@ -160,9 +134,10 @@ export const ShareDesign = ({
   };
 
   const handleCopyLink = async () => {
-    if (!shareLink) return;
+    const linkToCopy = shareLink || buildShareLink(getStoredCode());
+    if (!linkToCopy) return;
     try {
-      await navigator.clipboard.writeText(shareLink);
+      await navigator.clipboard.writeText(linkToCopy);
       setCopyStatus("Link copied!");
     } catch {
       setCopyStatus("Copy failed");
@@ -269,7 +244,7 @@ export const ShareDesign = ({
                         type="text"
                         name="share-link"
                         id="share-link"
-                        value={shareLink}
+                        value={shareLink || buildShareLink(getStoredCode())}
                         readOnly
                         placeholder="Click Generate Link"
                       />
@@ -311,8 +286,8 @@ export const ShareDesign = ({
                         type="text"
                         name="share-design-code"
                         id="share-design-code"
+                        value={getStoredCode()}
                         readOnly
-                        disabled
                         placeholder="Click Generate Code"
                         className="uppercase"
                       />{" "}

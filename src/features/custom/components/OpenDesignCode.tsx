@@ -36,11 +36,18 @@ export const OpenDesignCode = ({
   const avatarFallback = getAvatarFallback({
     firstName: session.data?.user?.firstName,
     lastName: session.data?.user?.lastName,
-    name: session.data?.user?.name ?? "User",
+    name: session.data?.user?.userName ?? "User",
   });
   const logout = () => {
     signOut({ redirect: false });
     router.push("/");
+  };
+
+  const handleOpenDesignCode = () => {
+    const code = designCode.trim();
+    if (!code) return;
+    onClose();
+    window.open(`/custom/${code}`, "_blank", "noopener,noreferrer");
   };
 
   const handleLogin = () => {
@@ -104,11 +111,12 @@ export const OpenDesignCode = ({
                 onChange={(e) => {
                   const targetValue = e.target.value.toUpperCase();
                   setDesignCode(targetValue);
-                  console.log("kode :", targetValue);
                 }}
                 placeholder="Enter Design Code"
               />
-              <Button variant="secondary">Open</Button>
+              <Button onClick={handleOpenDesignCode} variant="secondary">
+                Open
+              </Button>
             </div>
             <div className="text-muted-foreground mt-2 text-xs">
               Codes are 5–6 characters long (letters & numbers)

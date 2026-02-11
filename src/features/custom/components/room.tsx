@@ -8,7 +8,6 @@ import { HeaderCustom } from "./HeaderCustom";
 import { calculateTotalPrice, formatPrice } from "@/lib/price";
 import { useRoomStore } from "@/store/useRoomStore";
 import {
-  generateDesignCode,
   loadDesignCodeFromStorage,
   saveDesignCodeToStorage,
 } from "@/lib/designCode";
@@ -143,7 +142,7 @@ export const RoomPage = () => {
   useEffect(() => {
     if (designCode) return;
     const storedCode = loadDesignCodeFromStorage();
-    const code = storedCode || generateDesignCode(6);
+    const code = storedCode;
     setDesignCode(code);
     if (!storedCode) {
       saveDesignCodeToStorage(code);
@@ -363,16 +362,16 @@ export const RoomPage = () => {
         </div>
 
         {/* floating tool panel */}
-      <FloatingToolPanel
-        tools={tools}
-        selectedTool={selectedTool}
-        showHomeSidebar={showHomeSidebar}
-        isSidebarOpen={isSidebarOpen}
-        selectedFurniture={present.selectedFurniture}
-        onToolClick={handleToolClick}
-        onHomeClick={handleHomeClick}
-        onCustomizeClick={handleCustomizeClick}
-      />
+        <FloatingToolPanel
+          tools={tools}
+          selectedTool={selectedTool}
+          showHomeSidebar={showHomeSidebar}
+          isSidebarOpen={isSidebarOpen}
+          selectedFurniture={present.selectedFurniture}
+          onToolClick={handleToolClick}
+          onHomeClick={handleHomeClick}
+          onCustomizeClick={handleCustomizeClick}
+        />
 
         {/* Footer */}
         <div className="pointer-events-none absolute bottom-0 left-0 z-40 w-full">

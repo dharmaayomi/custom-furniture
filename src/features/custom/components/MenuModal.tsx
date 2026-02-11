@@ -1,4 +1,3 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -7,29 +6,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import useGetUserDisplay from "@/hooks/api/user/useGetUserDisplay";
+import {
+  clearDesignCodeFromStorage,
+  loadDesignCodeFromStorage,
+  saveDesignCodeToStorage,
+} from "@/lib/designCode";
+import { useRoomStore } from "@/store/useRoomStore";
 import {
   ArrowLeft,
   FolderClosed,
   FolderOpen,
   Frame,
-  LogIn,
-  LogOut,
   Save,
   Share,
   X,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useRoomStore } from "@/store/useRoomStore";
 import { useState } from "react";
-import useGetUserDisplay from "@/hooks/api/user/useGetUserDisplay";
-import {
-  generateDesignCode,
-  clearDesignCodeFromStorage,
-  loadDesignCodeFromStorage,
-  saveDesignCodeToStorage,
-} from "@/lib/designCode";
-import { getAvatarFallback } from "@/lib/avatar";
+import { NavUserMenu } from "./NavUserMenu";
 
 interface MenuModalProps {
   isOpen: boolean;
@@ -57,17 +53,17 @@ export const MenuModal = ({
   const setDesignCode = useRoomStore((state) => state.setDesignCode);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  const userId = session.data?.user?.id
-    ? Number(session.data.user.id)
-    : undefined;
+  const userId = session.data?.user?.id;
 
   const { data: user, isLoading } = useGetUserDisplay(userId);
-  const avatarFallback = getAvatarFallback({
-    firstName: user?.firstName ?? session.data?.user?.firstName,
-    lastName: user?.lastName ?? session.data?.user?.lastName,
-    name: user?.userName ?? session.data?.user?.name ?? "User",
-  });
-
+  const navUser = session.data?.user
+    ? {
+        userName: user?.userName ?? session.data.user.userName ?? "User",
+        email: user?.email ?? session.data.user.email ?? "",
+        avatar:
+          "https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png",
+      }
+    : null;
   const logout = () => {
     signOut({ redirect: false });
     router.push("/");
@@ -82,6 +78,12 @@ export const MenuModal = ({
     onOpenDesignCode?.();
   };
 
+  // const handleOpenDesignCode = () => {
+  //   const code = designCode.trim();
+  //   if (!code) return;
+  //   onClose();
+  //   window.open(`/custom/${code}`, "_blank", "noopener,noreferrer");
+  // };
   const handleOpenMyDesign = () => {
     onClose();
     onOpenMyDesign?.();
@@ -94,7 +96,7 @@ export const MenuModal = ({
 
   const handleSave = () => {
     const storedCode = loadDesignCodeFromStorage();
-    const code = designCode || storedCode || generateDesignCode(6);
+    const code = designCode || storedCode;
     if (code !== designCode) {
       setDesignCode(code);
     }
@@ -222,45 +224,18 @@ export const MenuModal = ({
           </div>
 
           {/* Footer */}
-
-          <div className="border-t p-4">
-            {session.data?.user ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <Avatar>
-                    <AvatarImage src="https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png" />
-                    <AvatarFallback>{avatarFallback}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <p className="truncate text-sm font-semibold text-gray-700 capitalize">
-                      {user?.userName || "User"}
-                    </p>
-                    <p className="text-xs text-gray-500">Online</p>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => logout()}
-                  variant="ghost"
-                  size="icon"
-                  id="menu-logout-button"
-                  name="menu-logout"
-                  className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                  title="Logout"
-                >
-                  <LogOut size={20} />
-                </Button>
-              </div>
+          <div className="w-full px-4 py-2">
+            {navUser ? (
+              <NavUserMenu user={navUser} />
             ) : (
-              <button
+              <Button
                 onClick={handleLogin}
                 id="menu-login-button"
                 name="menu-login"
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-3 text-white transition-opacity hover:opacity-90"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-black p-4 text-white transition-opacity hover:opacity-90"
               >
-                <LogIn size={20} />
                 <span className="font-medium">Login</span>
-              </button>
+              </Button>
             )}
           </div>
         </div>

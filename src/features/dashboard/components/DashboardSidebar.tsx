@@ -9,6 +9,7 @@ import {
   LifeBuoy,
   Map,
   MapPin,
+  Palette,
   PieChart,
   Send,
   Settings2,
@@ -29,14 +30,10 @@ import { NavProjects } from "./NavProjects";
 import { NavSecondary } from "./NavSecondary";
 import { NavUser } from "./NavUser";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
+import useGetUserDisplay from "@/hooks/api/user/useGetUserDisplay";
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar:
-      "https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png",
-  },
   navMain: [
     {
       title: "Orders",
@@ -80,6 +77,29 @@ const data = {
       title: "Address",
       url: "/dashboard/address",
       icon: MapPin,
+      items: [
+        {
+          title: "Introduction",
+          url: "#",
+        },
+        {
+          title: "Get Started",
+          url: "#",
+        },
+        {
+          title: "Tutorials",
+          url: "#",
+        },
+        {
+          title: "Changelog",
+          url: "#",
+        },
+      ],
+    },
+    {
+      title: "Designs",
+      url: "/dashboard/designs",
+      icon: Palette,
       items: [
         {
           title: "Introduction",
@@ -157,6 +177,19 @@ const data = {
 export function DashboardSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
+  const session = useSession();
+  const userId = session.data?.user?.id;
+
+  const { data: user, isLoading } = useGetUserDisplay(userId);
+  const navUser = session.data?.user
+    ? {
+        userName: user?.userName ?? session.data.user.userName ?? "User",
+        email: user?.email ?? session.data.user.email ?? "",
+        avatar:
+          "https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png",
+      }
+    : null;
+
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
@@ -181,7 +214,7 @@ export function DashboardSidebar({
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        {navUser ? <NavUser user={navUser} /> : null}
       </SidebarFooter>
     </Sidebar>
   );

@@ -1,7 +1,6 @@
 import { axiosInstance } from "@/lib/axios";
 import { useMutation } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { use } from "react";
 import { toast } from "sonner";
 import z from "zod";
 
@@ -13,7 +12,17 @@ export type CreateSharableDesignInput = z.infer<
   typeof createSharableDesignSchema
 >;
 
-const useGenerateDesignCode = () => {
+type GenerateDesignCodeOptions = {
+  onGenerated?: (payload: { designCode: string; shareableUrl: string }) => void;
+};
+
+const buildShareLink = (code: string) => {
+  if (!code) return "";
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  return `${origin || ""}/custom/${code}`;
+};
+
+const useGenerateDesignCode = (options?: GenerateDesignCodeOptions) => {
   return useMutation({
     mutationFn: async (data: CreateSharableDesignInput) => {
       const result = await axiosInstance.post("/design/create-shareable-code", {
@@ -28,6 +37,8 @@ const useGenerateDesignCode = () => {
         toast.error("Failed to create shareable design");
         return;
       }
+      const shareableUrl = buildShareLink(designCode);
+      options?.onGenerated?.({ designCode, shareableUrl });
       toast.success("Shareable link generated");
     },
     onError: (error: AxiosError<{ message: string }>) => {},

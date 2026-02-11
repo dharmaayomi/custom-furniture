@@ -1,20 +1,14 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getAvatarFallback } from "@/lib/avatar";
+import { clearDesignCodeFromStorage } from "@/lib/designCode";
+import { useRoomStore } from "@/store/useRoomStore";
 import { ArrowLeft, LogIn, LogOut, X } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useRoomStore } from "@/store/useRoomStore";
 import { useState } from "react";
-import { getAvatarFallback } from "@/lib/avatar";
 
 interface MenuModalProps {
   isOpen: boolean;
@@ -32,23 +26,19 @@ export const MyDesign = ({
   const router = useRouter();
   const session = useSession();
   const resetRoom = useRoomStore((state) => state.reset);
+  const setStoredDesignCode = useRoomStore((state) => state.setDesignCode);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [designCode, setDesignCode] = useState("");
   const avatarFallback = getAvatarFallback({
     firstName: session.data?.user?.firstName,
     lastName: session.data?.user?.lastName,
-    name: session.data?.user?.name ?? "User",
+    name: session.data?.user?.userName ?? "User",
   });
   const logout = () => {
     signOut({ redirect: false });
     router.push("/");
   };
 
-  const handleConfirmStartFromScratch = () => {
-    resetRoom();
-    setIsConfirmOpen(false);
-    onClose();
-  };
   const handleLogin = () => {
     router.push("/login");
   };

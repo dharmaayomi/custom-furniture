@@ -15,7 +15,6 @@ import React, { useState } from "react";
 import { DEFAULT_ROOM_CONFIG, useRoomStore } from "@/store/useRoomStore";
 import { toast } from "sonner";
 import {
-  generateDesignCode,
   loadDesignCodeFromStorage,
   saveDesignCodeToStorage,
 } from "@/lib/designCode";
@@ -108,7 +107,7 @@ export const HeaderCustom = ({
       };
 
       const storedCode = loadDesignCodeFromStorage();
-      const code = designCode || storedCode || generateDesignCode(6);
+      const code = designCode || storedCode;
       if (code !== designCode) {
         setDesignCode(code);
       }
