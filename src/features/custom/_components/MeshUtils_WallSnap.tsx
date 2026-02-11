@@ -1154,7 +1154,7 @@ export const setupAutoHideWalls = (
   const rw = roomConfig.width;
   const wallThickness = ROOM_DIMENSIONS.wallThickness;
 
-  scene.registerBeforeRender(() => {
+  return scene.onBeforeRenderObservable.add(() => {
     walls.forEach((w) => {
       if (!w.metadata) return;
       const cam = camera.position;
