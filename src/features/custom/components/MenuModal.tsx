@@ -56,14 +56,15 @@ export const MenuModal = ({
   const userId = session.data?.user?.id;
 
   const { data: user, isLoading } = useGetUserDisplay(userId);
-  const navUser = session.data?.user
-    ? {
-        userName: user?.userName ?? session.data.user.userName ?? "User",
-        email: user?.email ?? session.data.user.email ?? "",
-        avatar:
-          "https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png",
-      }
-    : null;
+  const navUser =
+    session.data?.user && !isLoading
+      ? {
+          userName: user?.userName ?? session.data.user.userName ?? "User",
+          email: user?.email ?? session.data.user.email ?? "",
+          avatar:
+            "https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png",
+        }
+      : null;
   const logout = () => {
     signOut({ redirect: false });
     router.push("/");
@@ -101,7 +102,6 @@ export const MenuModal = ({
       setDesignCode(code);
     }
     saveDesignCodeToStorage(code);
-    console.log("Design code:", code);
   };
 
   const handleStartFromScratch = () => {

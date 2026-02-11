@@ -6,3 +6,15 @@ export type ShareableDesign = {
   expiresAt?: string | null;
   createdAt: string;
 };
+
+export type SavedDesign = {
+  id: number;
+  userId: number;
+  designCode: string;
+  designName: string;
+  configuration: any;
+  fileFinalUrl?: string;
+  deletedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};

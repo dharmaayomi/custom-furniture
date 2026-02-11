@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -8,16 +9,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ListOrdered, Menu, MoveRight, Save } from "lucide-react";
+import { Check, ListOrdered, Menu, MoveRight, Save } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { DEFAULT_ROOM_CONFIG, useRoomStore } from "@/store/useRoomStore";
 import { toast } from "sonner";
 import {
   loadDesignCodeFromStorage,
   saveDesignCodeToStorage,
 } from "@/lib/designCode";
+import useSaveDesign from "@/hooks/api/design/useSaveDesign";
 
 interface HeaderCustomProps {
   onMenuClick: () => void;
@@ -37,6 +39,62 @@ export const HeaderCustom = ({
   const roomState = useRoomStore((state) => state.present);
   const designCode = useRoomStore((state) => state.designCode);
   const setDesignCode = useRoomStore((state) => state.setDesignCode);
+  const { mutateAsync: saveDesign, isPending } = useSaveDesign();
+  const [designName, setDesignName] = useState("");
+  const [nameInput, setNameInput] = useState("");
+  const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
+  const [lastSavedHash, setLastSavedHash] = useState<string | null>(null);
+
+  const buildDesignConfig = () => ({
+    units: { distance: "m", rotation: "rad" },
+    room: roomState.roomConfig,
+    mainModels: roomState.mainModels.map((id, index) => {
+      const transform = roomState.mainModelTransforms[index];
+      return {
+        id,
+        position_m: transform
+          ? [transform.position.x, transform.position.y, transform.position.z]
+          : null,
+        rotation: [0, transform?.rotation ?? 0, 0],
+        scale: transform?.scale
+          ? [transform.scale.x, transform.scale.y, transform.scale.z]
+          : null,
+        texture: transform?.texture ?? null,
+      };
+    }),
+    addOnModels: roomState.addOnModels.map((id, index) => {
+      const transform = roomState.addOnTransforms[index];
+      return {
+        id,
+        position_m: transform
+          ? [transform.position.x, transform.position.y, transform.position.z]
+          : null,
+        rotation: [0, transform?.rotation ?? 0, 0],
+        scale: transform?.scale
+          ? [transform.scale.x, transform.scale.y, transform.scale.z]
+          : null,
+        texture: transform?.texture ?? null,
+      };
+    }),
+    activeTexture: roomState.activeTexture,
+    totalPrice: { amount: roomState.totalPrice, currency: "IDR" },
+  });
+
+  const currentConfigHash = useMemo(
+    () => JSON.stringify(buildDesignConfig()),
+    [
+      roomState.roomConfig,
+      roomState.mainModels,
+      roomState.addOnModels,
+      roomState.activeTexture,
+      roomState.mainModelTransforms,
+      roomState.addOnTransforms,
+      roomState.totalPrice,
+    ],
+  );
+
+  const isDirty =
+    lastSavedHash === null ? true : lastSavedHash !== currentConfigHash;
 
   const handleSaveClick = () => {
     if (status === "authenticated") {
@@ -62,65 +120,52 @@ export const HeaderCustom = ({
         });
         return;
       }
-
-      const designConfig = {
-        units: { distance: "m", rotation: "rad" },
-        room: roomState.roomConfig,
-        mainModels: roomState.mainModels.map((id, index) => {
-          const transform = roomState.mainModelTransforms[index];
-          return {
-            id,
-            position_m: transform
-              ? [
-                  transform.position.x,
-                  transform.position.y,
-                  transform.position.z,
-                ]
-              : null,
-            rotation: [0, transform?.rotation ?? 0, 0],
-            scale: transform?.scale
-              ? [transform.scale.x, transform.scale.y, transform.scale.z]
-              : null,
-            texture: transform?.texture ?? null,
-          };
-        }),
-        addOnModels: roomState.addOnModels.map((id, index) => {
-          const transform = roomState.addOnTransforms[index];
-          return {
-            id,
-            position_m: transform
-              ? [
-                  transform.position.x,
-                  transform.position.y,
-                  transform.position.z,
-                ]
-              : null,
-            rotation: [0, transform?.rotation ?? 0, 0],
-            scale: transform?.scale
-              ? [transform.scale.x, transform.scale.y, transform.scale.z]
-              : null,
-            texture: transform?.texture ?? null,
-          };
-        }),
-        activeTexture: roomState.activeTexture,
-        totalPrice: { amount: roomState.totalPrice, currency: "IDR" },
-      };
-
-      const storedCode = loadDesignCodeFromStorage();
-      const code = designCode || storedCode;
-      if (code !== designCode) {
-        setDesignCode(code);
+      if (!isDirty) {
+        toast("Already saved", { description: "No changes to save." });
+        return;
       }
-      saveDesignCodeToStorage(code);
 
-      console.log("Design code:", code);
-      console.log("Design config:", designConfig);
-      console.log(
-        "Design config (JSON):",
-        JSON.stringify(designConfig, null, 2),
-      );
+      if (!designName.trim()) {
+        setIsNameDialogOpen(true);
+        return;
+      }
+
+      handleSaveDesign(designName.trim());
     } else {
       setIsDialogOpen(true);
+    }
+  };
+
+  const handleSaveDesign = async (name: string) => {
+    const storedCode = loadDesignCodeFromStorage();
+    const code = designCode || storedCode;
+    if (code !== designCode) {
+      setDesignCode(code);
+    }
+    if (code) {
+      saveDesignCodeToStorage(code);
+    }
+
+    const payload = {
+      configuration: buildDesignConfig(),
+      designName: name,
+      designCode: code || undefined,
+    };
+    try {
+      const result = await saveDesign({
+        configuration: payload.configuration,
+        designName: payload.designName,
+        designCode: payload.designCode,
+      });
+      const responsePayload = (result as any)?.data ?? result;
+      const savedName = responsePayload?.designName || name;
+      setDesignName(savedName);
+      setLastSavedHash(currentConfigHash);
+      toast("Design saved", {
+        description: savedName ? `Saved as "${savedName}".` : undefined,
+      });
+    } catch (error) {
+      toast("Failed to save design");
     }
   };
 
@@ -143,9 +188,10 @@ export const HeaderCustom = ({
           <Button
             className="hidden cursor-pointer items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-xs font-semibold text-black shadow-md hover:text-white md:flex"
             onClick={handleSaveClick}
+            disabled={isPending || (!isDirty && !!designName)}
           >
-            <Save />
-            <div>Save</div>
+            {!isDirty && !!designName ? <Check size={16} /> : <Save />}
+            <div>{!isDirty && !!designName ? "Saved" : "Save"}</div>
           </Button>
         </div>
 
@@ -185,6 +231,44 @@ export const HeaderCustom = ({
               onClick={handleLoginRedirect}
             >
               Log in or sign up
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isNameDialogOpen} onOpenChange={setIsNameDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              Name your design
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-2">
+            <DialogDescription className="text-base text-gray-600">
+              Give your design a name so you can find it later.
+            </DialogDescription>
+          </div>
+
+          <div className="mt-2 flex w-full flex-col gap-3">
+            <Input
+              placeholder="e.g. Living Room A"
+              value={nameInput}
+              onChange={(event) => setNameInput(event.target.value)}
+            />
+            <Button
+              className="hover:bg-primary/90 w-full rounded-full text-base font-bold"
+              onClick={async () => {
+                const trimmed = nameInput.trim();
+                if (!trimmed) {
+                  toast("Design name required");
+                  return;
+                }
+                setIsNameDialogOpen(false);
+                setNameInput("");
+                await handleSaveDesign(trimmed);
+              }}
+            >
+              Save Design
             </Button>
           </div>
         </DialogContent>

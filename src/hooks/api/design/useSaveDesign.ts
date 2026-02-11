@@ -8,7 +8,7 @@ import z from "zod";
 export const saveDesignSchema = z.object({
   configuration: z.record(z.string(), z.any()),
   designCode: z.string().optional(),
-  designName: z.string().optional(),
+  designName: z.string().min(1, "Design name is required"),
   fileFinalUrl: z.string().optional(),
 });
 
@@ -25,7 +25,7 @@ const useSaveDesign = () => {
         data.designCode || storedDesignCode || localDesignCode || undefined;
       const result = await axiosInstance.post("/design/save-design", {
         configuration: data.configuration,
-        ...(data.designName ? { designName: data.designName } : {}),
+        designName: data.designName,
         ...(data.fileFinalUrl ? { fileFinalUrl: data.fileFinalUrl } : {}),
         ...(finalDesignCode ? { designCode: finalDesignCode } : {}),
       });
