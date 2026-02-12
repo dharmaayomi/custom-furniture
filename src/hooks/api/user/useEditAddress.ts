@@ -69,6 +69,9 @@ const useEditAddress = (
       queryClient.invalidateQueries({
         queryKey: ["user-addresses", userId],
       });
+      queryClient.refetchQueries({
+        queryKey: ["user-address", userId],
+      });
       queryClient.invalidateQueries({
         queryKey: ["user-address", userId, addressId],
       });

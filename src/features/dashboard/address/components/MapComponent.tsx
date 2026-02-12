@@ -38,11 +38,9 @@ export default function MapComponent({
       "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
     script.async = true;
     script.onload = () => {
-      console.log("[v0] Leaflet loaded successfully");
       initializeMap();
     };
     script.onerror = () => {
-      console.error("[v0] Failed to load Leaflet");
       setIsLoading(false);
     };
     document.head.appendChild(script);
@@ -64,16 +62,9 @@ export default function MapComponent({
       const L = (window as any).L;
 
       if (!L) {
-        console.error("[v0] Leaflet library not loaded");
         setIsLoading(false);
         return;
       }
-
-      console.log(
-        "[v0] Initializing map with coordinates:",
-        latitude,
-        longitude,
-      );
 
       // Initialize map
       mapRef.current = L.map(mapContainer.current).setView(

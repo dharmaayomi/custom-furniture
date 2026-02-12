@@ -59,8 +59,7 @@ export default function AddressesPage() {
     setIsDeleteOpen(false);
     setDeleteTargetId(null);
     const deletedLabel =
-      addresses.find((addr) => addr.id === deleteTargetId)?.label ||
-      "Address";
+      addresses.find((addr) => addr.id === deleteTargetId)?.label || "Address";
     toast("Address deleted", {
       description: `${deletedLabel} was removed successfully.`,
     });
@@ -73,7 +72,7 @@ export default function AddressesPage() {
         <div className="mx-auto px-4 py-4 sm:px-6 lg:px-2 lg:py-2">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-foreground text-xl font-bold tracking-tight md:text-3xl">
+              <h1 className="text-foreground text-lg font-bold tracking-tight md:text-3xl">
                 My Addresses
               </h1>
               <p className="text-muted-foreground mt-2 text-sm">
@@ -81,9 +80,9 @@ export default function AddressesPage() {
               </p>
             </div>
             <Link href="/dashboard/address/create">
-              <Button size="lg" className="gap-2">
-                <Plus className="h-5 w-5" />
-                Add New Address
+              <Button className="gap-2">
+                <Plus className="h-3 w-3 md:h-5 md:w-5" />
+                <span className="text-sm lg:text-lg">Add New Address</span>
               </Button>
             </Link>
           </div>
@@ -104,7 +103,7 @@ export default function AddressesPage() {
             <DialogTitle>Delete address?</DialogTitle>
             <DialogDescription>
               You won’t be able to use{" "}
-              <span className="font-semibold text-foreground">
+              <span className="text-foreground font-semibold">
                 {addresses.find((addr) => addr.id === deleteTargetId)?.label ||
                   "this address"}
               </span>{" "}
