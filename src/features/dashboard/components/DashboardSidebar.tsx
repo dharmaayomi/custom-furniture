@@ -134,7 +134,7 @@ export function DashboardSidebar({
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        {navUser ? <NavUser user={navUser} /> : null}
+        {/* {navUser ? <NavUser user={navUser} /> : null} */}
       </SidebarFooter>
     </Sidebar>
   );

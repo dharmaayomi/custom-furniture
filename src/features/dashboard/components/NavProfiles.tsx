@@ -7,6 +7,7 @@ import {
   Trash2,
   type LucideIcon,
 } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 import {
   DropdownMenu,
@@ -35,6 +36,7 @@ export function NavProfiles({
   }[];
 }) {
   const { isMobile } = useSidebar();
+  const pathname = usePathname();
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -42,7 +44,12 @@ export function NavProfiles({
       <SidebarMenu>
         {profiles.map((item) => (
           <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton
+              asChild
+              isActive={
+                pathname === item.url || pathname.startsWith(`${item.url}/`)
+              }
+            >
               <a href={item.url}>
                 <item.icon />
                 <span>{item.name}</span>
