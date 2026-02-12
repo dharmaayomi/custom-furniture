@@ -1,5 +1,11 @@
-const Admin = () => {
-  return <div>Hallow</div>;
+import DashboardPage from "@/features/dashboard";
+
+const Dashboard = () => {
+  return (
+    <div>
+      <DashboardPage />
+    </div>
+  );
 };
 
-export default Admin;
+export default Dashboard;

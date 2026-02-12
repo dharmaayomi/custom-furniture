@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BanknoteArrowUp,
   Bell,
   Bot,
   CreditCard,
@@ -45,6 +46,11 @@ const data = {
       title: "Billing",
       url: "/dashboard/billing",
       icon: CreditCard,
+    },
+    {
+      title: "Revenue",
+      url: "/dashboard/revenue",
+      icon: BanknoteArrowUp,
     },
     {
       title: "Products",

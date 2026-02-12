@@ -2,7 +2,7 @@ import useAxios from "@/hooks/useAxios";
 import { SavedDesign } from "@/types/shareableDesign";
 import { useQuery } from "@tanstack/react-query";
 
-const useGetSavedDesignByCode = (userId: number, designCode: string) => {
+const useGetSavedDesignByCode = (userId?: number, designCode?: string) => {
   const axiosInstance = useAxios();
   return useQuery<SavedDesign>({
     queryKey: ["saved-design", userId, designCode],

@@ -38,7 +38,16 @@ export const editAddressSchema = z.object({
 
 export type EditAddressSchema = z.infer<typeof editAddressSchema>;
 
-const useEditAddress = (userId: number, addressId: number) => {
+type EditAddressOptions = {
+  onSuccess?: (result: unknown) => void;
+  onError?: (error: unknown) => void;
+};
+
+const useEditAddress = (
+  userId?: number,
+  addressId?: number,
+  options?: EditAddressOptions,
+) => {
   const axiosInstance = useAxios();
   const queryClient = useQueryClient();
 
@@ -64,6 +73,10 @@ const useEditAddress = (userId: number, addressId: number) => {
         queryKey: ["user-address", userId, addressId],
       });
       queryClient.setQueryData(["user-address", userId, addressId], result);
+      options?.onSuccess?.(result);
+    },
+    onError: (error) => {
+      options?.onError?.(error);
     },
   });
 };

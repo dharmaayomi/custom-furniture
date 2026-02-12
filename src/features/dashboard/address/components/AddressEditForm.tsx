@@ -8,6 +8,7 @@ import useEditAddress, {
 import { useUser } from "@/providers/UserProvider";
 import { Address } from "@/types/address";
 import { toast } from "sonner";
+import AddressFormSkeleton from "./AddressFormSkeleton";
 
 interface AddressEditFormProps {
   addressId: number;
@@ -19,10 +20,20 @@ export default function AddressEditForm({ addressId }: AddressEditFormProps) {
     data: addressData,
     isLoading,
     isError,
-  } = useGetUserAddressById(userId ?? 0, addressId);
+  } = useGetUserAddressById(userId, addressId);
   const addressPayload = (addressData as any)?.data ?? addressData;
   const address = addressPayload as Address | undefined;
-  const { mutateAsync } = useEditAddress(userId ?? 0, addressId);
+  const { mutateAsync } = useEditAddress(userId, addressId, {
+    onSuccess: () => {
+      toast("Address updated");
+    },
+    onError: (error) => {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message ?? "Failed to update address.";
+      toast.error(message);
+    },
+  });
 
   const initialData: Partial<AddressFormData> | undefined = address
     ? {
@@ -94,26 +105,23 @@ export default function AddressEditForm({ addressId }: AddressEditFormProps) {
       return;
     }
     await mutateAsync(payload);
-    toast("Address updated");
   };
 
   if (!userId) {
     return (
-      <div className="text-sm text-muted-foreground">
+      <div className="text-muted-foreground text-sm">
         Please log in to edit your address.
       </div>
     );
   }
 
   if (isLoading) {
-    return (
-      <div className="text-sm text-muted-foreground">Loading address...</div>
-    );
+    return <AddressFormSkeleton />;
   }
 
   if (isError || !address) {
     return (
-      <div className="text-sm text-muted-foreground">
+      <div className="text-muted-foreground text-sm">
         Failed to load address.
       </div>
     );
@@ -126,6 +134,7 @@ export default function AddressEditForm({ addressId }: AddressEditFormProps) {
       description="Update your delivery address details"
       submitLabel="Update Address"
       onSubmit={handleSubmit}
+      layout="stacked"
     />
   );
 }

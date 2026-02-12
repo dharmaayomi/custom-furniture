@@ -8,7 +8,7 @@ import useGetUserDisplay from "@/hooks/api/user/useGetUserDisplay";
 type NavUser = {
   userName: string;
   email: string;
-  avatar?: string;
+  avatar: string;
 };
 
 type UserContextValue = {

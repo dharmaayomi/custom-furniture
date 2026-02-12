@@ -27,7 +27,7 @@ const useAxios = () => {
       (err) => {
         if (!isLoggingOut && err.response?.status === 401) {
           isLoggingOut = true;
-          signOut({ callbackUrl: "/login" });
+          signOut({ callbackUrl: "/login?reason=session_expired" });
         }
         return Promise.reject(err);
       },

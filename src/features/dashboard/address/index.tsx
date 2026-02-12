@@ -5,30 +5,65 @@ import { Plus, Grid3x3, List, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import AddressCard from "./components/AddressCard";
+import AddressCardSkeleton from "./components/AddressCardSkeleton";
 import useGetUserAddresses from "@/hooks/api/user/useGetUserAddresses";
 import { useUser } from "@/providers/UserProvider";
 import { Address } from "@/types/address";
+import useDeleteAddress from "@/hooks/api/user/useDeleteAddress";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type ViewMode = "list" | "grid";
 
 export default function AddressesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const { userId } = useUser();
-  const { data, isLoading, isError } = useGetUserAddresses(userId ?? 0);
+  const { data, isLoading, isError } = useGetUserAddresses(userId);
   const addressesPayload = (data as any)?.data ?? data;
   const initialAddresses = Array.isArray(addressesPayload)
     ? (addressesPayload as Address[])
     : [];
   const [addresses, setAddresses] = useState<Address[]>([]);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const { mutateAsync: deleteAddress, isPending: isDeleting } =
+    useDeleteAddress(userId, deleteTargetId ?? undefined, {
+      onError: (error) => {
+        const message =
+          (error as { response?: { data?: { message?: string } } })?.response
+            ?.data?.message ?? "Failed to delete address.";
+        toast.error(message);
+      },
+    });
 
   useEffect(() => {
     setAddresses(initialAddresses);
   }, [initialAddresses]);
 
   const handleDeleteAddress = (id: number) => {
-    if (confirm("Are you sure you want to delete this address?")) {
-      setAddresses(addresses.filter((addr) => addr.id !== id));
-    }
+    setDeleteTargetId(id);
+    setIsDeleteOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTargetId) return;
+    await deleteAddress();
+    setAddresses((prev) => prev.filter((addr) => addr.id !== deleteTargetId));
+    setIsDeleteOpen(false);
+    setDeleteTargetId(null);
+    const deletedLabel =
+      addresses.find((addr) => addr.id === deleteTargetId)?.label ||
+      "Address";
+    toast("Address deleted", {
+      description: `${deletedLabel} was removed successfully.`,
+    });
   };
 
   return (
@@ -54,6 +89,46 @@ export default function AddressesPage() {
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          setIsDeleteOpen(open);
+          if (!open) {
+            setDeleteTargetId(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete address?</DialogTitle>
+            <DialogDescription>
+              You won’t be able to use{" "}
+              <span className="font-semibold text-foreground">
+                {addresses.find((addr) => addr.id === deleteTargetId)?.label ||
+                  "this address"}
+              </span>{" "}
+              for future orders.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete Address"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Content */}
       <div className="mx-auto px-4 py-4 sm:px-6 lg:px-2 lg:py-2">
@@ -85,15 +160,19 @@ export default function AddressesPage() {
         </div>
 
         {/* Address List/Grid */}
-        {isLoading ? (
-          <div className="border-border bg-muted/30 flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
-            <MapPin className="text-muted-foreground/40 mb-3 h-12 w-12" />
-            <h3 className="text-foreground mb-2 text-lg font-medium">
-              Loading addresses...
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              Please wait while we fetch your addresses.
-            </p>
+        {isLoading || !userId ? (
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+                : "space-y-4"
+            }
+          >
+            {Array.from({ length: viewMode === "grid" ? 6 : 4 }).map(
+              (_, index) => (
+                <AddressCardSkeleton key={index} variant={viewMode} />
+              ),
+            )}
           </div>
         ) : isError ? (
           <div className="border-border bg-muted/30 flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
