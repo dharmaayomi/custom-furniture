@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, Grid3x3, List, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -27,10 +27,9 @@ export default function AddressesPage() {
   const { userId } = useUser();
   const { data, isLoading, isError } = useGetUserAddresses(userId);
   const addressesPayload = (data as any)?.data ?? data;
-  const initialAddresses = Array.isArray(addressesPayload)
+  const addresses = Array.isArray(addressesPayload)
     ? (addressesPayload as Address[])
     : [];
-  const [addresses, setAddresses] = useState<Address[]>([]);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const { mutateAsync: deleteAddress, isPending: isDeleting } =
@@ -43,10 +42,6 @@ export default function AddressesPage() {
       },
     });
 
-  useEffect(() => {
-    setAddresses(initialAddresses);
-  }, [initialAddresses]);
-
   const handleDeleteAddress = (id: number) => {
     setDeleteTargetId(id);
     setIsDeleteOpen(true);
@@ -55,7 +50,6 @@ export default function AddressesPage() {
   const handleConfirmDelete = async () => {
     if (!deleteTargetId) return;
     await deleteAddress();
-    setAddresses((prev) => prev.filter((addr) => addr.id !== deleteTargetId));
     setIsDeleteOpen(false);
     setDeleteTargetId(null);
     const deletedLabel =

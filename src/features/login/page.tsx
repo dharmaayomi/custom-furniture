@@ -12,6 +12,7 @@ export const LoginPage = () => {
   const searchParams = useSearchParams();
   const reason = searchParams.get("reason");
   const isSessionExpired = reason === "session_expired";
+  const isLoginRequired = reason === "login_required";
 
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
@@ -32,6 +33,14 @@ export const LoginPage = () => {
                 <AlertTitle>Session expired</AlertTitle>
                 <AlertDescription>
                   Please log in again to continue.
+                </AlertDescription>
+              </Alert>
+            ) : isLoginRequired ? (
+              <Alert className="mb-6">
+                <CircleAlert />
+                <AlertTitle>Login required</AlertTitle>
+                <AlertDescription>
+                  Please log in to access the dashboard.
                 </AlertDescription>
               </Alert>
             ) : null}

@@ -34,6 +34,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (!session.data?.user) {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("had_session");
+      }
       queryClient.removeQueries({
         predicate: (query) =>
           Array.isArray(query.queryKey) &&
@@ -42,6 +45,12 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       });
     }
   }, [session.data?.user, queryClient]);
+
+  useEffect(() => {
+    if (!session.data?.user) return;
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("had_session", "1");
+  }, [session.data?.user]);
 
   const navUser = useMemo<NavUser | null>(() => {
     if (!session.data?.user) return null;
@@ -59,6 +68,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         (query.queryKey[0] === "user-display" ||
           query.queryKey[0] === "user"),
     });
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("had_session");
+    }
     signOut({ redirect: false });
   };
 
