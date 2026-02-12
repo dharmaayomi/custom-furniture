@@ -8,7 +8,6 @@ import { HeaderCustom } from "./HeaderCustom";
 import { calculateTotalPrice, formatPrice } from "@/lib/price";
 import { useRoomStore } from "@/store/useRoomStore";
 import {
-  generateDesignCode,
   loadDesignCodeFromStorage,
   saveDesignCodeToStorage,
 } from "@/lib/designCode";
@@ -143,7 +142,7 @@ export const RoomPage = () => {
   useEffect(() => {
     if (designCode) return;
     const storedCode = loadDesignCodeFromStorage();
-    const code = storedCode || generateDesignCode(6);
+    const code = storedCode;
     setDesignCode(code);
     if (!storedCode) {
       saveDesignCodeToStorage(code);
@@ -285,7 +284,6 @@ export const RoomPage = () => {
         onOpenDesignCode={() => setIsOpenDesignCodeOpen(true)}
         onOpenShareDesign={() => setIsShareDesignOpen(true)}
         onResetRoom={handleResetRoom}
-        isLoggedIn={false}
       />
       <MyDesign
         isOpen={isMyDesignOpen}
@@ -294,7 +292,6 @@ export const RoomPage = () => {
           setIsMyDesignOpen(false);
           setIsMenuOpen(true);
         }}
-        isLoggedIn={false}
       />
       <OpenDesignCode
         isOpen={isOpenDesignCodeOpen}
@@ -303,7 +300,6 @@ export const RoomPage = () => {
           setIsOpenDesignCodeOpen(false);
           setIsMenuOpen(true);
         }}
-        isLoggedIn={false}
       />
       <ShareDesign
         isOpen={isShareDesignOpen}
@@ -312,7 +308,6 @@ export const RoomPage = () => {
           setIsShareDesignOpen(false);
           setIsMenuOpen(true);
         }}
-        isLoggedIn={false}
       />
       <CustomizeRoomPanel
         scene={scene}
@@ -332,10 +327,7 @@ export const RoomPage = () => {
       />
 
       <div
-        className="relative min-w-0 flex-1 bg-gray-200"
-        style={{
-          marginRight: isAnyPanelOpen ? "320px" : "0",
-        }}
+        className={`relative min-w-0 flex-1 bg-gray-200 ${isAnyPanelOpen ? "md:mr-80" : ""}`}
       >
         {/* Header */}
         <div className="pointer-events-none absolute top-0 left-0 z-40 w-full">
@@ -366,16 +358,16 @@ export const RoomPage = () => {
         </div>
 
         {/* floating tool panel */}
-      <FloatingToolPanel
-        tools={tools}
-        selectedTool={selectedTool}
-        showHomeSidebar={showHomeSidebar}
-        isSidebarOpen={isSidebarOpen}
-        selectedFurniture={present.selectedFurniture}
-        onToolClick={handleToolClick}
-        onHomeClick={handleHomeClick}
-        onCustomizeClick={handleCustomizeClick}
-      />
+        <FloatingToolPanel
+          tools={tools}
+          selectedTool={selectedTool}
+          showHomeSidebar={showHomeSidebar}
+          isSidebarOpen={isSidebarOpen}
+          selectedFurniture={present.selectedFurniture}
+          onToolClick={handleToolClick}
+          onHomeClick={handleHomeClick}
+          onCustomizeClick={handleCustomizeClick}
+        />
 
         {/* Footer */}
         <div className="pointer-events-none absolute bottom-0 left-0 z-40 w-full">

@@ -63,16 +63,14 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   floorVinylMat.directIntensity = 1.5;
 
   let texture = textureCache.get(floorTexturePath);
-  if (texture && (texture as any).isDisposed?.()) {
-    textureCache.delete(floorTexturePath);
-    texture = undefined;
-  }
+  const isTextureValid =
+    texture &&
+    !(texture as any).isDisposed?.() &&
+    texture.getScene()?.getEngine() === scene.getEngine();
 
-  if (!texture) {
+  if (!isTextureValid) {
     texture = new BABYLON.Texture(floorTexturePath, scene);
-    texture.onLoadObservable.addOnce(() => {
-      textureCache.set(floorTexturePath, texture!);
-    });
+    textureCache.set(floorTexturePath, texture);
   }
 
   // Always apply texture (even if not ready yet) to avoid blank floor on first load

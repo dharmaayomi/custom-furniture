@@ -10,6 +10,10 @@ const useGetUserDisplay = (userId?: number) => {
       const { data } = await axiosInstance.get(`/user/display/${userId}`);
       return data;
     },
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
     enabled: !!userId,
   });
 };

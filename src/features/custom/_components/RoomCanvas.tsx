@@ -52,6 +52,7 @@ export const RoomCanvasThree = ({
   );
   const humanRef = useRef<any>(null);
   const hlRef = useRef<BABYLON.HighlightLayer | null>(null);
+  const wallObserverRef = useRef<BABYLON.Observer<BABYLON.Scene> | null>(null);
 
   useEffect(() => {
     presentRef.current = present;
@@ -141,6 +142,21 @@ export const RoomCanvasThree = ({
     shadowGenRef.current = shadowGen;
     cameraRef.current = camera as any;
 
+    // Build room immediately with current config to avoid blank floor on first load
+    const initialRoomMeshes = setupRoom(
+      scene,
+      presentRef.current.roomConfig,
+    );
+    roomMeshesRef.current = initialRoomMeshes;
+    shadowGen.addShadowCaster(initialRoomMeshes.ceiling);
+    initialRoomMeshes.walls.forEach((w) => shadowGen.addShadowCaster(w));
+    wallObserverRef.current = setupAutoHideWalls(
+      scene,
+      initialRoomMeshes.walls,
+      camera,
+    );
+    updateRoomDimensions(scene);
+
     if (onSceneReady) {
       onSceneReady(scene);
     }
@@ -171,6 +187,10 @@ export const RoomCanvasThree = ({
     handleResize();
 
     return () => {
+      if (wallObserverRef.current) {
+        scene.onBeforeRenderObservable.remove(wallObserverRef.current);
+        wallObserverRef.current = null;
+      }
       resizeObserver.disconnect();
       window.removeEventListener("resize", handleResize);
       engine.dispose();
@@ -230,6 +250,10 @@ export const RoomCanvasThree = ({
         shadowGen.removeShadowCaster(w),
       );
     }
+    if (wallObserverRef.current) {
+      scene.onBeforeRenderObservable.remove(wallObserverRef.current);
+      wallObserverRef.current = null;
+    }
 
     const newRoomMeshes = setupRoom(scene, debouncedRoomConfig);
     scene.executeWhenReady(() => {
@@ -238,7 +262,11 @@ export const RoomCanvasThree = ({
       shadowGen.addShadowCaster(newRoomMeshes.ceiling);
       newRoomMeshes.walls.forEach((w) => shadowGen.addShadowCaster(w));
 
-      setupAutoHideWalls(scene, newRoomMeshes.walls, camera);
+      wallObserverRef.current = setupAutoHideWalls(
+        scene,
+        newRoomMeshes.walls,
+        camera,
+      );
       updateRoomDimensions(scene);
     });
   }, [debouncedRoomConfig]);

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRoomStore } from "@/store/useRoomStore";
 import * as BABYLON from "@babylonjs/core";
 import { Label } from "@/components/ui/label";
@@ -7,7 +7,6 @@ import { Slider } from "@/components/ui/slider";
 import { X } from "lucide-react";
 import { updateRoomDimensions } from "../_components/MeshUtils_WallSnap";
 import { ROOM_DIMENSIONS } from "../_components/RoomConfig";
-import path from "path";
 
 interface CustomizeRoomPanelProps {
   isOpen: boolean;
@@ -36,8 +35,35 @@ export const CustomizeRoomPanel = ({
 }: CustomizeRoomPanelProps) => {
   const { present, updateRoomConfig } = useRoomStore();
   const { roomConfig } = present;
+  const [widthInput, setWidthInput] = useState("");
+  const [depthInput, setDepthInput] = useState("");
+  const [heightInput, setHeightInput] = useState("");
   const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const wallOffset = ROOM_DIMENSIONS.wallThickness * 2;
+  const widthDisplay = roomConfig.width - wallOffset;
+  const depthDisplay = roomConfig.depth - wallOffset;
+  const heightDisplay = roomConfig.height - wallOffset;
+
+  const clamp = (value: number, min: number, max: number) =>
+    Math.min(max, Math.max(min, value));
+
+  const updateDimensionFromInput = (
+    value: string,
+    min: number,
+    max: number,
+    key: "width" | "depth" | "height",
+  ) => {
+    const parsed = Number.parseFloat(value);
+    if (Number.isNaN(parsed)) return;
+    const clamped = clamp(parsed + wallOffset, min, max);
+    updateRoomConfig({ [key]: clamped });
+  };
+
+  useEffect(() => {
+    setWidthInput(widthDisplay.toFixed(2));
+    setDepthInput(depthDisplay.toFixed(2));
+    setHeightInput(heightDisplay.toFixed(2));
+  }, [widthDisplay, depthDisplay, heightDisplay]);
 
   useEffect(() => {
     if (scene) {
@@ -74,9 +100,22 @@ export const CustomizeRoomPanel = ({
           <h3 className="font-semibold text-gray-700">Dimensions</h3>
 
           <div className="space-y-2">
-            <Label>
-              Width (m): {(roomConfig.width - wallOffset).toFixed(2)}
-            </Label>
+            <div className="flex items-center justify-between gap-3">
+              <Label>Width (m)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={3 - wallOffset}
+                max={10 - wallOffset}
+                step={0.01}
+                value={widthInput}
+                onChange={(e) => {
+                  setWidthInput(e.target.value);
+                  updateDimensionFromInput(e.target.value, 3, 10, "width");
+                }}
+                className="h-9 w-24 text-right"
+              />
+            </div>
             <Slider
               value={[roomConfig.width]}
               min={3}
@@ -88,9 +127,22 @@ export const CustomizeRoomPanel = ({
           </div>
 
           <div className="space-y-2">
-            <Label>
-              Depth (m): {(roomConfig.depth - wallOffset).toFixed(2)}
-            </Label>
+            <div className="flex items-center justify-between gap-3">
+              <Label>Depth (m)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={3 - wallOffset}
+                max={10 - wallOffset}
+                step={0.01}
+                value={depthInput}
+                onChange={(e) => {
+                  setDepthInput(e.target.value);
+                  updateDimensionFromInput(e.target.value, 3, 10, "depth");
+                }}
+                className="h-9 w-24 text-right"
+              />
+            </div>
             <Slider
               value={[roomConfig.depth]}
               min={3}
@@ -101,9 +153,22 @@ export const CustomizeRoomPanel = ({
           </div>
 
           <div className="space-y-2">
-            <Label>
-              Height (m): {(roomConfig.height - wallOffset).toFixed(2)}
-            </Label>
+            <div className="flex items-center justify-between gap-3">
+              <Label>Height (m)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={2.9 - wallOffset}
+                max={5.0 - wallOffset}
+                step={0.01}
+                value={heightInput}
+                onChange={(e) => {
+                  setHeightInput(e.target.value);
+                  updateDimensionFromInput(e.target.value, 2.9, 5.0, "height");
+                }}
+                className="h-9 w-24 text-right"
+              />
+            </div>
             <Slider
               value={[roomConfig.height]}
               min={2.9}

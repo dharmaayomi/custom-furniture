@@ -1,4 +1,3 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,33 +7,32 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, LogIn, LogOut, X } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
+import { ArrowLeft, LogIn, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRoomStore } from "@/store/useRoomStore";
 import { useState } from "react";
+import { useUser } from "@/providers/UserProvider";
+import { NavUserMenu } from "./NavUserMenu";
 
 interface MenuModalProps {
   isOpen: boolean;
   onClose: () => void;
-  isLoggedIn?: boolean;
   onBackToMenu?: () => void;
 }
 
 export const OpenDesignCode = ({
   isOpen,
   onClose,
-  isLoggedIn = false,
   onBackToMenu,
 }: MenuModalProps) => {
   const router = useRouter();
-  const session = useSession();
-  const resetRoom = useRoomStore((state) => state.reset);
   const [designCode, setDesignCode] = useState("");
-  const logout = () => {
-    signOut({ redirect: false });
-    router.push("/");
+  const { navUser } = useUser();
+
+  const handleOpenDesignCode = () => {
+    const code = designCode.trim();
+    if (!code) return;
+    onClose();
+    window.open(`/custom/${code}`, "_blank", "noopener,noreferrer");
   };
 
   const handleLogin = () => {
@@ -98,11 +96,12 @@ export const OpenDesignCode = ({
                 onChange={(e) => {
                   const targetValue = e.target.value.toUpperCase();
                   setDesignCode(targetValue);
-                  console.log("kode :", targetValue);
                 }}
                 placeholder="Enter Design Code"
               />
-              <Button variant="secondary">Open</Button>
+              <Button onClick={handleOpenDesignCode} variant="secondary">
+                Open
+              </Button>
             </div>
             <div className="text-muted-foreground mt-2 text-xs">
               Codes are 5–6 characters long (letters & numbers)
@@ -112,31 +111,8 @@ export const OpenDesignCode = ({
           {/* Footer */}
 
           <div className="border-t p-4">
-            {session.data?.user ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <Avatar>
-                    <AvatarImage src="https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png" />
-                    <AvatarFallback>CN</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <p className="truncate text-sm font-semibold text-gray-700 capitalize">
-                      {session.data?.user?.firstName || "User"}
-                    </p>
-                    <p className="text-xs text-gray-500">Online</p>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => logout()}
-                  variant="ghost"
-                  size="icon"
-                  className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                  title="Logout"
-                >
-                  <LogOut size={20} />
-                </Button>
-              </div>
+            {navUser ? (
+              <NavUserMenu user={navUser} />
             ) : (
               <button
                 onClick={handleLogin}

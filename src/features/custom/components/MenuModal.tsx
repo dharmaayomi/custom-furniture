@@ -1,4 +1,3 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,32 +7,28 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  ArrowLeft,
-  FolderClosed,
-  FolderOpen,
-  Frame,
-  LogIn,
-  LogOut,
-  Save,
-  Share,
-  X,
-} from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useRoomStore } from "@/store/useRoomStore";
-import { useState } from "react";
-import useGetUserDisplay from "@/hooks/api/user/useGetUserDisplay";
-import {
-  generateDesignCode,
   clearDesignCodeFromStorage,
   loadDesignCodeFromStorage,
   saveDesignCodeToStorage,
 } from "@/lib/designCode";
+import { useRoomStore } from "@/store/useRoomStore";
+import {
+  ArrowLeft,
+  FolderClosed,
+  FolderOpen,
+  Frame,
+  Save,
+  Share,
+  X,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { NavUserMenu } from "./NavUserMenu";
+import { useUser } from "@/providers/UserProvider";
 
 interface MenuModalProps {
   isOpen: boolean;
   onClose: () => void;
-  isLoggedIn?: boolean;
   onOpenMyDesign?: () => void;
   onOpenDesignCode?: () => void;
   onOpenShareDesign?: () => void;
@@ -43,30 +38,18 @@ interface MenuModalProps {
 export const MenuModal = ({
   isOpen,
   onClose,
-  isLoggedIn = false,
   onOpenMyDesign,
   onOpenDesignCode,
   onOpenShareDesign,
   onResetRoom,
 }: MenuModalProps) => {
   const router = useRouter();
-  const session = useSession();
   const resetRoom = useRoomStore((state) => state.reset);
   const designCode = useRoomStore((state) => state.designCode);
   const setDesignCode = useRoomStore((state) => state.setDesignCode);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  const userId = session.data?.user?.id
-    ? Number(session.data.user.id)
-    : undefined;
-
-  const { data: user, isLoading } = useGetUserDisplay(userId);
-
-  const logout = () => {
-    signOut({ redirect: false });
-    router.push("/");
-  };
-
+  const { navUser } = useUser();
   const handleBack = () => {
     router.push("/");
   };
@@ -88,12 +71,11 @@ export const MenuModal = ({
 
   const handleSave = () => {
     const storedCode = loadDesignCodeFromStorage();
-    const code = designCode || storedCode || generateDesignCode(6);
+    const code = designCode || storedCode;
     if (code !== designCode) {
       setDesignCode(code);
     }
     saveDesignCodeToStorage(code);
-    console.log("Design code:", code);
   };
 
   const handleStartFromScratch = () => {
@@ -216,45 +198,18 @@ export const MenuModal = ({
           </div>
 
           {/* Footer */}
-
-          <div className="border-t p-4">
-            {session.data?.user ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <Avatar>
-                    <AvatarImage src="https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png" />
-                    <AvatarFallback>CN</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <p className="truncate text-sm font-semibold text-gray-700 capitalize">
-                      {user?.userName || "User"}
-                    </p>
-                    <p className="text-xs text-gray-500">Online</p>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => logout()}
-                  variant="ghost"
-                  size="icon"
-                  id="menu-logout-button"
-                  name="menu-logout"
-                  className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                  title="Logout"
-                >
-                  <LogOut size={20} />
-                </Button>
-              </div>
+          <div className="w-full px-4 py-2">
+            {navUser ? (
+              <NavUserMenu user={navUser} />
             ) : (
-              <button
+              <Button
                 onClick={handleLogin}
                 id="menu-login-button"
                 name="menu-login"
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-3 text-white transition-opacity hover:opacity-90"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-black p-4 text-white transition-opacity hover:opacity-90"
               >
-                <LogIn size={20} />
                 <span className="font-medium">Login</span>
-              </button>
+              </Button>
             )}
           </div>
         </div>
