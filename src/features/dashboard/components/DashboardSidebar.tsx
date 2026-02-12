@@ -1,12 +1,12 @@
 "use client";
 
-import * as React from "react";
 import {
-  BookOpen,
+  Bell,
   Bot,
-  Command,
+  CreditCard,
   Frame,
   LifeBuoy,
+  Lock,
   Map,
   MapPin,
   Palette,
@@ -14,7 +14,9 @@ import {
   Send,
   Settings2,
   SquareTerminal,
+  User,
 } from "lucide-react";
+import * as React from "react";
 
 import {
   Sidebar,
@@ -25,13 +27,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import Image from "next/image";
 import { NavMain } from "./NavMain";
-import { NavProjects } from "./NavProjects";
+import { NavProfiles } from "./NavProfiles";
 import { NavSecondary } from "./NavSecondary";
 import { NavUser } from "./NavUser";
-import Image from "next/image";
-import { useSession } from "next-auth/react";
-import useGetUserDisplay from "@/hooks/api/user/useGetUserDisplay";
+import { useUser } from "@/providers/UserProvider";
 
 const data = {
   navMain: [
@@ -39,108 +40,27 @@ const data = {
       title: "Orders",
       url: "/dashboard/orders",
       icon: SquareTerminal,
-      items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
+    },
+    {
+      title: "Billing",
+      url: "/dashboard/billing",
+      icon: CreditCard,
     },
     {
       title: "Products",
       url: "/dashboard/products",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
+      icon: Frame,
     },
-    {
-      title: "Address",
-      url: "/dashboard/address",
-      icon: MapPin,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
+
     {
       title: "Designs",
       url: "/dashboard/designs",
       icon: Palette,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
     },
     {
       title: "Settings",
       url: "/dashboard/settings",
       icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
     },
   ],
   navSecondary: [
@@ -155,21 +75,26 @@ const data = {
       icon: Send,
     },
   ],
-  projects: [
+  profiles: [
     {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
+      name: "Profile Info",
+      url: "/dashboard/profile",
+      icon: User,
     },
     {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
+      name: "Address",
+      url: "/dashboard/address",
+      icon: MapPin,
     },
     {
-      name: "Travel",
-      url: "#",
-      icon: Map,
+      name: "Security",
+      url: "/dashboard/security",
+      icon: Lock,
+    },
+    {
+      name: "Notifications",
+      url: "/dashboard/notifications",
+      icon: Bell,
     },
   ],
 };
@@ -177,18 +102,7 @@ const data = {
 export function DashboardSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
-  const session = useSession();
-  const userId = session.data?.user?.id;
-
-  const { data: user, isLoading } = useGetUserDisplay(userId);
-  const navUser = session.data?.user
-    ? {
-        userName: user?.userName ?? session.data.user.userName ?? "User",
-        email: user?.email ?? session.data.user.email ?? "",
-        avatar:
-          "https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png",
-      }
-    : null;
+  const { navUser } = useUser();
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -210,7 +124,7 @@ export function DashboardSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavProfiles profiles={data.profiles} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

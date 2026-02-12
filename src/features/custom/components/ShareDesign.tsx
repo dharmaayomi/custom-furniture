@@ -1,9 +1,7 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, LogIn, LogOut, X } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
+import { ArrowLeft, Copy, LogIn, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRoomStore } from "@/store/useRoomStore";
 import {
@@ -11,13 +9,13 @@ import {
   saveDesignCodeToStorage,
 } from "@/lib/designCode";
 import { useState } from "react";
-import { getAvatarFallback } from "@/lib/avatar";
 import useGenerateDesignCode from "@/hooks/api/design/useGenerateDesignCode";
+import { useUser } from "@/providers/UserProvider";
+import { NavUserMenu } from "./NavUserMenu";
 
 interface MenuModalProps {
   isOpen: boolean;
   onClose: () => void;
-  isLoggedIn?: boolean;
   onBackToMenu?: () => void;
 }
 
@@ -27,17 +25,12 @@ export const ShareDesign = ({
   onBackToMenu,
 }: MenuModalProps) => {
   const router = useRouter();
-  const session = useSession();
   const designCode = useRoomStore((state) => state.designCode);
   const setDesignCode = useRoomStore((state) => state.setDesignCode);
   const roomState = useRoomStore((state) => state.present);
   const [shareLink, setShareLink] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
-  const avatarFallback = getAvatarFallback({
-    firstName: session.data?.user?.firstName,
-    lastName: session.data?.user?.lastName,
-    name: session.data?.user?.userName ?? "User",
-  });
+  const { navUser } = useUser();
 
   const { mutateAsync: shareableLink, isPending } = useGenerateDesignCode({
     onGenerated: ({ designCode: generatedCode, shareableUrl }) => {
@@ -84,11 +77,6 @@ export const ShareDesign = ({
       totalPrice: { amount: roomState.totalPrice, currency: "IDR" },
     };
   };
-  const logout = () => {
-    signOut({ redirect: false });
-    router.push("/");
-  };
-
   const buildShareLink = (code: string) => {
     if (!code) return "";
     const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -328,31 +316,8 @@ export const ShareDesign = ({
 
           {/* Footer */}
           <div className="border-t p-4">
-            {session.data?.user ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <Avatar>
-                    <AvatarImage src="https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png" />
-                    <AvatarFallback>{avatarFallback}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <p className="truncate text-sm font-semibold text-gray-700 capitalize">
-                      {session.data?.user?.firstName || "User"}
-                    </p>
-                    <p className="text-xs text-gray-500">Online</p>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => logout()}
-                  variant="ghost"
-                  size="icon"
-                  className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                  title="Logout"
-                >
-                  <LogOut size={20} />
-                </Button>
-              </div>
+            {navUser ? (
+              <NavUserMenu user={navUser} />
             ) : (
               <button
                 onClick={handleLogin}

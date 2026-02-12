@@ -6,7 +6,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import useGetUserDisplay from "@/hooks/api/user/useGetUserDisplay";
 import {
   clearDesignCodeFromStorage,
   loadDesignCodeFromStorage,
@@ -22,15 +21,14 @@ import {
   Share,
   X,
 } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { NavUserMenu } from "./NavUserMenu";
+import { useUser } from "@/providers/UserProvider";
 
 interface MenuModalProps {
   isOpen: boolean;
   onClose: () => void;
-  isLoggedIn?: boolean;
   onOpenMyDesign?: () => void;
   onOpenDesignCode?: () => void;
   onOpenShareDesign?: () => void;
@@ -40,36 +38,18 @@ interface MenuModalProps {
 export const MenuModal = ({
   isOpen,
   onClose,
-  isLoggedIn = false,
   onOpenMyDesign,
   onOpenDesignCode,
   onOpenShareDesign,
   onResetRoom,
 }: MenuModalProps) => {
   const router = useRouter();
-  const session = useSession();
   const resetRoom = useRoomStore((state) => state.reset);
   const designCode = useRoomStore((state) => state.designCode);
   const setDesignCode = useRoomStore((state) => state.setDesignCode);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  const userId = session.data?.user?.id;
-
-  const { data: user, isLoading } = useGetUserDisplay(userId);
-  const navUser =
-    session.data?.user && !isLoading
-      ? {
-          userName: user?.userName ?? session.data.user.userName ?? "User",
-          email: user?.email ?? session.data.user.email ?? "",
-          avatar:
-            "https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png",
-        }
-      : null;
-  const logout = () => {
-    signOut({ redirect: false });
-    router.push("/");
-  };
-
+  const { navUser } = useUser();
   const handleBack = () => {
     router.push("/");
   };
@@ -79,12 +59,6 @@ export const MenuModal = ({
     onOpenDesignCode?.();
   };
 
-  // const handleOpenDesignCode = () => {
-  //   const code = designCode.trim();
-  //   if (!code) return;
-  //   onClose();
-  //   window.open(`/custom/${code}`, "_blank", "noopener,noreferrer");
-  // };
   const handleOpenMyDesign = () => {
     onClose();
     onOpenMyDesign?.();

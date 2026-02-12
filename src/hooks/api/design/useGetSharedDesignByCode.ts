@@ -11,6 +11,7 @@ const useGetSharedDesignByCode = (designCode: string) => {
       );
       return data;
     },
+    enabled: !!designCode,
   });
 };
 export default useGetSharedDesignByCode;

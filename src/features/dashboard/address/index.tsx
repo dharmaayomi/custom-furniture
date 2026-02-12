@@ -1,17 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Grid3x3, List, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import AddressCard from "./components/AddressCard";
-import { MOCK_ADDRESSES } from "./data/mockAddresses";
+import useGetUserAddresses from "@/hooks/api/user/useGetUserAddresses";
+import { useUser } from "@/providers/UserProvider";
+import { Address } from "@/types/address";
 
 type ViewMode = "list" | "grid";
 
 export default function AddressesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [addresses, setAddresses] = useState(MOCK_ADDRESSES);
+  const { userId } = useUser();
+  const { data, isLoading, isError } = useGetUserAddresses(userId ?? 0);
+  const addressesPayload = (data as any)?.data ?? data;
+  const initialAddresses = Array.isArray(addressesPayload)
+    ? (addressesPayload as Address[])
+    : [];
+  const [addresses, setAddresses] = useState<Address[]>([]);
+
+  useEffect(() => {
+    setAddresses(initialAddresses);
+  }, [initialAddresses]);
 
   const handleDeleteAddress = (id: number) => {
     if (confirm("Are you sure you want to delete this address?")) {
@@ -23,10 +35,10 @@ export default function AddressesPage() {
     <main className="bg-background">
       {/* Header */}
       <div className="bg-card">
-        <div className="mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto px-4 py-4 sm:px-6 lg:px-2 lg:py-2">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-foreground text-3xl font-bold tracking-tight">
+              <h1 className="text-foreground text-xl font-bold tracking-tight md:text-3xl">
                 My Addresses
               </h1>
               <p className="text-muted-foreground mt-2 text-sm">
@@ -44,7 +56,7 @@ export default function AddressesPage() {
       </div>
 
       {/* Content */}
-      <div className="mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto px-4 py-4 sm:px-6 lg:px-2 lg:py-2">
         {/* View Toggle */}
         <div className="mb-6 flex items-center justify-between">
           <p className="text-muted-foreground text-sm">
@@ -73,7 +85,27 @@ export default function AddressesPage() {
         </div>
 
         {/* Address List/Grid */}
-        {addresses.length === 0 ? (
+        {isLoading ? (
+          <div className="border-border bg-muted/30 flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
+            <MapPin className="text-muted-foreground/40 mb-3 h-12 w-12" />
+            <h3 className="text-foreground mb-2 text-lg font-medium">
+              Loading addresses...
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Please wait while we fetch your addresses.
+            </p>
+          </div>
+        ) : isError ? (
+          <div className="border-border bg-muted/30 flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
+            <MapPin className="text-muted-foreground/40 mb-3 h-12 w-12" />
+            <h3 className="text-foreground mb-2 text-lg font-medium">
+              Failed to load addresses
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Please try again later.
+            </p>
+          </div>
+        ) : addresses.length === 0 ? (
           <div className="border-border bg-muted/30 flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
             <MapPin className="text-muted-foreground/40 mb-3 h-12 w-12" />
             <h3 className="text-foreground mb-2 text-lg font-medium">

@@ -4,6 +4,7 @@ import { montserrat } from "../../public/assets/font";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "@/components/ui/sonner";
 import ReactQueryProvider from "@/providers/ReactQueryProviders";
+import { UserProvider } from "@/providers/UserProvider";
 
 export const metadata: Metadata = {
   title: "Custom Furniture",
@@ -22,7 +23,9 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <SessionProvider>
-          <ReactQueryProvider>{children}</ReactQueryProvider>
+          <ReactQueryProvider>
+            <UserProvider>{children}</UserProvider>
+          </ReactQueryProvider>
         </SessionProvider>
         <Toaster position="top-right" duration={2000} />
       </body>

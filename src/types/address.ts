@@ -3,7 +3,7 @@ import { User } from "./user";
 export type Address = {
   id: number;
   userId: number;
-  user: User;
+  user?: User;
 
   label: string;
   recipientName: string;
@@ -23,7 +23,7 @@ export type Address = {
   postalCode: number;
   isDefault: boolean;
 
-  deletedAt?: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  deletedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 };

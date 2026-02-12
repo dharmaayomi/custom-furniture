@@ -21,7 +21,7 @@ import {
 import { getAvatarFallback } from "@/lib/avatar";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { useUser } from "@/providers/UserProvider";
 
 export function NavUserMenu({
   user,
@@ -35,8 +35,9 @@ export function NavUserMenu({
   const router = useRouter();
   const avatarFallback = getAvatarFallback({ name: user?.userName });
   const avatarSrc = user.avatar || undefined;
-  const logout = () => {
-    signOut({ redirect: false });
+  const { logout } = useUser();
+  const handleLogout = () => {
+    logout();
     router.push("/");
   };
   return (
@@ -82,9 +83,9 @@ export function NavUserMenu({
 
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => router.push("/dashboard/account")}>
+          <DropdownMenuItem onClick={() => router.push("/dashboard")}>
             <BadgeCheck />
-            Account
+            Dashboard
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
             <CreditCard />
@@ -98,7 +99,7 @@ export function NavUserMenu({
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout}>
+        <DropdownMenuItem onClick={handleLogout}>
           <LogOut />
           Log out
         </DropdownMenuItem>

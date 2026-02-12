@@ -1,4 +1,4 @@
-import AddressEditForm from "@/features/dashboard/address/components/AddressEditForm";
+import { redirect } from "next/navigation";
 
 const AddressEditPage = async ({
   params,
@@ -6,13 +6,7 @@ const AddressEditPage = async ({
   params: Promise<{ id: string }>;
 }) => {
   const { id } = await params;
-  const addressId = Number(id);
-
-  return +(
-    <div className="w-full px-4 py-8 sm:px-6 lg:px-8">
-      <AddressEditForm addressId={addressId} />
-    </div>
-  );
+  redirect(`/dashboard/address/${id}/edit`);
 };
 
 export default AddressEditPage;

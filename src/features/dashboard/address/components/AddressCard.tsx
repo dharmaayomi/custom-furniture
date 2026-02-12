@@ -4,20 +4,7 @@ import { MapPin, Phone, User, Trash2, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
-
-interface Address {
-  id: number;
-  label: string;
-  recipientName: string;
-  phoneNumber: string;
-  line1: string;
-  line2?: string;
-  city: string;
-  district: string;
-  province: string;
-  country: string;
-  isDefault: boolean;
-}
+import { Address } from "@/types/address";
 
 interface AddressCardProps {
   address: Address;
@@ -76,7 +63,7 @@ export default function AddressCard({
           </div>
 
           <div className="ml-4 flex gap-2">
-            <Link href={`/dashboard/address/${address.id}`}>
+            <Link href={`/dashboard/address/${address.id}/edit`}>
               <Button variant="outline" size="sm">
                 <Edit2 className="h-4 w-4" />
               </Button>
@@ -132,7 +119,7 @@ export default function AddressCard({
       </div>
 
       <div className="border-border flex gap-2 border-t px-4 py-3">
-        <Link href={`/dashboard/address/${address.id}`} className="flex-1">
+        <Link href={`/dashboard/address/${address.id}/edit`} className="flex-1">
           <Button variant="outline" size="sm" className="w-full bg-transparent">
             <Edit2 className="h-4 w-4" />
             Edit

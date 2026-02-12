@@ -284,7 +284,6 @@ export const RoomPage = () => {
         onOpenDesignCode={() => setIsOpenDesignCodeOpen(true)}
         onOpenShareDesign={() => setIsShareDesignOpen(true)}
         onResetRoom={handleResetRoom}
-        isLoggedIn={false}
       />
       <MyDesign
         isOpen={isMyDesignOpen}
@@ -293,7 +292,6 @@ export const RoomPage = () => {
           setIsMyDesignOpen(false);
           setIsMenuOpen(true);
         }}
-        isLoggedIn={false}
       />
       <OpenDesignCode
         isOpen={isOpenDesignCodeOpen}
@@ -302,7 +300,6 @@ export const RoomPage = () => {
           setIsOpenDesignCodeOpen(false);
           setIsMenuOpen(true);
         }}
-        isLoggedIn={false}
       />
       <ShareDesign
         isOpen={isShareDesignOpen}
@@ -311,7 +308,6 @@ export const RoomPage = () => {
           setIsShareDesignOpen(false);
           setIsMenuOpen(true);
         }}
-        isLoggedIn={false}
       />
       <CustomizeRoomPanel
         scene={scene}

@@ -8,7 +8,7 @@ const useGetSavedDesignByCode = (userId: number, designCode: string) => {
     queryKey: ["saved-design", userId, designCode],
     queryFn: async () => {
       const { data } = await axiosInstance.get(
-        `/design/saved-designs/${designCode}`,
+        `/design/saved-design/${designCode}`,
       );
       return data;
     },

@@ -53,6 +53,7 @@ interface AddressFormProps {
   title?: string;
   description?: string;
   submitLabel?: string;
+  onSubmit?: (data: AddressFormData) => Promise<void> | void;
 }
 
 export default function AddressForm({
@@ -60,6 +61,7 @@ export default function AddressForm({
   title = "Add New Address",
   description = "Fill in your delivery address details",
   submitLabel = "Save Address",
+  onSubmit,
 }: AddressFormProps) {
   const [formData, setFormData] = useState<AddressFormData>(() => ({
     ...INITIAL_STATE,
@@ -96,15 +98,12 @@ export default function AddressForm({
     setIsSubmitting(true);
 
     try {
-      // TODO: Replace with your API endpoint
-      console.log("Submitting address:", formData);
-      // const response = await fetch('/api/addresses', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData),
-      // });
-      // const result = await response.json();
-      // Handle success
+      if (onSubmit) {
+        await onSubmit(formData);
+      } else {
+        // TODO: Replace with your API endpoint
+        console.log("Submitting address:", formData);
+      }
     } catch (error) {
       console.error("Error submitting form:", error);
     } finally {
@@ -123,6 +122,7 @@ export default function AddressForm({
           </CardTitle>
           <CardDescription>{description}</CardDescription>
         </CardHeader>
+        {/* address section */}
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Address Label */}
