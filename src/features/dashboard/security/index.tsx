@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import useChangePassword from "@/hooks/api/auth/useChangePassword";
+import { useUser } from "@/providers/UserProvider";
 import { Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -28,6 +30,7 @@ const INITIAL_FORM: PasswordForm = {
 };
 
 export const SecurityPage = () => {
+  const { userId } = useUser();
   const [form, setForm] = useState<PasswordForm>(INITIAL_FORM);
   const [resetEmail, setResetEmail] = useState("");
   const [showCurrent, setShowCurrent] = useState(false);
@@ -35,6 +38,19 @@ export const SecurityPage = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+
+  const { mutateAsync: changePassword, isPending: isChangingPassword } =
+    useChangePassword(userId, {
+      onSuccess: () => {
+        toast.success("Password updated");
+      },
+      onError: (error) => {
+        const message =
+          (error as { response?: { data?: { message?: string } } })?.response
+            ?.data?.message ?? "Failed to update password.";
+        toast.error(message);
+      },
+    });
 
   const hasChanges = useMemo(() => {
     return (
@@ -49,15 +65,20 @@ export const SecurityPage = () => {
     return form.newPassword !== form.confirmPassword;
   }, [form.newPassword, form.confirmPassword]);
 
-  const handleResetFields = () => {
+  const handleResetFields = (silent = false) => {
+    const isAlreadyReset =
+      !form.currentPassword && !form.newPassword && !form.confirmPassword;
+
     setForm(INITIAL_FORM);
     setShowCurrent(false);
     setShowNew(false);
     setShowConfirm(false);
-    toast("Password fields reset");
+    if (!silent) {
+      toast(isAlreadyReset ? "Fields are already reset" : "Password fields reset");
+    }
   };
 
-  const handleSavePassword = () => {
+  const handleSavePassword = async () => {
     if (!form.currentPassword || !form.newPassword || !form.confirmPassword) {
       toast.error("Please fill all password fields.");
       return;
@@ -66,10 +87,16 @@ export const SecurityPage = () => {
       toast.error("New password and confirmation do not match.");
       return;
     }
+    if (!userId) {
+      toast.error("Missing user session.");
+      return;
+    }
 
-    // Hardcoded for now (no API call yet).
-    toast.success("Password updated (mock)");
-    handleResetFields();
+    await changePassword({
+      currentPassword: form.currentPassword,
+      newPassword: form.newPassword,
+    });
+    handleResetFields(true);
   };
 
   const handleSendResetEmail = () => {
@@ -100,7 +127,7 @@ export const SecurityPage = () => {
           <div className="bg-card rounded-lg border shadow-sm">
             <div className="px-6 py-8">
               <h3 className="text-muted-foreground mb-6 text-sm font-semibold">
-                Reset Password
+                Change Password
               </h3>
 
               <Field className="pb-6">
@@ -196,12 +223,15 @@ export const SecurityPage = () => {
                 <Button
                   variant="outline"
                   onClick={handleResetFields}
-                  disabled={!hasChanges}
+                  disabled={isChangingPassword}
                 >
-                  Reset Fields
+                  Reset Form
                 </Button>
-                <Button onClick={handleSavePassword} disabled={isConfirmMismatch}>
-                  Save Password
+                <Button
+                  onClick={handleSavePassword}
+                  disabled={isConfirmMismatch || isChangingPassword}
+                >
+                  {isChangingPassword ? "Saving..." : "Change Password"}
                 </Button>
               </div>
             </div>
