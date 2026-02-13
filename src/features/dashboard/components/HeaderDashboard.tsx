@@ -64,17 +64,22 @@ const HeaderDashboard = () => {
       isLast: index === filteredSegments.length - 1,
     };
   });
+  const currentPageLabel =
+    crumbs.length > 0 ? crumbs[crumbs.length - 1].label : "Dashboard";
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 sm:h-18">
-      <div className="flex w-full items-center gap-2 px-3 sm:px-4">
-        <SidebarTrigger className="ml-2" />
+    <header className="flex h-14 shrink-0 items-center gap-2 sm:h-16">
+      <div className="flex w-full items-center gap-2 px-2 sm:px-4">
+        <SidebarTrigger className="ml-1 sm:ml-2" />
         <Separator
           orientation="vertical"
-          className="mr-2 data-[orientation=vertical]:h-4"
+          className="mr-1 hidden data-[orientation=vertical]:h-4 sm:mr-2 sm:block"
         />
-        <div className="flex flex-1 items-center justify-between">
-          <Breadcrumb>
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+          <p className="truncate text-sm font-medium sm:hidden">
+            {currentPageLabel}
+          </p>
+          <Breadcrumb className="hidden sm:block">
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
@@ -99,11 +104,11 @@ const HeaderDashboard = () => {
                 : null}
             </BreadcrumbList>
           </Breadcrumb>
-          <div className="mr-3 flex items-center gap-7">
-            <div>
+          <div className="mr-1 flex items-center gap-2 sm:mr-3 sm:gap-4 lg:gap-6">
+            <div className="hidden sm:block">
               <Moon size={20} />
             </div>
-            <div>
+            <div className="hidden sm:block">
               <Bell size={20} />
             </div>
 

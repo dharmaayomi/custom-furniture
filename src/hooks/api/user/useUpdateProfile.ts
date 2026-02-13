@@ -24,16 +24,11 @@ const useUpdateProfile = (userId?: number, options?: UpdateProfileOptions) => {
 
   return useMutation({
     mutationFn: async (payload: UpdateProfileInput) => {
-      if (!userId) {
-        throw new Error("Missing userId");
-      }
       const cleanedPayload = Object.fromEntries(
         Object.entries(payload).filter(([, value]) => value !== undefined),
       );
-      const { data } = await axiosInstance.patch(
-        `/user/profile/${userId}`,
-        cleanedPayload,
-      );
+      const endpoint = "/user/profile";
+      const { data } = await axiosInstance.patch(endpoint, cleanedPayload);
       return data as User;
     },
     onSuccess: (result) => {
