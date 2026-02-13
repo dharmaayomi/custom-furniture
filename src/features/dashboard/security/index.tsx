@@ -12,6 +12,7 @@ import {
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import useChangePassword from "@/hooks/api/auth/useChangePassword";
+import useForgotPassword from "@/hooks/api/auth/useForgotPassword";
 import { useUser } from "@/providers/UserProvider";
 import { Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -48,6 +49,21 @@ export const SecurityPage = () => {
         const message =
           (error as { response?: { data?: { message?: string } } })?.response
             ?.data?.message ?? "Failed to update password.";
+        toast.error(message);
+      },
+    });
+
+  const { mutateAsync: forgotPassword, isPending: isSendingResetEmail } =
+    useForgotPassword({
+      onSuccess: (result) => {
+        toast.success(
+          result?.message ?? "Reset password link has been sent to your email",
+        );
+      },
+      onError: (error) => {
+        const message =
+          (error as { response?: { data?: { message?: string } } })?.response
+            ?.data?.message ?? "Failed to send reset password email.";
         toast.error(message);
       },
     });
@@ -99,14 +115,13 @@ export const SecurityPage = () => {
     handleResetFields(true);
   };
 
-  const handleSendResetEmail = () => {
+  const handleSendResetEmail = async () => {
     if (!resetEmail.trim()) {
       toast.error("Please enter your email.");
       return;
     }
 
-    // Hardcoded for now (no API call yet).
-    toast.success("Password reset link sent (mock)");
+    await forgotPassword({ email: resetEmail.trim() });
     setIsForgotPasswordOpen(false);
     setResetEmail("");
   };
@@ -248,6 +263,7 @@ export const SecurityPage = () => {
                 <Button
                   variant="outline"
                   className="w-full"
+                  disabled={isSendingResetEmail}
                   onClick={() => setIsForgotPasswordOpen(true)}
                 >
                   Send Reset Password Email
@@ -330,13 +346,17 @@ export const SecurityPage = () => {
             <Button
               variant="outline"
               onClick={() => {
+                if (isSendingResetEmail) return;
                 setIsForgotPasswordOpen(false);
                 setResetEmail("");
               }}
+              disabled={isSendingResetEmail}
             >
               Cancel
             </Button>
-            <Button onClick={handleSendResetEmail}>Send Reset Link</Button>
+            <Button onClick={handleSendResetEmail} disabled={isSendingResetEmail}>
+              {isSendingResetEmail ? "Sending..." : "Send Reset Link"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
