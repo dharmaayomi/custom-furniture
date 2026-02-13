@@ -8,6 +8,7 @@ export const updateProfileSchema = z.object({
   phoneNumber: z.string().optional(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
+  avatar: z.string().optional(),
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
@@ -30,7 +31,7 @@ const useUpdateProfile = (userId?: number, options?: UpdateProfileOptions) => {
         Object.entries(payload).filter(([, value]) => value !== undefined),
       );
       const { data } = await axiosInstance.patch(
-        `/user/${userId}/profile`,
+        `/user/profile/${userId}`,
         cleanedPayload,
       );
       return data as User;

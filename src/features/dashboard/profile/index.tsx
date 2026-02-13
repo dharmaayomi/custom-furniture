@@ -13,17 +13,29 @@ import {
 import { Field, FieldLabel } from "@/components/ui/field";
 import { FileUpload } from "@/components/ui/file-upload";
 import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import useGetUser from "@/hooks/api/user/useGetUser";
+import useUpdateProfile from "@/hooks/api/user/useUpdateProfile";
 import useUploadAvatarProfile from "@/hooks/api/user/useUploadPhotoProfile";
 import { useUser } from "@/providers/UserProvider";
+import { Pencil, Trash, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+
+const DEFAULT_AVATAR_URL =
+  "https://res.cloudinary.com/dhdpnfvfn/image/upload/v1768803916/user-icon_rbmcr4.png";
 
 export const ProfilePage = () => {
   const { userId } = useUser();
   const { data: user, isLoading } = useGetUser(userId);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [isRemoveAvatarDialogOpen, setIsRemoveAvatarDialogOpen] =
+    useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const router = useRouter();
 
@@ -36,6 +48,18 @@ export const ProfilePage = () => {
         const message =
           (error as { response?: { data?: { message?: string } } })?.response
             ?.data?.message ?? "Failed to update profile photo.";
+        toast.error(message);
+      },
+    });
+  const { mutateAsync: updateProfile, isPending: isRemovingAvatar } =
+    useUpdateProfile(userId, {
+      onSuccess: () => {
+        toast.success("Profile photo removed");
+      },
+      onError: (error) => {
+        const message =
+          (error as { response?: { data?: { message?: string } } })?.response
+            ?.data?.message ?? "Failed to remove profile photo.";
         toast.error(message);
       },
     });
@@ -76,6 +100,11 @@ export const ProfilePage = () => {
     setSelectedFile(null);
   };
 
+  const handleRemoveAvatar = async () => {
+    await updateProfile({ avatar: DEFAULT_AVATAR_URL });
+    setIsRemoveAvatarDialogOpen(false);
+  };
+
   return (
     <section className="p-3">
       <div className="flex items-center justify-between">
@@ -99,14 +128,36 @@ export const ProfilePage = () => {
               </AvatarFallback>
             </Avatar>
           </div>
-          <div className="flex justify-center pb-3">
-            <Button
-              variant="secondary"
-              onClick={() => setIsAvatarModalOpen(true)}
-              disabled={!userId}
-            >
-              Change Photo Profile
-            </Button>
+          <div className="flex justify-center gap-2 pb-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsAvatarModalOpen(true)}
+                  disabled={!userId}
+                >
+                  <Pencil />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                Change Profile Photo
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="destructive"
+                  onClick={() => setIsRemoveAvatarDialogOpen(true)}
+                  disabled={!userId || user?.avatar === DEFAULT_AVATAR_URL}
+                >
+                  <Trash2 />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                Remove Profile Photo
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
@@ -179,6 +230,36 @@ export const ProfilePage = () => {
             </Button>
             <Button onClick={handleUploadAvatar} disabled={isUploadingAvatar}>
               {isUploadingAvatar ? "Uploading..." : "Save Photo"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isRemoveAvatarDialogOpen}
+        onOpenChange={setIsRemoveAvatarDialogOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Remove profile photo?</DialogTitle>
+            <DialogDescription>
+              Your profile photo will be reset to the default avatar.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsRemoveAvatarDialogOpen(false)}
+              disabled={isRemovingAvatar}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRemoveAvatar}
+              disabled={isRemovingAvatar}
+            >
+              {isRemovingAvatar ? "Removing..." : "Remove Photo"}
             </Button>
           </DialogFooter>
         </DialogContent>
