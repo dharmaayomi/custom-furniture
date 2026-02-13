@@ -2,17 +2,24 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/features/dashboard/components/DashboardSidebar";
 import HeaderDashboard from "@/features/dashboard/components/HeaderDashboard";
 import type { Metadata } from "next";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Custom Furniture",
   description: "BBPersona",
 };
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+  if (!session) {
+    redirect("/login?reason=login_required");
+  }
+
   return (
     <div className="min-h-dvh w-full">
       <SidebarProvider>

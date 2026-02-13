@@ -1,7 +1,11 @@
-import React from "react";
+import { ProfilePage } from "@/features/dashboard/profile";
 
 const Profile = () => {
-  return <div>Profile</div>;
+  return (
+    <div>
+      <ProfilePage />
+    </div>
+  );
 };
 
 export default Profile;

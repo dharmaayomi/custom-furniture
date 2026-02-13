@@ -34,6 +34,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (!session.data?.user) {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("had_session");
+      }
       queryClient.removeQueries({
         predicate: (query) =>
           Array.isArray(query.queryKey) &&
@@ -43,14 +46,20 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [session.data?.user, queryClient]);
 
+  useEffect(() => {
+    if (!session.data?.user) return;
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("had_session", "1");
+  }, [session.data?.user]);
+
   const navUser = useMemo<NavUser | null>(() => {
     if (!session.data?.user) return null;
     return {
       userName: user?.userName ?? session.data.user.userName ?? "User",
       email: user?.email ?? session.data.user.email ?? "",
-      avatar: DEFAULT_AVATAR,
+      avatar: user?.avatar ?? DEFAULT_AVATAR,
     };
-  }, [session.data?.user, user?.userName, user?.email]);
+  }, [session.data?.user, user?.userName, user?.email, user?.avatar]);
 
   const logout = () => {
     queryClient.removeQueries({
@@ -59,6 +68,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         (query.queryKey[0] === "user-display" ||
           query.queryKey[0] === "user"),
     });
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("had_session");
+    }
     signOut({ redirect: false });
   };
 

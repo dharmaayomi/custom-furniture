@@ -25,10 +25,16 @@ const useAxios = () => {
     const responseIntercept = axiosInstance.interceptors.response.use(
       (res) => res,
       (err) => {
-        if (!isLoggingOut && err.response?.status === 401) {
+        const status = err.response?.status;
+        const code = err.response?.data?.code;
+
+        if (!isLoggingOut && status === 401 && code === "SESSION_EXPIRED") {
           isLoggingOut = true;
-          signOut({ callbackUrl: "/login?reason=session_expired" });
+          signOut({
+            callbackUrl: "/login?reason=session_expired",
+          });
         }
+
         return Promise.reject(err);
       },
     );
