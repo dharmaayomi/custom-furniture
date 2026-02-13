@@ -1,9 +1,8 @@
 import useAxios from "@/hooks/useAxios";
 import { User } from "@/types/user";
 import { useQuery } from "@tanstack/react-query";
-import React from "react";
 
-const useGetUser = (userId: number) => {
+const useGetUser = (userId?: number) => {
   const axiosInstance = useAxios();
   return useQuery<User>({
     queryKey: ["user", userId],

@@ -57,9 +57,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     return {
       userName: user?.userName ?? session.data.user.userName ?? "User",
       email: user?.email ?? session.data.user.email ?? "",
-      avatar: DEFAULT_AVATAR,
+      avatar: user?.avatar ?? DEFAULT_AVATAR,
     };
-  }, [session.data?.user, user?.userName, user?.email]);
+  }, [session.data?.user, user?.userName, user?.email, user?.avatar]);
 
   const logout = () => {
     queryClient.removeQueries({

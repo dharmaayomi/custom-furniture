@@ -17,10 +17,7 @@ type UpdateProfileOptions = {
   onError?: (error: unknown) => void;
 };
 
-const useUpdateProfile = (
-  userId?: number,
-  options?: UpdateProfileOptions,
-) => {
+const useUpdateProfile = (userId?: number, options?: UpdateProfileOptions) => {
   const axiosInstance = useAxios();
   const queryClient = useQueryClient();
 

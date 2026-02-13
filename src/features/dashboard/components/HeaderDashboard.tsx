@@ -66,9 +66,9 @@ const HeaderDashboard = () => {
   });
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 sm:h-16">
+    <header className="flex h-16 shrink-0 items-center gap-2 sm:h-18">
       <div className="flex w-full items-center gap-2 px-3 sm:px-4">
-        <SidebarTrigger className="-ml-1" />
+        <SidebarTrigger className="ml-2" />
         <Separator
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"
@@ -99,7 +99,7 @@ const HeaderDashboard = () => {
                 : null}
             </BreadcrumbList>
           </Breadcrumb>
-          <div className="flex items-center gap-7">
+          <div className="mr-3 flex items-center gap-7">
             <div>
               <Moon size={20} />
             </div>
