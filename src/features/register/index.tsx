@@ -1,9 +1,7 @@
 "use client";
 
-import React from "react";
-import { GalleryVerticalEnd } from "lucide-react";
-import { RegisterForm } from "./components/registerForm";
 import Image from "next/image";
+import { RegisterForm } from "./components/registerForm";
 
 export const RegisterPage = () => {
   return (

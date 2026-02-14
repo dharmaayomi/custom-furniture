@@ -58,10 +58,13 @@ export const ResetPasswordPage = ({ token }: ResetPasswordPageProps) => {
   };
 
   return (
-    <section>
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="w-full max-w-xl p-4">
-          <Card className="p-6">
+    <section className="bg-background relative min-h-screen w-full overflow-hidden">
+      <div className="dot-background absolute inset-0 opacity-50 dark:opacity-55" />
+      <div className="bg-background pointer-events-none absolute inset-0 flex items-center justify-center mask-[radial-gradient(ellipse_at_center,transparent_30%,black)]" />
+
+      <div className="relative z-20 flex min-h-screen items-center justify-center px-4">
+        <div className="w-full max-w-xl">
+          <Card className="bg-card p-6 shadow-lg">
             <h1 className="text-xl font-semibold">Reset Password</h1>
             <p className="text-muted-foreground mt-1 text-sm">
               Enter your new password and confirm it.

@@ -116,6 +116,23 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+.dot-background {
+  background-image: radial-gradient(
+    circle,
+    rgb(0 0 0 / 0.24) 1.2px,
+    transparent 1.2px
+  );
+  background-size: 16px 16px;
+}
+
+.dark .dot-background {
+  background-image: radial-gradient(
+    circle,
+    rgb(255 255 255 / 0.28) 1.2px,
+    transparent 1.2px
+  );
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -135,7 +152,7 @@
     opacity: 0.75;
   }
   .maplibregl-popup-content {
-    @apply bg-transparent! shadow-none! p-0! rounded-none!;
+    @apply rounded-none! bg-transparent! p-0! shadow-none!;
   }
   .maplibregl-popup-tip {
     @apply hidden!;

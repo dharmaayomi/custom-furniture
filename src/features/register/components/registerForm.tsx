@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
@@ -21,7 +20,6 @@ import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -29,7 +27,7 @@ import { z } from "zod";
 
 const formSchema = z.object({
   email: z.email(),
-  password: z.string().min(5, "Password must be at least 5 characters."),
+  userName: z.string().optional(),
   firstName: z.string(),
   lastName: z.string(),
   phoneNumber: z.string(),
@@ -45,7 +43,7 @@ export function RegisterForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
-      password: "",
+      userName: "",
       firstName: "",
       lastName: "",
       phoneNumber: "",
@@ -56,7 +54,7 @@ export function RegisterForm({
     mutationFn: async (data: z.infer<typeof formSchema>) => {
       const result = await axiosInstance.post("/auth/register", {
         email: data.email,
-        password: data.password,
+        userName: data.userName?.trim() || undefined,
         firstName: data.firstName,
         lastName: data.lastName,
         phoneNumber: data.phoneNumber,
@@ -64,24 +62,11 @@ export function RegisterForm({
 
       return result.data;
     },
-    onSuccess: async (result) => {
-      const payload = (result as any)?.data ?? result;
-      const userId = payload?.id;
-
-      if (userId === undefined || userId === null) {
-        toast.error("Register failed: missing user id");
-        return;
-      }
-
-      await signIn("credentials", {
-        id: String(userId),
-        role: payload?.role ?? "",
-        accessToken: payload?.accessToken ?? "",
-        redirect: false,
-      });
-
-      toast.success("Register success");
-      router.push("/custom");
+    onSuccess: async (_result, variables) => {
+      toast.success("Registration successful. Check your inbox.");
+      router.push(
+        `/register/email-verification?email=${encodeURIComponent(variables.email)}`,
+      );
     },
     onError: (error: AxiosError<{ message: string }>) => {
       toast.error(error.response?.data.message ?? "Something went wrong!");
@@ -152,6 +137,19 @@ export function RegisterForm({
                 )}
               />
               <Controller
+                name="userName"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Username</FieldLabel>
+                    <Input {...field} placeholder="jane.doe (optional)" />
+                    {fieldState.error && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+              <Controller
                 name="phoneNumber"
                 control={form.control}
                 render={({ field, fieldState }) => (
@@ -159,27 +157,6 @@ export function RegisterForm({
                     <FieldLabel>Phone Number</FieldLabel>
                     <Input {...field} type="tel" placeholder="081234567890" />
                     {fieldState.error && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-
-              <Controller
-                name="password"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input
-                      {...field}
-                      id="password"
-                      type="password"
-                      autoComplete="new-password"
-                      aria-invalid={fieldState.invalid}
-                      placeholder="Your password"
-                    />
-                    {fieldState.invalid && (
                       <FieldError errors={[fieldState.error]} />
                     )}
                   </Field>
