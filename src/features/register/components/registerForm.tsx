@@ -68,13 +68,24 @@ export function RegisterForm({
         `/register/email-verification?email=${encodeURIComponent(variables.email)}`,
       );
     },
-    onError: (error) => {
-      toast.error(getApiErrorMessage(error));
+    onError: (error, variables) => {
+      const message = getApiErrorMessage(error);
+      toast.error(message);
+
+      if (
+        message.toLowerCase().includes("verification email was recently sent")
+      ) {
+        router.push(
+          `/register/email-verification?email=${encodeURIComponent(variables.email)}`,
+        );
+      }
     },
   });
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
-    await register(data);
+    try {
+      await register(data);
+    } catch {}
   }
 
   return (
