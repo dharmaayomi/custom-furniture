@@ -14,8 +14,11 @@ const useAxios = () => {
       (config) => {
         const token =
           session?.user?.accessToken || (session as any)?.backendToken;
+        const hasAuthorizationHeader = Boolean(
+          config.headers?.Authorization || config.headers?.authorization,
+        );
 
-        if (token) {
+        if (token && !hasAuthorizationHeader) {
           config.headers.Authorization = `Bearer ${token}`;
         }
         return config;

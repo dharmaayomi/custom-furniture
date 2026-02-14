@@ -1,4 +1,5 @@
 import useAxios from "@/hooks/useAxios";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-error";
 import { useMutation } from "@tanstack/react-query";
 import z from "zod";
 
@@ -33,6 +34,10 @@ const useForgotPassword = (options?: ForgotPasswordOptions) => {
       options?.onSuccess?.(result);
     },
     onError: (error) => {
+      console.error("[useForgotPassword] request failed", {
+        status: getApiErrorStatus(error),
+        message: getApiErrorMessage(error, "Failed to send reset email."),
+      });
       options?.onError?.(error);
     },
   });

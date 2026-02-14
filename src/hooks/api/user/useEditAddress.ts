@@ -1,4 +1,5 @@
 import useAxios from "@/hooks/useAxios";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-error";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import z from "zod";
 
@@ -79,6 +80,10 @@ const useEditAddress = (
       options?.onSuccess?.(result);
     },
     onError: (error) => {
+      console.error("[useEditAddress] request failed", {
+        status: getApiErrorStatus(error),
+        message: getApiErrorMessage(error, "Failed to update address."),
+      });
       options?.onError?.(error);
     },
   });

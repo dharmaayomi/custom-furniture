@@ -1,4 +1,5 @@
 import useAxios from "@/hooks/useAxios";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-error";
 import { User } from "@/types/user";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -49,6 +50,10 @@ const useUploadAvatarProfile = (
       options?.onSuccess?.(result);
     },
     onError: (error) => {
+      console.error("[useUploadAvatarProfile] request failed", {
+        status: getApiErrorStatus(error),
+        message: getApiErrorMessage(error, "Failed to upload avatar."),
+      });
       options?.onError?.(error);
     },
   });

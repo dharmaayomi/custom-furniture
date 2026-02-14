@@ -1,4 +1,5 @@
 import useAxios from "@/hooks/useAxios";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-error";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 type DeleteAddressOptions = {
@@ -33,6 +34,10 @@ const useDeleteAddress = (
       options?.onSuccess?.(result);
     },
     onError: (error) => {
+      console.error("[useDeleteAddress] request failed", {
+        status: getApiErrorStatus(error),
+        message: getApiErrorMessage(error, "Failed to delete address."),
+      });
       options?.onError?.(error);
     },
   });

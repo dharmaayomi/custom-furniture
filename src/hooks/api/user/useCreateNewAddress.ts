@@ -1,4 +1,5 @@
 import useAxios from "@/hooks/useAxios";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-error";
 import { Address } from "@/types/address";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import z from "zod";
@@ -51,6 +52,10 @@ const useCreateNewAddress = (
       options?.onSuccess?.(result);
     },
     onError: (error) => {
+      console.error("[useCreateNewAddress] request failed", {
+        status: getApiErrorStatus(error),
+        message: getApiErrorMessage(error, "Failed to create address."),
+      });
       options?.onError?.(error);
     },
   });
