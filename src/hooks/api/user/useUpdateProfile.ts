@@ -1,4 +1,5 @@
 import useAxios from "@/hooks/useAxios";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-error";
 import { User } from "@/types/user";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import z from "zod";
@@ -42,6 +43,10 @@ const useUpdateProfile = (userId?: number, options?: UpdateProfileOptions) => {
       options?.onSuccess?.(result);
     },
     onError: (error) => {
+      console.error("[useUpdateProfile] request failed", {
+        status: getApiErrorStatus(error),
+        message: getApiErrorMessage(error, "Failed to update profile."),
+      });
       options?.onError?.(error);
     },
   });

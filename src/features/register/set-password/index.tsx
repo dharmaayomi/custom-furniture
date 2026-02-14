@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import useSetPasswordAfterVerif from "@/hooks/api/auth/useSetPasswordAfterVerif";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useMemo, useState } from "react";
@@ -28,10 +29,7 @@ export const SetPasswordPage = ({ token }: SetPasswordPageProps) => {
         toast.success("Password set successfully. You can now log in.");
       },
       onError: (error) => {
-        const message =
-          (error as { response?: { data?: { message?: string } } })?.response
-            ?.data?.message ?? "Failed to set password.";
-        toast.error(message);
+        toast.error(getApiErrorMessage(error, "Failed to set password."));
       },
     },
   );

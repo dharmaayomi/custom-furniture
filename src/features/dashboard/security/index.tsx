@@ -13,6 +13,7 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import useChangePassword from "@/hooks/api/auth/useChangePassword";
 import useForgotPassword from "@/hooks/api/auth/useForgotPassword";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { useUser } from "@/providers/UserProvider";
 import { Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -46,10 +47,7 @@ export const SecurityPage = () => {
         toast.success("Password updated");
       },
       onError: (error) => {
-        const message =
-          (error as { response?: { data?: { message?: string } } })?.response
-            ?.data?.message ?? "Failed to update password.";
-        toast.error(message);
+        toast.error(getApiErrorMessage(error, "Failed to update password."));
       },
     });
 
@@ -61,20 +59,17 @@ export const SecurityPage = () => {
         );
       },
       onError: (error) => {
-        const message =
-          (error as { response?: { data?: { message?: string } } })?.response
-            ?.data?.message ?? "Failed to send reset password email.";
-        toast.error(message);
+        toast.error(
+          getApiErrorMessage(error, "Failed to send reset password email."),
+        );
       },
     });
 
-  const hasChanges = useMemo(() => {
-    return (
-      form.currentPassword.length > 0 ||
-      form.newPassword.length > 0 ||
-      form.confirmPassword.length > 0
-    );
-  }, [form]);
+  const handleCloseForgotPasswordDialog = () => {
+    if (isSendingResetEmail) return;
+    setIsForgotPasswordOpen(false);
+    setResetEmail("");
+  };
 
   const isConfirmMismatch = useMemo(() => {
     if (!form.confirmPassword) return false;
@@ -90,7 +85,9 @@ export const SecurityPage = () => {
     setShowNew(false);
     setShowConfirm(false);
     if (!silent) {
-      toast(isAlreadyReset ? "Fields are already reset" : "Password fields reset");
+      toast(
+        isAlreadyReset ? "Fields are already reset" : "Password fields reset",
+      );
     }
   };
 
@@ -181,7 +178,10 @@ export const SecurityPage = () => {
                     type={showNew ? "text" : "password"}
                     value={form.newPassword}
                     onChange={(e) =>
-                      setForm((prev) => ({ ...prev, newPassword: e.target.value }))
+                      setForm((prev) => ({
+                        ...prev,
+                        newPassword: e.target.value,
+                      }))
                     }
                   />
                   <Button
@@ -237,7 +237,7 @@ export const SecurityPage = () => {
               <div className="mt-8 flex flex-col gap-3 border-t pt-6 sm:flex-row sm:justify-end">
                 <Button
                   variant="outline"
-                  onClick={handleResetFields}
+                  // onClick={handleResetFields}
                   disabled={isChangingPassword}
                 >
                   Reset Form
@@ -323,7 +323,10 @@ export const SecurityPage = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
+      <Dialog
+        open={isForgotPasswordOpen}
+        onOpenChange={setIsForgotPasswordOpen}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Forgot password</DialogTitle>
@@ -345,16 +348,15 @@ export const SecurityPage = () => {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => {
-                if (isSendingResetEmail) return;
-                setIsForgotPasswordOpen(false);
-                setResetEmail("");
-              }}
+              onClick={handleCloseForgotPasswordDialog}
               disabled={isSendingResetEmail}
             >
               Cancel
             </Button>
-            <Button onClick={handleSendResetEmail} disabled={isSendingResetEmail}>
+            <Button
+              onClick={handleSendResetEmail}
+              disabled={isSendingResetEmail}
+            >
               {isSendingResetEmail ? "Sending..." : "Send Reset Link"}
             </Button>
           </DialogFooter>

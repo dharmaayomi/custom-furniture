@@ -1,4 +1,5 @@
 import { axiosInstance } from "@/lib/axios";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-error";
 import { useMutation } from "@tanstack/react-query";
 import z from "zod";
 
@@ -31,6 +32,7 @@ const useSetPasswordAfterVerif = (
   return useMutation({
     mutationFn: async (payload: SetPasswordAfterVerifInput) => {
       const validatedPayload = setPasswordAfterVerifSchema.parse(payload);
+      if (!token) throw new Error("Invalid verification token");
 
       const { data } = await axiosInstance.post(
         "/auth/verify-set-password",
@@ -48,6 +50,12 @@ const useSetPasswordAfterVerif = (
       options?.onSuccess?.(result);
     },
     onError: (error) => {
+      console.error("[useSetPasswordAfterVerif] request failed", {
+        status: getApiErrorStatus(error),
+        message: getApiErrorMessage(error, "Failed to set password."),
+        hasToken: Boolean(token),
+        tokenLength: token?.length ?? 0,
+      });
       options?.onError?.(error);
     },
   });

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import useResetPassword from "@/hooks/api/auth/useResetPassword";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -27,10 +28,7 @@ export const ResetPasswordPage = ({ token }: ResetPasswordPageProps) => {
         toast.success(result?.message ?? "Password reset successfully");
       },
       onError: (error) => {
-        const message =
-          (error as { response?: { data?: { message?: string } } })?.response
-            ?.data?.message ?? "Failed to reset password.";
-        toast.error(message);
+        toast.error(getApiErrorMessage(error, "Failed to reset password."));
       },
     });
 

@@ -1,6 +1,6 @@
 import { axiosInstance } from "@/lib/axios";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-error";
 import { useMutation } from "@tanstack/react-query";
-import { AxiosError } from "axios";
 import { toast } from "sonner";
 import z from "zod";
 
@@ -41,7 +41,13 @@ const useGenerateDesignCode = (options?: GenerateDesignCodeOptions) => {
       options?.onGenerated?.({ designCode, shareableUrl });
       toast.success("Shareable link generated");
     },
-    onError: (error: AxiosError<{ message: string }>) => {},
+    onError: (error) => {
+      console.error("[useGenerateDesignCode] request failed", {
+        status: getApiErrorStatus(error),
+        message: getApiErrorMessage(error, "Failed to create shareable design"),
+      });
+      toast.error(getApiErrorMessage(error, "Failed to create shareable design"));
+    },
   });
 };
 

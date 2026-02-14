@@ -16,10 +16,10 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { axiosInstance } from "@/lib/axios";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -68,8 +68,8 @@ export function RegisterForm({
         `/register/email-verification?email=${encodeURIComponent(variables.email)}`,
       );
     },
-    onError: (error: AxiosError<{ message: string }>) => {
-      toast.error(error.response?.data.message ?? "Something went wrong!");
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error));
     },
   });
 

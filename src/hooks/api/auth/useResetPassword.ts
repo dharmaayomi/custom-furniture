@@ -1,4 +1,5 @@
 import { axiosInstance } from "@/lib/axios";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-error";
 import { useMutation } from "@tanstack/react-query";
 import z from "zod";
 
@@ -39,14 +40,9 @@ const useResetPassword = (token: string, options?: ResetPasswordOptions) => {
       options?.onSuccess?.(result);
     },
     onError: (error) => {
-      const err = error as {
-        message?: string;
-        response?: { status?: number; data?: unknown };
-      };
       console.error("[useResetPassword] request failed", {
-        status: err.response?.status,
-        response: err.response?.data,
-        message: err.message,
+        status: getApiErrorStatus(error),
+        message: getApiErrorMessage(error, "Failed to reset password."),
         hasToken: Boolean(token),
         tokenLength: token?.length ?? 0,
       });

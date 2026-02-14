@@ -1,8 +1,8 @@
 import useAxios from "@/hooks/useAxios";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-error";
 import { loadDesignCodeFromStorage, saveDesignCodeToStorage } from "@/lib/designCode";
 import { useRoomStore } from "@/store/useRoomStore";
 import { useMutation } from "@tanstack/react-query";
-import { AxiosError } from "axios";
 import z from "zod";
 
 export const saveDesignSchema = z.object({
@@ -39,7 +39,12 @@ const useSaveDesign = () => {
         saveDesignCodeToStorage(designCode);
       }
     },
-    onError: (error: AxiosError<{ message: string }>) => {},
+    onError: (error) => {
+      console.error("[useSaveDesign] request failed", {
+        status: getApiErrorStatus(error),
+        message: getApiErrorMessage(error, "Failed to save design"),
+      });
+    },
   });
 };
 
