@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import useConfirmDeleteAccount from "@/hooks/api/auth/useConfirmDeleteAccount";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -19,6 +21,15 @@ export const ConfirmDeleteAccountPage = ({
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const { mutateAsync: confirmDeleteAccount, isPending } =
+    useConfirmDeleteAccount(token, {
+      onSuccess: (result) => {
+        toast.success(result?.message ?? "Account deleted successfully.");
+      },
+      onError: (error) => {
+        toast.error(getApiErrorMessage(error, "Failed to delete account."));
+      },
+    });
 
   const handleCancel = () => {
     router.push("/dashboard/security");
@@ -34,8 +45,8 @@ export const ConfirmDeleteAccountPage = ({
       return;
     }
 
-    // Hook/API for final deletion confirmation can be wired here.
-    toast.error("Delete account confirmation is not implemented yet.");
+    await confirmDeleteAccount({ password: password.trim() });
+    router.push("/login");
   };
 
   return (
@@ -92,9 +103,9 @@ export const ConfirmDeleteAccountPage = ({
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
-              disabled={!password.trim()}
+              disabled={!password.trim() || isPending}
             >
-              Confirm Delete Account
+              {isPending ? "Deleting..." : "Confirm Delete Account"}
             </Button>
           </div>
         </Card>

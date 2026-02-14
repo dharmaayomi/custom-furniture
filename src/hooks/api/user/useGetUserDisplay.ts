@@ -7,7 +7,7 @@ const useGetUserDisplay = (userId?: number) => {
   return useQuery<User>({
     queryKey: ["user-display", userId],
     queryFn: async () => {
-      const { data } = await axiosInstance.get(`/user/display/${userId}`);
+      const { data } = await axiosInstance.get("/user/display");
       return data;
     },
     staleTime: 10 * 60 * 1000,
