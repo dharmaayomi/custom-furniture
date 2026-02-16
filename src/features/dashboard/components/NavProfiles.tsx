@@ -29,12 +29,14 @@ import {
 
 export function NavProfiles({
   profiles,
+  unreadNotificationCount = 0,
 }: {
   profiles: {
     name: string;
     url: string;
     icon: LucideIcon;
   }[];
+  unreadNotificationCount?: number;
 }) {
   const { isMobile } = useSidebar();
   const pathname = usePathname();
@@ -55,6 +57,10 @@ export function NavProfiles({
               <Link href={item.url}>
                 <item.icon />
                 <span>{item.name}</span>
+                {item.url === "/dashboard/notifications" &&
+                unreadNotificationCount > 0 ? (
+                  <span className="ml-auto h-2 w-2 rounded-full bg-blue-500" />
+                ) : null}
               </Link>
             </SidebarMenuButton>
             <DropdownMenu>

@@ -2,7 +2,7 @@ import useAxios from "@/hooks/useAxios";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api-error";
 import { loadDesignCodeFromStorage, saveDesignCodeToStorage } from "@/lib/designCode";
 import { useRoomStore } from "@/store/useRoomStore";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import z from "zod";
 
 export const saveDesignSchema = z.object({
@@ -15,6 +15,7 @@ export const saveDesignSchema = z.object({
 export type SaveDesignInput = z.infer<typeof saveDesignSchema>;
 const useSaveDesign = () => {
   const axiosInstance = useAxios();
+  const queryClient = useQueryClient();
   const storedDesignCode = useRoomStore((state) => state.designCode);
   const setDesignCode = useRoomStore((state) => state.setDesignCode);
 
@@ -38,6 +39,12 @@ const useSaveDesign = () => {
         setDesignCode(designCode);
         saveDesignCodeToStorage(designCode);
       }
+      queryClient.invalidateQueries({
+        queryKey: ["saved-designs"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["saved-design"],
+      });
     },
     onError: (error) => {
       console.error("[useSaveDesign] request failed", {

@@ -33,7 +33,6 @@ import { ShareDesign } from "./ShareDesign";
 import { SidebarPanel } from "./SidebarPanel";
 import { ProductInfoPanel } from "./ProductInfoPanel";
 import { CAMERA_CONFIG } from "../_components/RoomConfig";
-import { usePathname, useSearchParams } from "next/navigation";
 
 const ASSETS_3D = [
   "lemaritest.glb",
@@ -74,9 +73,6 @@ export const RoomPage = () => {
   const isAnyPanelOpen = activePanel !== null;
 
   const [showDragPlane, setShowDragPlane] = useState(false);
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const newDesignFlag = searchParams.get("new");
   const didHandleForcedNewRef = useRef(false);
 
   const {
@@ -147,6 +143,10 @@ export const RoomPage = () => {
   }, [undo, redo]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const { pathname, search } = window.location;
+    const params = new URLSearchParams(search);
+    const newDesignFlag = params.get("new");
     const isDesignCodeRoute = pathname.split("/").filter(Boolean).length > 1;
     const isForcedNewDesign = pathname === "/custom" && newDesignFlag === "1";
 
@@ -165,7 +165,7 @@ export const RoomPage = () => {
     if (!storedCode) {
       saveDesignCodeToStorage("");
     }
-  }, [designCode, pathname, newDesignFlag, setDesignCode, resetRoomState]);
+  }, [designCode, setDesignCode, resetRoomState]);
 
   useEffect(() => {
     if (!scene) return;

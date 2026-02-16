@@ -34,6 +34,7 @@ import { NavProfiles } from "./NavProfiles";
 import { NavSecondary } from "./NavSecondary";
 import { NavUser } from "./NavUser";
 import { useUser } from "@/providers/UserProvider";
+import { useNotificationStore } from "@/store/useNotificationStore";
 
 const data = {
   navMain: [
@@ -109,6 +110,10 @@ export function DashboardSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const { navUser } = useUser();
+  const notifications = useNotificationStore((state) => state.notifications);
+  const unreadNotificationCount = notifications.filter(
+    (item) => !item.isRead,
+  ).length;
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -130,7 +135,10 @@ export function DashboardSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProfiles profiles={data.profiles} />
+        <NavProfiles
+          profiles={data.profiles}
+          unreadNotificationCount={unreadNotificationCount}
+        />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

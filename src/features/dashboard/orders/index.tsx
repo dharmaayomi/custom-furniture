@@ -155,7 +155,7 @@ export const OrdersPage = () => {
       <div className="bg-muted/50 rounded-md p-3 sm:p-4">
         <div className="mx-auto px-1 py-3 sm:px-4 sm:py-4 lg:px-2 lg:py-2">
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="mb-4 w-full overflow-x-auto sm:mb-6">
+            <TabsList className="no-scrollbar mb-4 w-full overflow-x-auto sm:mb-6">
               <TabsTrigger value="all">All ({all.length})</TabsTrigger>
               <TabsTrigger value="waiting-for-payment">
                 Waiting for Payment ({waitingForPayment.length})
