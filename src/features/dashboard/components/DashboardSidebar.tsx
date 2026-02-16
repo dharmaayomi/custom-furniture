@@ -35,6 +35,7 @@ import { NavSecondary } from "./NavSecondary";
 import { NavUser } from "./NavUser";
 import { useUser } from "@/providers/UserProvider";
 import { useNotificationStore } from "@/store/useNotificationStore";
+import Link from "next/link";
 
 const data = {
   navMain: [
@@ -122,12 +123,16 @@ export function DashboardSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <div className="flex justify-center gap-2 md:justify-start">
-                <a href="/" className="flex items-center gap-2 font-medium">
-                  <div className="text-primary-foreground flex size-6 items-center justify-center rounded-md">
-                    <Image src="/waw.jpg" alt="Logo" width={30} height={30} />
+                <Link href="/" className="flex items-center gap-2 font-medium">
+                  <div className="text-primary-foreground flex items-center justify-center">
+                    <Image
+                      src="/logo.svg"
+                      alt="Logo"
+                      width={180}
+                      height={300}
+                    />
                   </div>
-                  Custom Furniture
-                </a>
+                </Link>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

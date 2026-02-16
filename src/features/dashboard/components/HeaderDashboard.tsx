@@ -83,7 +83,7 @@ const HeaderDashboard = () => {
     crumbs.length > 0 ? crumbs[crumbs.length - 1].label : "Dashboard";
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 sm:h-16">
+    <header className="bg-background/95 supports-backdrop-filter:bg-background/75 sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b backdrop-blur sm:h-16">
       <div className="flex w-full items-center gap-2 px-2 sm:px-4">
         <SidebarTrigger className="ml-1 sm:ml-2" />
         <Separator

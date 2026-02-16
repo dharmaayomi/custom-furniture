@@ -3,6 +3,7 @@ import { LoginForm } from "./components/login-form";
 import Image from "next/image";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CircleAlert } from "lucide-react";
+import Link from "next/link";
 
 type LoginPageProps = {
   reason?: string;
@@ -16,12 +17,11 @@ export const LoginPage = ({ reason }: LoginPageProps) => {
     <div className="grid min-h-svh lg:grid-cols-2">
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex justify-center gap-2 md:justify-start">
-          <a href="/" className="flex items-center gap-2 font-medium">
-            <div className="text-primary-foreground flex size-6 items-center justify-center rounded-md">
-              <Image src="/waw.jpg" alt="Logo" width={30} height={30} />
+          <Link href="/" className="flex items-center gap-2 font-medium">
+            <div className="text-primary-foreground flex items-center justify-center">
+              <Image src="/logo.svg" alt="Logo" width={200} height={300} />
             </div>
-            Custom Furniture
-          </a>
+          </Link>
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-md">
