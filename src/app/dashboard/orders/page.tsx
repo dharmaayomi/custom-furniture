@@ -1,7 +1,11 @@
-import React from "react";
+import { OrdersPage } from "@/features/dashboard/orders";
 
 const Orders = () => {
-  return <div>Orders</div>;
+  return (
+    <div>
+      <OrdersPage />
+    </div>
+  );
 };
 
 export default Orders;

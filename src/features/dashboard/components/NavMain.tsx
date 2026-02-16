@@ -38,7 +38,7 @@ export function NavMain({
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
+      <SidebarGroupLabel className="text-base">Dashboard</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
           const isActive =
@@ -51,6 +51,7 @@ export function NavMain({
                 asChild
                 tooltip={item.title}
                 isActive={isActive}
+                className="text-base"
               >
                 <a href={item.url}>
                   <item.icon />
@@ -76,6 +77,7 @@ export function NavMain({
                           <SidebarMenuSubButton
                             asChild
                             isActive={isSubActive}
+                            className="text-base"
                           >
                             <a href={subItem.url}>
                               <span>{subItem.title}</span>

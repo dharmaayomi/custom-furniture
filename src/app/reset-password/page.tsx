@@ -1,21 +1,19 @@
-"use client";
-
 import { ResetPasswordPage } from "@/features/reset-password";
-import { useRouter, useSearchParams } from "next/navigation";
-import React, { use } from "react";
+import { redirect } from "next/navigation";
 
 type ResetPasswordPageProps = {
   searchParams?: Promise<{
-    token: string;
+    token?: string;
   }>;
 };
 
-const ResetPassword = () => {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
-  if (!token || token === null) router.push("/login");
-  return <ResetPasswordPage token={token as string} />;
+const ResetPassword = async ({ searchParams }: ResetPasswordPageProps) => {
+  const params = await searchParams;
+  const token = params?.token;
+
+  if (!token) redirect("/login");
+
+  return <ResetPasswordPage token={token} />;
 };
 
 export default ResetPassword;

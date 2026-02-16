@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Check, ListOrdered, Menu, MoveRight, Save } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import React, { useMemo, useState } from "react";
 import { DEFAULT_ROOM_CONFIG, useRoomStore } from "@/store/useRoomStore";
 import { toast } from "sonner";
@@ -20,6 +20,8 @@ import {
   saveDesignCodeToStorage,
 } from "@/lib/designCode";
 import useSaveDesign from "@/hooks/api/design/useSaveDesign";
+import { useUser } from "@/providers/UserProvider";
+import useGetSavedDesignByCode from "@/hooks/api/design/useGetSavedDesignByCode";
 
 interface HeaderCustomProps {
   onMenuClick: () => void;
@@ -35,7 +37,9 @@ export const HeaderCustom = ({
 }: HeaderCustomProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const { status } = useSession();
+  const { userId } = useUser();
   const roomState = useRoomStore((state) => state.present);
   const designCode = useRoomStore((state) => state.designCode);
   const setDesignCode = useRoomStore((state) => state.setDesignCode);
@@ -44,6 +48,21 @@ export const HeaderCustom = ({
   const [nameInput, setNameInput] = useState("");
   const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
   const [lastSavedHash, setLastSavedHash] = useState<string | null>(null);
+  const routeDesignCode = useMemo(() => {
+    const parts = pathname.split("/").filter(Boolean);
+    if (parts[0] !== "custom" || !parts[1]) return "";
+    return decodeURIComponent(parts[1]);
+  }, [pathname]);
+  const { data: savedDesignByCodeData } = useGetSavedDesignByCode(
+    userId,
+    routeDesignCode || undefined,
+  );
+  const savedDesignByCodePayload =
+    (savedDesignByCodeData as any)?.data ?? savedDesignByCodeData;
+  const existingDesignName = (
+    savedDesignByCodePayload?.designName ?? ""
+  ).trim();
+  const activeDesignName = designName.trim() || existingDesignName;
 
   const buildDesignConfig = () => ({
     units: { distance: "m", rotation: "rad" },
@@ -125,12 +144,12 @@ export const HeaderCustom = ({
         return;
       }
 
-      if (!designName.trim()) {
+      if (!activeDesignName) {
         setIsNameDialogOpen(true);
         return;
       }
 
-      handleSaveDesign(designName.trim());
+      handleSaveDesign(activeDesignName);
     } else {
       setIsDialogOpen(true);
     }
@@ -188,10 +207,10 @@ export const HeaderCustom = ({
           <Button
             className="hidden cursor-pointer items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-xs font-semibold text-black shadow-md hover:text-white md:flex"
             onClick={handleSaveClick}
-            disabled={isPending || (!isDirty && !!designName)}
+            disabled={isPending || (!isDirty && !!activeDesignName)}
           >
-            {!isDirty && !!designName ? <Check size={16} /> : <Save />}
-            <div>{!isDirty && !!designName ? "Saved" : "Save"}</div>
+            {!isDirty && !!activeDesignName ? <Check size={16} /> : <Save />}
+            <div>{!isDirty && !!activeDesignName ? "Saved" : "Save"}</div>
           </Button>
         </div>
 

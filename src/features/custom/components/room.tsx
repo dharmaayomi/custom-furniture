@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FooterCustom } from "./FooterCustom";
 import * as BABYLON from "@babylonjs/core";
 
@@ -8,6 +8,7 @@ import { HeaderCustom } from "./HeaderCustom";
 import { calculateTotalPrice, formatPrice } from "@/lib/price";
 import { useRoomStore } from "@/store/useRoomStore";
 import {
+  clearDesignCodeFromStorage,
   loadDesignCodeFromStorage,
   saveDesignCodeToStorage,
 } from "@/lib/designCode";
@@ -32,6 +33,7 @@ import { ShareDesign } from "./ShareDesign";
 import { SidebarPanel } from "./SidebarPanel";
 import { ProductInfoPanel } from "./ProductInfoPanel";
 import { CAMERA_CONFIG } from "../_components/RoomConfig";
+import { usePathname, useSearchParams } from "next/navigation";
 
 const ASSETS_3D = [
   "lemaritest.glb",
@@ -72,6 +74,10 @@ export const RoomPage = () => {
   const isAnyPanelOpen = activePanel !== null;
 
   const [showDragPlane, setShowDragPlane] = useState(false);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const newDesignFlag = searchParams.get("new");
+  const didHandleForcedNewRef = useRef(false);
 
   const {
     present,
@@ -80,6 +86,7 @@ export const RoomPage = () => {
     setMeshTexture,
     addAddOnModel,
     setDesignCode,
+    reset: resetRoomState,
     undo,
     redo,
   } = useRoomStore();
@@ -140,14 +147,25 @@ export const RoomPage = () => {
   }, [undo, redo]);
 
   useEffect(() => {
+    const isDesignCodeRoute = pathname.split("/").filter(Boolean).length > 1;
+    const isForcedNewDesign = pathname === "/custom" && newDesignFlag === "1";
+
+    if (isForcedNewDesign && !didHandleForcedNewRef.current) {
+      resetRoomState();
+      setDesignCode("");
+      clearDesignCodeFromStorage();
+      didHandleForcedNewRef.current = true;
+      return;
+    }
+
+    if (isDesignCodeRoute) return;
     if (designCode) return;
     const storedCode = loadDesignCodeFromStorage();
-    const code = storedCode;
-    setDesignCode(code);
+    setDesignCode(storedCode);
     if (!storedCode) {
-      saveDesignCodeToStorage(code);
+      saveDesignCodeToStorage("");
     }
-  }, [designCode, setDesignCode]);
+  }, [designCode, pathname, newDesignFlag, setDesignCode, resetRoomState]);
 
   useEffect(() => {
     if (!scene) return;

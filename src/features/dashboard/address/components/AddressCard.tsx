@@ -83,8 +83,8 @@ export default function AddressCard({
   }
 
   return (
-    <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg">
-      <div className="flex-1 p-4">
+    <Card className="bg-card flex flex-col overflow-hidden rounded-md transition-all hover:shadow-lg">
+      <div className="flex-1 px-6">
         <div className="flex items-center justify-between">
           <h3 className="text-foreground text-lg font-semibold">
             {address.label}

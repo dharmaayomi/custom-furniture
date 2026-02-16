@@ -83,19 +83,15 @@ export default function MapComponent({
         draggable: true,
       }).addTo(mapRef.current);
 
-      // Handle marker drag
       markerRef.current.on("dragend", () => {
         const position = markerRef.current.getLatLng();
         const newLat = position.lat;
         const newLng = position.lng;
-        console.log("[v0] Marker moved to:", newLat, newLng);
         onLocationSelect(newLat, newLng);
       });
 
-      // Handle map click
       mapRef.current.on("click", (event: any) => {
         const { lat, lng } = event.latlng;
-        console.log("[v0] Map clicked at:", lat, lng);
 
         // Move marker
         markerRef.current.setLatLng([lat, lng]);
@@ -117,9 +113,8 @@ export default function MapComponent({
         const newPosition = [latitude, longitude];
         markerRef.current.setLatLng(newPosition);
         mapRef.current.panTo(newPosition);
-        console.log("[v0] Position updated to:", latitude, longitude);
       } catch (error) {
-        console.error("[v0] Error updating position:", error);
+        console.error("Error updating position:", error);
       }
     }
   }, [latitude, longitude]);

@@ -1,16 +1,14 @@
-"use client";
-
 import React from "react";
 import { LoginForm } from "./components/login-form";
-import { GalleryVerticalEnd } from "lucide-react";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CircleAlert } from "lucide-react";
 
-export const LoginPage = () => {
-  const searchParams = useSearchParams();
-  const reason = searchParams.get("reason");
+type LoginPageProps = {
+  reason?: string;
+};
+
+export const LoginPage = ({ reason }: LoginPageProps) => {
   const isSessionExpired = reason === "session_expired";
   const isLoginRequired = reason === "login_required";
 

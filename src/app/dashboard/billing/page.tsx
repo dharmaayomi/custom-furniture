@@ -1,7 +1,11 @@
-import React from "react";
+import { BillingPage } from "@/features/dashboard/billing";
 
 const Billing = () => {
-  return <div>Billing</div>;
+  return (
+    <div>
+      <BillingPage />
+    </div>
+  );
 };
 
 export default Billing;

@@ -1,0 +1,13 @@
+Failed to compile.
+
+./src/features/custom/_components/RoomSetup.tsx:77:3
+Type error: 'texture' is possibly 'undefined'.
+
+[0m [90m 75 |[39m
+ [90m 76 |[39m   [90m// Always apply texture (even if not ready yet) to avoid blank floor on first load[39m
+[31m[1m>[22m[39m[90m 77 |[39m   texture[33m.[39muScale [33m=[39m rw[33m;[39m
+ [90m    |[39m   [31m[1m^[22m[39m
+ [90m 78 |[39m   texture[33m.[39mvScale [33m=[39m rd[33m;[39m
+ [90m 79 |[39m   texture[33m.[39mwrapU [33m=[39m [33mBABYLON[39m[33m.[39m[33mTexture[39m[33m.[39m[33mWRAP_ADDRESSMODE[39m[33m;[39m
+ [90m 80 |[39m   texture[33m.[39mwrapV [33m=[39m [33mBABYLON[39m[33m.[39m[33mTexture[39m[33m.[39m[33mWRAP_ADDRESSMODE[39m[33m;[39m[0m
+Next.js build worker exited with code: 1 and signal: null

@@ -40,7 +40,7 @@ export function NavProfiles({
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Profiles</SidebarGroupLabel>
+      <SidebarGroupLabel className="text-base">Profiles</SidebarGroupLabel>
       <SidebarMenu>
         {profiles.map((item) => (
           <SidebarMenuItem key={item.name}>
@@ -49,6 +49,7 @@ export function NavProfiles({
               isActive={
                 pathname === item.url || pathname.startsWith(`${item.url}/`)
               }
+              className="text-base"
             >
               <a href={item.url}>
                 <item.icon />
@@ -85,7 +86,7 @@ export function NavProfiles({
           </SidebarMenuItem>
         ))}
         <SidebarMenuItem>
-          <SidebarMenuButton>
+          <SidebarMenuButton className="text-base">
             <MoreHorizontal />
             <span>More</span>
           </SidebarMenuButton>
