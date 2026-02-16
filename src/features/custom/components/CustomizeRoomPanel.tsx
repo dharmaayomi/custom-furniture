@@ -86,7 +86,7 @@ export const CustomizeRoomPanel = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed top-0 right-0 z-50 h-full w-80 overflow-y-auto bg-white p-6 shadow-md">
+    <div className="fixed top-0 right-0 z-57 h-full w-80 overflow-y-auto bg-white p-6 shadow-md">
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-xl font-bold">Customize Room</h2>
         <button onClick={onClose}>

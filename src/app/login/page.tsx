@@ -1,9 +1,18 @@
 import { LoginPage } from "@/features/login/page";
 
-const Login = () => {
+type LoginRouteProps = {
+  searchParams?: Promise<{
+    reason?: string;
+  }>;
+};
+
+const Login = async ({ searchParams }: LoginRouteProps) => {
+  const params = await searchParams;
+  const reason = params?.reason;
+
   return (
     <div>
-      <LoginPage />
+      <LoginPage reason={reason} />
     </div>
   );
 };

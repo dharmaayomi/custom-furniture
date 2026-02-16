@@ -1,11 +1,12 @@
 "use client";
 
 import { CustomPage } from "@/features/custom";
-import { axiosInstance } from "@/lib/axios";
+import useGetSavedDesignByCode from "@/hooks/api/design/useGetSavedDesignByCode";
+import useGetSharedDesignByCode from "@/hooks/api/design/useGetSharedDesignByCode";
 import { saveDesignCodeToStorage } from "@/lib/designCode";
+import { useUser } from "@/providers/UserProvider";
 import { useRoomStore } from "@/store/useRoomStore";
-import type { ShareableDesign } from "@/types/shareableDesign";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 
 type DesignCodePageProps = {
   designCode: string;
@@ -16,51 +17,40 @@ export const DesignCodePage = ({ designCode }: DesignCodePageProps) => {
     () => decodeURIComponent(designCode || ""),
     [designCode],
   );
+  const { userId } = useUser();
   const loadRoomState = useRoomStore((state) => state.loadRoomState);
   const setDesignCode = useRoomStore((state) => state.setDesignCode);
-  const [status, setStatus] = useState<"loading" | "ready" | "error">(
-    "loading",
-  );
+
+  const {
+    data: savedDesignData,
+    isLoading: isLoadingSavedDesign,
+  } = useGetSavedDesignByCode(userId, code);
+  const {
+    data: sharedDesignData,
+    isLoading: isLoadingSharedDesign,
+  } = useGetSharedDesignByCode(code);
+
+  const savedPayload = (savedDesignData as any)?.data ?? savedDesignData;
+  const sharedPayload = (sharedDesignData as any)?.data ?? sharedDesignData;
+  const savedConfiguration = savedPayload?.configuration;
+  const sharedConfiguration = sharedPayload?.configuration;
+  const configuration = savedConfiguration ?? sharedConfiguration;
+  const isLoading = userId
+    ? (isLoadingSavedDesign || isLoadingSharedDesign) && !configuration
+    : isLoadingSharedDesign && !configuration;
 
   useEffect(() => {
-    if (!code) {
-      setStatus("error");
-      return;
-    }
+    if (!code || !configuration) return;
+    loadRoomState(configuration);
+    setDesignCode(code);
+    saveDesignCodeToStorage(code);
+  }, [code, configuration, loadRoomState, setDesignCode]);
 
-    let isActive = true;
-    const run = async () => {
-      try {
-        const result = await axiosInstance.get<ShareableDesign>(
-          `/design/shareable-design/${code}`,
-        );
-        const payload = result?.data;
-        const configuration = payload?.configuration;
-        if (!configuration) {
-          if (isActive) setStatus("error");
-          return;
-        }
-        if (!isActive) return;
-        loadRoomState(configuration);
-        setDesignCode(code);
-        saveDesignCodeToStorage(code);
-        setStatus("ready");
-      } catch {
-        if (isActive) setStatus("error");
-      }
-    };
-
-    run();
-    return () => {
-      isActive = false;
-    };
-  }, [code, loadRoomState, setDesignCode]);
-
-  if (status === "error") {
+  if (!code || (!isLoading && !configuration)) {
     return <div className="p-6 text-sm text-gray-600">Design not found.</div>;
   }
 
-  if (status === "loading") {
+  if (isLoading) {
     return <div className="p-6 text-sm text-gray-600">Loading design...</div>;
   }
 

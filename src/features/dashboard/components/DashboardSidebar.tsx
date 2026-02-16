@@ -34,6 +34,8 @@ import { NavProfiles } from "./NavProfiles";
 import { NavSecondary } from "./NavSecondary";
 import { NavUser } from "./NavUser";
 import { useUser } from "@/providers/UserProvider";
+import { useNotificationStore } from "@/store/useNotificationStore";
+import Link from "next/link";
 
 const data = {
   navMain: [
@@ -109,6 +111,10 @@ export function DashboardSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const { navUser } = useUser();
+  const notifications = useNotificationStore((state) => state.notifications);
+  const unreadNotificationCount = notifications.filter(
+    (item) => !item.isRead,
+  ).length;
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -117,12 +123,16 @@ export function DashboardSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <div className="flex justify-center gap-2 md:justify-start">
-                <a href="/" className="flex items-center gap-2 font-medium">
-                  <div className="text-primary-foreground flex size-6 items-center justify-center rounded-md">
-                    <Image src="/waw.jpg" alt="Logo" width={30} height={30} />
+                <Link href="/" className="flex items-center gap-2 font-medium">
+                  <div className="text-primary-foreground flex items-center justify-center">
+                    <Image
+                      src="/logo.svg"
+                      alt="Logo"
+                      width={180}
+                      height={300}
+                    />
                   </div>
-                  Custom Furniture
-                </a>
+                </Link>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -130,7 +140,10 @@ export function DashboardSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProfiles profiles={data.profiles} />
+        <NavProfiles
+          profiles={data.profiles}
+          unreadNotificationCount={unreadNotificationCount}
+        />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

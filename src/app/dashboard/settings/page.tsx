@@ -1,7 +1,11 @@
-import React from "react";
+import { SettingsPage } from "@/features/dashboard/settings";
 
 const Settings = () => {
-  return <div>Settings</div>;
+  return (
+    <div>
+      <SettingsPage />
+    </div>
+  );
 };
 
 export default Settings;

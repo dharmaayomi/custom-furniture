@@ -24,9 +24,9 @@ export default async function AdminLayout({
     <div className="min-h-dvh w-full">
       <SidebarProvider>
         <DashboardSidebar />
-        <SidebarInset className="dark:border">
+        <SidebarInset className="dark:border flex h-[calc(100dvh-1rem)] flex-col overflow-hidden">
           <HeaderDashboard />
-          <main>
+          <main className="flex-1 overflow-y-auto">
             <div className="flex flex-1 flex-col">
               <div className="@container/main m-3 flex flex-1 flex-col gap-2 sm:m-5">
                 {children}

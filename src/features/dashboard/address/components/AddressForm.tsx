@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { MapPin, Check, Map } from "lucide-react";
+import { MapPin, Check, Map, LocateFixed } from "lucide-react";
 import MapComponent from "./MapComponent";
 
 export interface AddressFormData {
@@ -70,15 +70,31 @@ export default function AddressForm({
     ...INITIAL_STATE,
     ...initialData,
   }));
+  const [baselineData, setBaselineData] = useState<AddressFormData>(() => ({
+    ...INITIAL_STATE,
+    ...initialData,
+  }));
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationNotice, setLocationNotice] = useState("");
 
   useEffect(() => {
     if (!initialData) return;
+    const next = {
+      ...INITIAL_STATE,
+      ...initialData,
+    };
     setFormData((prev) => ({
       ...prev,
-      ...initialData,
+      ...next,
     }));
+    setBaselineData(next);
   }, [initialData]);
+
+  const hasFormChanges = useMemo(
+    () => JSON.stringify(formData) !== JSON.stringify(baselineData),
+    [formData, baselineData],
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.currentTarget;
@@ -94,6 +110,42 @@ export default function AddressForm({
       latitude: lat,
       longitude: lng,
     }));
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      setLocationNotice("Geolocation is not supported on this browser.");
+      return;
+    }
+
+    setIsLocating(true);
+    setLocationNotice("Requesting location access...");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        handleMapSelect(latitude, longitude);
+        setLocationNotice(
+          "Location updated. You can still drag the pin for fine adjustment.",
+        );
+        setIsLocating(false);
+      },
+      (error) => {
+        const message =
+          error.code === error.PERMISSION_DENIED
+            ? "Location permission denied. Please allow location access in your browser."
+            : error.code === error.POSITION_UNAVAILABLE
+              ? "Location unavailable. Please try again."
+              : "Location request timed out. Please try again.";
+        setLocationNotice(message);
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0,
+      },
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -296,6 +348,25 @@ export default function AddressForm({
             <CardDescription>
               Click on the map to select delivery location
             </CardDescription>
+            <div className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleUseCurrentLocation}
+                disabled={isLocating}
+                className="gap-2"
+              >
+                <LocateFixed className="h-4 w-4" />
+                {isLocating ? "Detecting location..." : "Use My Current Location"}
+              </Button>
+              <p className="text-muted-foreground mt-2 text-xs">
+                Enable location permission in your browser for accurate pin placement.
+              </p>
+              {locationNotice ? (
+                <p className="text-muted-foreground mt-1 text-xs">{locationNotice}</p>
+              ) : null}
+            </div>
           </CardHeader>
           <div className="px-6">
             <MapComponent
@@ -306,7 +377,11 @@ export default function AddressForm({
           </div>
         </Card>
 
-        <Button type="submit" disabled={isSubmitting} className="w-full">
+        <Button
+          type="submit"
+          disabled={isSubmitting || (!!initialData && !hasFormChanges)}
+          className="w-full"
+        >
           {isSubmitting ? (
             "Saving..."
           ) : (
@@ -497,13 +572,17 @@ export default function AddressForm({
             {/* Coordinates Display */}
             <div className="bg-secondary/50 rounded-lg p-3 text-xs">
               <p className="text-muted-foreground">
-                📍 Lat: {formData.latitude.toFixed(6)} | Lng:{" "}
+                Lat: {formData.latitude.toFixed(6)} | Lng:{" "}
                 {formData.longitude.toFixed(6)}
               </p>
             </div>
 
             {/* Submit Button */}
-            <Button type="submit" disabled={isSubmitting} className="w-full">
+            <Button
+              type="submit"
+              disabled={isSubmitting || (!!initialData && !hasFormChanges)}
+              className="w-full"
+            >
               {isSubmitting ? (
                 "Saving..."
               ) : (
@@ -528,6 +607,25 @@ export default function AddressForm({
             <CardDescription>
               Click on the map to select delivery location
             </CardDescription>
+            <div className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleUseCurrentLocation}
+                disabled={isLocating}
+                className="gap-2"
+              >
+                <LocateFixed className="h-4 w-4" />
+                {isLocating ? "Detecting location..." : "Use My Current Location"}
+              </Button>
+              <p className="text-muted-foreground mt-2 text-xs">
+                Enable location permission in your browser for accurate pin placement.
+              </p>
+              {locationNotice ? (
+                <p className="text-muted-foreground mt-1 text-xs">{locationNotice}</p>
+              ) : null}
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <MapComponent
@@ -541,3 +639,4 @@ export default function AddressForm({
     </div>
   );
 }
+

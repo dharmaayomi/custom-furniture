@@ -74,12 +74,13 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   }
 
   // Always apply texture (even if not ready yet) to avoid blank floor on first load
-  texture.uScale = rw;
-  texture.vScale = rd;
-  texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
-  texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
-
-  floorVinylMat.albedoTexture = texture;
+  if (texture) {
+    texture.uScale = rw;
+    texture.vScale = rd;
+    texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+    floorVinylMat.albedoTexture = texture;
+  }
   floorVinylMat.albedoColor = new BABYLON.Color3(1, 1, 1);
 
   floorVinyl.material = floorVinylMat;

@@ -1,7 +1,11 @@
-import React from "react";
+import { DesignPage } from "@/features/dashboard/design";
 
 const Designs = () => {
-  return <div>Designs</div>;
+  return (
+    <div>
+      <DesignPage />
+    </div>
+  );
 };
 
 export default Designs;

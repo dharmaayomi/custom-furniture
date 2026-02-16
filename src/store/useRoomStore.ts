@@ -215,9 +215,9 @@ const normalizeRoomState = (data: Partial<RoomData>): RoomData => {
     });
   } else {
     mainModels = rawMainModels as string[];
-    mainModelTransforms = (data.mainModelTransforms ?? []).map(
-      (t, idx) => normalizeTransform(t, mainModels[idx])!,
-    );
+    mainModelTransforms = (data.mainModelTransforms ?? [])
+      .map((t, idx) => normalizeTransform(t, mainModels[idx]))
+      .filter((t): t is FurnitureTransform => Boolean(t));
   }
 
   if (rawAddOnModels.length > 0 && typeof rawAddOnModels[0] === "object") {
@@ -239,9 +239,9 @@ const normalizeRoomState = (data: Partial<RoomData>): RoomData => {
     });
   } else {
     addOnModels = rawAddOnModels as string[];
-    addOnTransforms = (data.addOnTransforms ?? []).map((t, idx) =>
-      normalizeTransform(t, addOnModels[idx]),
-    );
+    addOnTransforms = (data.addOnTransforms ?? [])
+      .map((t, idx) => normalizeTransform(t, addOnModels[idx]))
+      .filter((t): t is FurnitureTransform => Boolean(t));
   }
 
   const activeTexture = data.activeTexture ?? INITIAL_TEXTURE;

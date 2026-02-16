@@ -7,6 +7,7 @@ import {
   Trash2,
   type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import {
@@ -28,19 +29,21 @@ import {
 
 export function NavProfiles({
   profiles,
+  unreadNotificationCount = 0,
 }: {
   profiles: {
     name: string;
     url: string;
     icon: LucideIcon;
   }[];
+  unreadNotificationCount?: number;
 }) {
   const { isMobile } = useSidebar();
   const pathname = usePathname();
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Profiles</SidebarGroupLabel>
+      <SidebarGroupLabel className="text-base">Profiles</SidebarGroupLabel>
       <SidebarMenu>
         {profiles.map((item) => (
           <SidebarMenuItem key={item.name}>
@@ -49,11 +52,16 @@ export function NavProfiles({
               isActive={
                 pathname === item.url || pathname.startsWith(`${item.url}/`)
               }
+              className="text-base"
             >
-              <a href={item.url}>
+              <Link href={item.url}>
                 <item.icon />
                 <span>{item.name}</span>
-              </a>
+                {item.url === "/dashboard/notifications" &&
+                unreadNotificationCount > 0 ? (
+                  <span className="ml-auto h-2 w-2 rounded-full bg-blue-500" />
+                ) : null}
+              </Link>
             </SidebarMenuButton>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -85,7 +93,7 @@ export function NavProfiles({
           </SidebarMenuItem>
         ))}
         <SidebarMenuItem>
-          <SidebarMenuButton>
+          <SidebarMenuButton className="text-base">
             <MoreHorizontal />
             <span>More</span>
           </SidebarMenuButton>

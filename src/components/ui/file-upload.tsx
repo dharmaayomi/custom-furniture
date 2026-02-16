@@ -57,7 +57,7 @@ export const FileUpload = ({
       <motion.div
         onClick={handleClick}
         whileHover="animate"
-        className="group/file relative block w-full cursor-pointer overflow-hidden rounded-lg p-10"
+        className="group/file relative block w-full cursor-pointer overflow-hidden rounded-lg p-6 sm:p-10"
       >
         <input
           ref={fileInputRef}
@@ -70,13 +70,13 @@ export const FileUpload = ({
           <GridPattern />
         </div>
         <div className="flex flex-col items-center justify-center">
-          <p className="relative z-20 font-sans text-base font-bold text-neutral-700 dark:text-neutral-300">
+          <p className="relative z-20 font-sans text-sm font-bold text-neutral-700 sm:text-base dark:text-neutral-300">
             Upload file
           </p>
-          <p className="relative z-20 mt-2 font-sans text-base font-normal text-neutral-400 dark:text-neutral-400">
+          <p className="relative z-20 mt-2 text-center font-sans text-sm font-normal text-neutral-400 sm:text-base dark:text-neutral-400">
             Drag or drop your files here or click to upload
           </p>
-          <div className="relative mx-auto mt-10 w-full max-w-xl">
+          <div className="relative mx-auto mt-6 w-full max-w-xl sm:mt-10">
             {files.length > 0 &&
               files.map((file, idx) => (
                 <motion.div

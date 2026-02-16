@@ -1,16 +1,11 @@
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, LogIn, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useUser } from "@/providers/UserProvider";
+import useGetSavedDesignByCode from "@/hooks/api/design/useGetSavedDesignByCode";
+import { toast } from "sonner";
 import { NavUserMenu } from "./NavUserMenu";
 
 interface MenuModalProps {
@@ -26,13 +21,41 @@ export const OpenDesignCode = ({
 }: MenuModalProps) => {
   const router = useRouter();
   const [designCode, setDesignCode] = useState("");
-  const { navUser } = useUser();
+  const [submittedCode, setSubmittedCode] = useState("");
+  const { navUser, userId } = useUser();
+  const { data, isFetching, isError } = useGetSavedDesignByCode(
+    userId,
+    submittedCode,
+  );
+
+  useEffect(() => {
+    if (!data || !submittedCode) return;
+    const payload = (data as any)?.data ?? data;
+    const configuration = payload?.configuration;
+    if (!configuration) {
+      toast.error("Design not found");
+      return;
+    }
+    onClose();
+    window.open(`/custom/${submittedCode}`, "_blank", "noopener,noreferrer");
+    setSubmittedCode("");
+    setDesignCode("");
+  }, [data, submittedCode, onClose]);
+
+  useEffect(() => {
+    if (!isError || !submittedCode) return;
+    toast.error("Failed to load design code");
+    setSubmittedCode("");
+  }, [isError, submittedCode]);
 
   const handleOpenDesignCode = () => {
     const code = designCode.trim();
     if (!code) return;
-    onClose();
-    window.open(`/custom/${code}`, "_blank", "noopener,noreferrer");
+    if (!userId) {
+      toast.error("Please login to open saved design by code");
+      return;
+    }
+    setSubmittedCode(code);
   };
 
   const handleLogin = () => {
@@ -99,8 +122,12 @@ export const OpenDesignCode = ({
                 }}
                 placeholder="Enter Design Code"
               />
-              <Button onClick={handleOpenDesignCode} variant="secondary">
-                Open
+              <Button
+                onClick={handleOpenDesignCode}
+                variant="secondary"
+                disabled={!designCode.trim() || isFetching}
+              >
+                {isFetching ? "Opening..." : "Open"}
               </Button>
             </div>
             <div className="text-muted-foreground mt-2 text-xs">
