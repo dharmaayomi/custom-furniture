@@ -9,6 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Field,
   FieldDescription,
   FieldError,
@@ -16,13 +24,16 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import useForgotPassword from "@/hooks/api/auth/useForgotPassword";
 import { axiosInstance } from "@/lib/axios";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import { Eye, EyeOff } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -37,6 +48,9 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter();
+  const [resetEmail, setResetEmail] = useState("");
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -78,10 +92,40 @@ export function LoginForm({
       toast.error(getApiErrorMessage(error));
     },
   });
+  const { mutateAsync: forgotPassword, isPending: isSendingResetEmail } =
+    useForgotPassword({
+      onSuccess: (result) => {
+        toast.success(
+          result?.message ?? "Reset password link has been sent to your email",
+        );
+      },
+      onError: (error) => {
+        toast.error(
+          getApiErrorMessage(error, "Failed to send reset password email."),
+        );
+      },
+    });
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
     await login(data);
   }
+
+  const handleSendResetEmail = async () => {
+    if (!resetEmail.trim()) {
+      toast.error("Please enter your email.");
+      return;
+    }
+
+    await forgotPassword({ email: resetEmail.trim() });
+    setIsForgotPasswordOpen(false);
+    setResetEmail("");
+  };
+
+  const handleCloseForgotPasswordDialog = () => {
+    if (isSendingResetEmail) return;
+    setIsForgotPasswordOpen(false);
+    setResetEmail("");
+  };
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -120,15 +164,41 @@ export function LoginForm({
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input
-                      {...field}
-                      id="password"
-                      type="password"
-                      autoComplete="current-password"
-                      aria-invalid={fieldState.invalid}
-                      placeholder="Your password"
-                    />
+                    <div className="flex justify-between">
+                      <FieldLabel htmlFor="password">Password</FieldLabel>
+                      <button
+                        type="button"
+                        className="text-xs underline"
+                        onClick={() => setIsForgotPasswordOpen(true)}
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        {...field}
+                        id="password"
+                        type={isPasswordVisible ? "text" : "password"}
+                        autoComplete="current-password"
+                        aria-invalid={fieldState.invalid}
+                        placeholder="Your password"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
+                        onClick={() => setIsPasswordVisible((prev) => !prev)}
+                        aria-label={
+                          isPasswordVisible ? "Hide password" : "Show password"
+                        }
+                      >
+                        {isPasswordVisible ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                     {fieldState.invalid && (
                       <FieldError errors={[fieldState.error]} />
                     )}
@@ -154,6 +224,43 @@ export function LoginForm({
           </form>
         </CardContent>
       </div>
+
+      <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Forgot password</DialogTitle>
+            <DialogDescription>
+              Enter your account email and we&apos;ll send a reset link.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Field>
+            <FieldLabel>Email</FieldLabel>
+            <Input
+              type="email"
+              placeholder="you@example.com"
+              value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)}
+            />
+          </Field>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCloseForgotPasswordDialog}
+              disabled={isSendingResetEmail}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendResetEmail}
+              disabled={isSendingResetEmail}
+            >
+              {isSendingResetEmail ? "Sending..." : "Send Reset Link"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

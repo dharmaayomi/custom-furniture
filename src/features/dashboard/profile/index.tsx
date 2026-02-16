@@ -403,7 +403,7 @@ export const ProfilePage = () => {
             }
           }}
         >
-          <DialogContent className="sm:max-w-xl">
+          <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
             <DialogHeader>
               <DialogTitle>Change profile photo</DialogTitle>
               <DialogDescription>
@@ -446,7 +446,7 @@ export const ProfilePage = () => {
           open={isRemoveAvatarDialogOpen}
           onOpenChange={setIsRemoveAvatarDialogOpen}
         >
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Remove profile photo?</DialogTitle>
               <DialogDescription>

@@ -8,8 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   clearDesignCodeFromStorage,
-  loadDesignCodeFromStorage,
-  saveDesignCodeToStorage,
 } from "@/lib/designCode";
 import { useRoomStore } from "@/store/useRoomStore";
 import {
@@ -45,7 +43,6 @@ export const MenuModal = ({
 }: MenuModalProps) => {
   const router = useRouter();
   const resetRoom = useRoomStore((state) => state.reset);
-  const designCode = useRoomStore((state) => state.designCode);
   const setDesignCode = useRoomStore((state) => state.setDesignCode);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
@@ -70,12 +67,13 @@ export const MenuModal = ({
   };
 
   const handleSave = () => {
-    const storedCode = loadDesignCodeFromStorage();
-    const code = designCode || storedCode;
-    if (code !== designCode) {
-      setDesignCode(code);
+    const headerSaveButton = document.getElementById(
+      "header-save-button",
+    ) as HTMLButtonElement | null;
+    if (headerSaveButton) {
+      headerSaveButton.click();
     }
-    saveDesignCodeToStorage(code);
+    onClose();
   };
 
   const handleStartFromScratch = () => {

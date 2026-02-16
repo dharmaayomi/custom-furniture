@@ -205,6 +205,8 @@ export const HeaderCustom = ({
             <Menu className="h-4 w-4 md:h-6 md:w-6" />
           </div>
           <Button
+            id="header-save-button"
+            name="header-save"
             className="hidden cursor-pointer items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-xs font-semibold text-black shadow-md hover:text-white md:flex"
             onClick={handleSaveClick}
             disabled={isPending || (!isDirty && !!activeDesignName)}
