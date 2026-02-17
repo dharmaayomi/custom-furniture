@@ -9,7 +9,8 @@ export const saveDesignSchema = z.object({
   configuration: z.record(z.string(), z.any()),
   designCode: z.string().optional(),
   designName: z.string().min(1, "Design name is required"),
-  fileFinalUrl: z.string().optional(),
+  fileFinalUrl: z.string().url().optional(),
+  previewUrl: z.string().url().optional(),
 });
 
 export type SaveDesignInput = z.infer<typeof saveDesignSchema>;
@@ -28,6 +29,7 @@ const useSaveDesign = () => {
         configuration: data.configuration,
         designName: data.designName,
         ...(data.fileFinalUrl ? { fileFinalUrl: data.fileFinalUrl } : {}),
+        ...(data.previewUrl ? { previewUrl: data.previewUrl } : {}),
         ...(finalDesignCode ? { designCode: finalDesignCode } : {}),
       });
       return result.data;

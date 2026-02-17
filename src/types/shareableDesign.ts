@@ -14,6 +14,7 @@ export type SavedDesign = {
   designName: string;
   configuration: any;
   fileFinalUrl?: string;
+  previewUrl?: string;
   deletedAt?: string;
   createdAt: string;
   updatedAt: string;

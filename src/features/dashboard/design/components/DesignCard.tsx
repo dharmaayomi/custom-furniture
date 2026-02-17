@@ -30,6 +30,7 @@ export default function DesignCard({
     ? new Date(design.createdAt).toLocaleDateString()
     : "";
   const title = design.designName || "Untitled design";
+  const previewSrc = (design?.previewUrl || "").trim();
 
   useEffect(() => {
     if (!data || !submittedCode) return;
@@ -77,30 +78,44 @@ export default function DesignCard({
     return (
       <Card className="p-4">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="text-foreground text-lg font-semibold">{title}</div>
-            <div className="mt-3 space-y-2 text-sm">
-              <div className="text-muted-foreground flex items-center gap-2">
-                <Hash className="h-4 w-4" />
-                <span>Code: {design.designCode}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={handleCopyCode}
-                  aria-label="Copy design code"
-                  title="Copy design code"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </Button>
+          <div className="flex items-start gap-3">
+            {previewSrc ? (
+              <img
+                src={previewSrc}
+                alt={`${title} preview`}
+                className="h-16 w-24 shrink-0 rounded-md object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-md bg-gray-100 text-xs text-gray-500">
+                No preview
               </div>
-              {createdAt ? (
+            )}
+            <div className="flex-1">
+              <div className="text-foreground text-lg font-semibold">{title}</div>
+              <div className="mt-3 space-y-2 text-sm">
                 <div className="text-muted-foreground flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4" />
-                  <span>Created: {createdAt}</span>
+                  <Hash className="h-4 w-4" />
+                  <span>Code: {design.designCode}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={handleCopyCode}
+                    aria-label="Copy design code"
+                    title="Copy design code"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-              ) : null}
+                {createdAt ? (
+                  <div className="text-muted-foreground flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4" />
+                    <span>Created: {createdAt}</span>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -132,9 +147,18 @@ export default function DesignCard({
 
   return (
     <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
-      <div className="flex aspect-4/3 items-center justify-center bg-gray-100 text-xs text-gray-500">
-        Preview
-      </div>
+      {previewSrc ? (
+        <img
+          src={previewSrc}
+          alt={`${title} preview`}
+          className="aspect-4/3 w-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div className="flex aspect-4/3 items-center justify-center bg-gray-100 text-xs text-gray-500">
+          Preview unavailable
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="min-w-0 space-y-1">

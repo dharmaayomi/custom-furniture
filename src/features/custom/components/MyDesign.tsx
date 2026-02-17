@@ -224,6 +224,7 @@ export const MyDesign = ({
                           const createdAt = design?.createdAt
                             ? new Date(design.createdAt).toLocaleDateString()
                             : "";
+                          const previewSrc = (design?.previewUrl || "").trim();
                           return (
                             <div
                               key={design.id}
@@ -235,9 +236,18 @@ export const MyDesign = ({
                             >
                               {viewMode === "grid" ? (
                                 <div className="flex h-full flex-col">
-                                  <div className="flex aspect-4/3 items-center justify-center bg-gray-100 text-xs text-gray-500">
-                                    Preview
-                                  </div>
+                                  {previewSrc ? (
+                                    <img
+                                      src={previewSrc}
+                                      alt={`${design.designName || "Untitled design"} preview`}
+                                      className="aspect-4/3 w-full object-cover"
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <div className="flex aspect-4/3 items-center justify-center bg-gray-100 text-xs text-gray-500">
+                                      Preview unavailable
+                                    </div>
+                                  )}
                                   <div className="flex flex-1 flex-col gap-2 p-3">
                                     <div className="min-w-0">
                                       <p className="truncate text-sm font-semibold text-gray-800">
@@ -267,9 +277,18 @@ export const MyDesign = ({
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-3">
-                                  <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-md bg-gray-100 text-xs text-gray-500">
-                                    Preview
-                                  </div>
+                                  {previewSrc ? (
+                                    <img
+                                      src={previewSrc}
+                                      alt={`${design.designName || "Untitled design"} preview`}
+                                      className="h-16 w-24 shrink-0 rounded-md object-cover"
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-md bg-gray-100 text-xs text-gray-500">
+                                      No preview
+                                    </div>
+                                  )}
                                   <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
                                     <div className="min-w-0">
                                       <p className="truncate text-sm font-semibold text-gray-800">
