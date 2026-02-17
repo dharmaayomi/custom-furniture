@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -52,6 +52,7 @@ const formatSegment = (segment: string) => {
 
 const HeaderDashboard = () => {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const segments = pathname
@@ -83,6 +84,10 @@ const HeaderDashboard = () => {
   });
   const currentPageLabel =
     crumbs.length > 0 ? crumbs[crumbs.length - 1].label : "Dashboard";
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <header className="bg-background/95 supports-backdrop-filter:bg-background/75 sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b backdrop-blur sm:h-16">
@@ -131,7 +136,11 @@ const HeaderDashboard = () => {
                 aria-label="Toggle theme"
                 title="Toggle theme"
               >
-                {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+                {mounted && theme === "dark" ? (
+                  <Sun size={20} />
+                ) : (
+                  <Moon size={20} />
+                )}
               </Button>
             </div>
             <div className="hidden sm:block">

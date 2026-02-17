@@ -34,19 +34,41 @@ const useSaveDesign = () => {
       });
       return result.data;
     },
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       const payload = (result as any)?.data ?? result;
       const designCode = payload?.designCode;
       if (designCode) {
         setDesignCode(designCode);
         saveDesignCodeToStorage(designCode);
       }
-      queryClient.invalidateQueries({
-        queryKey: ["saved-designs"],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["saved-design"],
-      });
+
+      if (designCode) {
+        queryClient.setQueriesData(
+          { queryKey: ["saved-design"], exact: false },
+          (current) => {
+            if (!current || typeof current !== "object") return current;
+            const currentPayload = (current as any)?.data ?? current;
+            if (currentPayload?.designCode !== designCode) return current;
+            if ((current as any)?.data) {
+              return { ...(current as any), data: payload };
+            }
+            return payload;
+          },
+        );
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["saved-designs"],
+          exact: false,
+          refetchType: "all",
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["saved-design"],
+          exact: false,
+          refetchType: "all",
+        }),
+      ]);
     },
     onError: (error) => {
       console.error("[useSaveDesign] request failed", {

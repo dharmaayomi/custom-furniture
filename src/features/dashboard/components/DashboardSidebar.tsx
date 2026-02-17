@@ -126,11 +126,19 @@ export function DashboardSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
   const { navUser } = useUser();
   const notifications = useNotificationStore((state) => state.notifications);
   const unreadNotificationCount = notifications.filter(
     (item) => !item.isRead,
   ).length;
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const logoSrc =
+    mounted && resolvedTheme === "dark" ? "/logo-dark.svg" : "/logo.svg";
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -142,7 +150,7 @@ export function DashboardSidebar({
                 <Link href="/" className="flex items-center gap-2 font-medium">
                   <div className="text-primary-foreground flex items-center justify-center">
                     <Image
-                      src={resolvedTheme === "dark" ? "/logo-dark.svg" : "/logo.svg"}
+                      src={logoSrc}
                       alt="Logo"
                       width={180}
                       height={300}

@@ -2,9 +2,21 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Box,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import useGetProducts from "@/hooks/api/product/useGetProducts";
+import useUpdateProduct from "@/hooks/api/product/useUpdateProduct";
+import { BaseProductCard } from "./components/BaseProductCard";
+import { BaseProductCardSkeleton } from "./components/BaseProductCardSkeleton";
+import { ProductBase } from "@/types/product";
+import {
   Grid3x3,
   Layers,
   List,
@@ -12,16 +24,8 @@ import {
   Palette,
   Plus,
 } from "lucide-react";
-import { useState } from "react";
-
-type ProductBaseItem = {
-  id: number;
-  productName: string;
-  sku: string;
-  basePrice: string;
-  isActive: boolean;
-  isCustomizable: boolean;
-};
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 type ComponentItem = {
   id: number;
@@ -37,33 +41,6 @@ type MaterialItem = {
   finish: string;
   isActive: boolean;
 };
-
-const BASE_PRODUCTS: ProductBaseItem[] = [
-  {
-    id: 1,
-    productName: "Wardrobe 2-Door",
-    sku: "PRD-WDR-2001",
-    basePrice: "Rp 3.200.000",
-    isActive: true,
-    isCustomizable: true,
-  },
-  {
-    id: 2,
-    productName: "Kitchen Cabinet L-Set",
-    sku: "PRD-KTC-1204",
-    basePrice: "Rp 5.900.000",
-    isActive: true,
-    isCustomizable: true,
-  },
-  {
-    id: 3,
-    productName: "TV Console",
-    sku: "PRD-LVG-3321",
-    basePrice: "Rp 2.400.000",
-    isActive: false,
-    isCustomizable: false,
-  },
-];
 
 const COMPONENTS: ComponentItem[] = [
   {
@@ -110,22 +87,99 @@ const MATERIALS: MaterialItem[] = [
   },
 ];
 
-const Preview = ({ list }: { list?: boolean }) => {
-  return (
-    <div
-      className={
-        list
-          ? "bg-muted text-muted-foreground flex h-16 w-24 shrink-0 items-center justify-center rounded-md text-xs"
-          : "bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center text-xs"
-      }
-    >
-      Preview
-    </div>
-  );
+const Preview = ({
+  list,
+  src,
+  alt,
+}: {
+  list?: boolean;
+  src?: string;
+  alt?: string;
+}) => {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
+  const baseClass = list
+    ? "bg-muted text-muted-foreground flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs"
+    : "bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center overflow-hidden text-xs";
+
+  if (src && !hasError) {
+    return (
+      <div className={baseClass}>
+        <img
+          src={src}
+          alt={alt ?? "Product preview"}
+          className="h-full w-full object-cover"
+          onError={() => setHasError(true)}
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
+  return <div className={baseClass}>Preview</div>;
 };
 
 export const ProductsPage = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [page, setPage] = useState(1);
+  const [pendingToggle, setPendingToggle] = useState<{
+    productId: number;
+    productName: string;
+    field: "isActive" | "isCustomizable";
+    nextValue: boolean;
+  } | null>(null);
+  const perPage = 6;
+  const { data, isLoading, isError, isFetching } = useGetProducts({
+    page,
+    perPage,
+    sortBy: "createdAt",
+    orderBy: "desc",
+  });
+  const { mutateAsync: updateProduct, isPending: isUpdatingProduct } =
+    useUpdateProduct();
+
+  const baseProducts: ProductBase[] = data?.data ?? [];
+  const baseMeta = data?.meta;
+  const baseTotal = baseMeta?.total ?? baseProducts.length;
+  const totalItems = baseTotal + COMPONENTS.length + MATERIALS.length;
+
+  const openToggleConfirm = (
+    product: ProductBase,
+    field: "isActive" | "isCustomizable",
+    nextValue: boolean,
+  ) => {
+    setPendingToggle({
+      productId: product.id,
+      productName: product.productName,
+      field,
+      nextValue,
+    });
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!pendingToggle) return;
+
+    try {
+      await updateProduct({
+        productId: pendingToggle.productId,
+        payload: { [pendingToggle.field]: pendingToggle.nextValue },
+      });
+
+      const label =
+        pendingToggle.field === "isActive" ? "Active status" : "Customizable";
+      toast.success(`${label} updated`);
+      setPendingToggle(null);
+    } catch (error) {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message ?? "Failed to update product.";
+      toast.error(message);
+    }
+  };
 
   return (
     <section>
@@ -150,7 +204,7 @@ export const ProductsPage = () => {
         <div className="mx-auto px-1 py-3 sm:px-4 sm:py-4 lg:px-2 lg:py-2">
           <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-muted-foreground text-sm">
-              {BASE_PRODUCTS.length + COMPONENTS.length + MATERIALS.length} items
+              {totalItems} items
             </p>
             <div className="border-border bg-muted flex w-full gap-2 rounded-lg border p-1 sm:w-auto">
               <Button
@@ -177,7 +231,7 @@ export const ProductsPage = () => {
           <Tabs defaultValue="base-products" className="w-full">
             <TabsList className="mb-4 grid w-full grid-cols-3 sm:mb-6">
               <TabsTrigger value="base-products">
-                Base ({BASE_PRODUCTS.length})
+                Base ({baseTotal})
               </TabsTrigger>
               <TabsTrigger value="components">
                 Components ({COMPONENTS.length})
@@ -195,7 +249,21 @@ export const ProductsPage = () => {
                     : "space-y-4"
                 }
               >
-                {BASE_PRODUCTS.length === 0 ? (
+                {isLoading ? (
+                  Array.from({ length: perPage }).map((_, index) => (
+                    <BaseProductCardSkeleton key={index} viewMode={viewMode} />
+                  ))
+                ) : isError ? (
+                  <div className="border-border bg-card mx-auto flex w-full max-w-xl flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12 lg:max-w-full">
+                    <PackageSearch className="text-muted-foreground/40 mb-3 h-12 w-12" />
+                    <h3 className="text-foreground mb-2 text-lg font-medium">
+                      Failed to load products
+                    </h3>
+                    <p className="text-muted-foreground text-sm">
+                      Please try again later.
+                    </p>
+                  </div>
+                ) : baseProducts.length === 0 ? (
                   <div className="border-border bg-card mx-auto flex w-full max-w-xl flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12 lg:max-w-full">
                     <PackageSearch className="text-muted-foreground/40 mb-3 h-12 w-12" />
                     <h3 className="text-foreground mb-2 text-lg font-medium">
@@ -206,77 +274,45 @@ export const ProductsPage = () => {
                     </p>
                   </div>
                 ) : (
-                  BASE_PRODUCTS.map((item) =>
-                    viewMode === "grid" ? (
-                      <div
-                        key={item.id}
-                        className="bg-card overflow-hidden rounded-lg border shadow-sm"
-                      >
-                        <Preview />
-                        <div className="p-4">
-                          <div className="mb-1 flex items-center gap-2">
-                            <Box className="text-muted-foreground h-4 w-4" />
-                            <p className="text-foreground truncate text-sm font-semibold sm:text-base">
-                              {item.productName}
-                            </p>
-                          </div>
-                          <p className="text-muted-foreground text-xs sm:text-sm">
-                            SKU: {item.sku}
-                          </p>
-                          <p className="text-muted-foreground text-xs sm:text-sm">
-                            Base Price: {item.basePrice}
-                          </p>
-                          <div className="mt-3 flex items-center gap-2">
-                            <Badge
-                              variant={item.isActive ? "default" : "secondary"}
-                            >
-                              {item.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                            <Badge variant="outline">
-                              {item.isCustomizable ? "Customizable" : "Fixed"}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div
-                        key={item.id}
-                        className="bg-card rounded-lg border p-4 shadow-sm"
-                      >
-                        <div className="flex items-start gap-3">
-                          <Preview
-                            list
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-1 flex items-center gap-2">
-                              <Box className="text-muted-foreground h-4 w-4" />
-                              <p className="text-foreground truncate text-sm font-semibold sm:text-base">
-                                {item.productName}
-                              </p>
-                            </div>
-                            <p className="text-muted-foreground text-xs sm:text-sm">
-                              SKU: {item.sku}
-                            </p>
-                            <p className="text-muted-foreground text-xs sm:text-sm">
-                              Base Price: {item.basePrice}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant={item.isActive ? "default" : "secondary"}
-                            >
-                              {item.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                            <Badge variant="outline">
-                              {item.isCustomizable ? "Customizable" : "Fixed"}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    ),
+                  baseProducts.map((item) =>
+                    <BaseProductCard
+                      key={item.id}
+                      item={item}
+                      viewMode={viewMode}
+                      isUpdatingProduct={isUpdatingProduct}
+                      onToggle={(field, nextValue) =>
+                        openToggleConfirm(item, field, nextValue)
+                      }
+                    />,
                   )
                 )}
               </div>
+              {baseMeta ? (
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-muted-foreground text-xs">
+                    Page {baseMeta.page} of{" "}
+                    {Math.max(1, Math.ceil(baseMeta.total / baseMeta.perPage))}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                      disabled={!baseMeta.hasPrevious || isFetching}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((prev) => prev + 1)}
+                      disabled={!baseMeta.hasNext || isFetching}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </TabsContent>
 
             <TabsContent value="components">
@@ -411,6 +447,36 @@ export const ProductsPage = () => {
           </Tabs>
         </div>
       </div>
+
+      <Dialog
+        open={Boolean(pendingToggle)}
+        onOpenChange={(open) => {
+          if (!open) setPendingToggle(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update product setting?</DialogTitle>
+            <DialogDescription>
+              {pendingToggle
+                ? `Apply ${pendingToggle.field === "isActive" ? "Active" : "Customizable"} = ${pendingToggle.nextValue ? "On" : "Off"} for "${pendingToggle.productName}"?`
+                : "Confirm update."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPendingToggle(null)}
+              disabled={isUpdatingProduct}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmToggle} disabled={isUpdatingProduct}>
+              {isUpdatingProduct ? "Updating..." : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };

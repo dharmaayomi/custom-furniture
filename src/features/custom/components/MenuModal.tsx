@@ -21,7 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavUserMenu } from "./NavUserMenu";
 import { useUser } from "@/providers/UserProvider";
 import { useTheme } from "next-themes";
@@ -47,6 +47,7 @@ export const MenuModal = ({
   const resetRoom = useRoomStore((state) => state.reset);
   const setDesignCode = useRoomStore((state) => state.setDesignCode);
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
@@ -96,6 +97,10 @@ export const MenuModal = ({
     router.push("/login");
   };
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <>
       {/* Overlay */}
@@ -126,7 +131,11 @@ export const MenuModal = ({
                 aria-label="Toggle theme"
                 title="Toggle theme"
               >
-                {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+                {mounted && theme === "dark" ? (
+                  <Sun size={20} />
+                ) : (
+                  <Moon size={20} />
+                )}
               </Button>
 
               <Button

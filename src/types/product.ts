@@ -1,3 +1,5 @@
+import { PageableResponse } from "./pagination";
+
 export type ProductBase = {
   id: number;
   productName: string;
@@ -5,12 +7,15 @@ export type ProductBase = {
   productUrl: string;
   description: string;
   basePrice: number;
-  height: number;
   width: number;
+  height: number;
   depth: number;
+  weight: number;
   images: string[];
   isActive: boolean;
   isCustomizable: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type ProductComponent = {
@@ -57,3 +62,41 @@ export type CustomOrderComponent = {
   lockedPricePerUnit: number;
   lockedSubTotal: number;
 };
+
+export type Product = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+};
+
+export type ProductSortBy =
+  | "id"
+  | "productName"
+  | "sku"
+  | "basePrice"
+  | "createdAt"
+  | "updatedAt";
+
+export type ProductOrderBy = "asc" | "desc";
+
+export type GetProductsQuery = {
+  page?: number;
+  perPage?: number;
+  sortBy?: ProductSortBy;
+  orderBy?: ProductOrderBy;
+  isActive?: boolean;
+  isCustomizable?: boolean;
+  sku?: string;
+  name?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+};
+
+export type GetProductsResponse = PageableResponse<ProductBase>;
+
+export type UpdateProductInput = Partial<
+  Pick<ProductBase, "isActive" | "isCustomizable">
+>;
