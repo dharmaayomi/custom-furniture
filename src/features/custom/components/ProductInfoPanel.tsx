@@ -107,58 +107,55 @@ export const ProductInfoPanel = ({
 
       {/* Panel */}
       <div
-        className={`fixed top-0 right-0 z-52 h-full w-80 overflow-y-auto bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`bg-background text-foreground border-border fixed top-0 right-0 z-52 h-full w-80 overflow-y-auto border-l shadow-2xl transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="mb-6 flex items-center justify-between p-6">
           <h2 className="text-xl font-bold">Product Details</h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1 hover:bg-gray-100"
-          >
+          <button onClick={onClose} className="hover:bg-muted rounded-lg p-1">
             <X size={20} />
           </button>
         </div>
 
         <div className="space-y-6 px-6 pb-6">
           {/* Product Image */}
-          <div className="aspect-square w-full overflow-hidden rounded-lg bg-gray-100">
+          <div className="bg-muted aspect-square w-full overflow-hidden rounded-lg">
             {/* Placeholder for product image */}
             <div className="flex h-full items-center justify-center">
-              <span className="text-gray-400">Product Image</span>
+              <span className="text-muted-foreground">Product Image</span>
             </div>
           </div>
 
           {/* Product Name */}
           <div>
-            <h3 className="text-2xl font-bold text-gray-900">{name}</h3>
+            <h3 className="text-foreground text-2xl font-bold">{name}</h3>
           </div>
 
           {/* Product Description */}
           <div>
-            <h4 className="mb-2 text-sm font-semibold text-gray-700">
+            <h4 className="text-foreground mb-2 text-sm font-semibold">
               Description
             </h4>
-            <p className="text-sm leading-relaxed text-gray-600">
+            <p className="text-muted-foreground text-sm leading-relaxed">
               {description}
             </p>
           </div>
 
           {/* Product Price */}
-          <div className="border-t pt-6">
+          <div className="border-border border-t pt-6">
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">Price:</span>
-              <span className="text-2xl font-bold text-gray-900">
+              <span className="text-muted-foreground">Price:</span>
+              <span className="text-foreground text-2xl font-bold">
                 {formatPrice(price)}
               </span>
             </div>
           </div>
 
           {/* Product Code */}
-          <div className="rounded-lg bg-gray-50 p-4">
-            <p className="text-xs text-gray-500">Product Code</p>
-            <p className="mt-1 font-mono text-sm text-gray-700">
+          <div className="bg-muted rounded-lg p-4">
+            <p className="text-muted-foreground text-xs">Product Code</p>
+            <p className="text-foreground mt-1 font-mono text-sm">
               {selectedModelName}
             </p>
           </div>

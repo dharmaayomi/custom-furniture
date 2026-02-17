@@ -36,6 +36,7 @@ import { NavUser } from "./NavUser";
 import { useUser } from "@/providers/UserProvider";
 import { useNotificationStore } from "@/store/useNotificationStore";
 import Link from "next/link";
+import { useTheme } from "next-themes";
 
 const data = {
   navMain: [
@@ -58,6 +59,20 @@ const data = {
       title: "Products",
       url: "/dashboard/products",
       icon: Frame,
+      items: [
+        {
+          title: "Component Management",
+          url: "#",
+        },
+        {
+          title: "Material Management",
+          url: "#",
+        },
+        {
+          title: "Archived Products",
+          url: "#",
+        },
+      ],
     },
 
     {
@@ -110,6 +125,7 @@ const data = {
 export function DashboardSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
+  const { resolvedTheme } = useTheme();
   const { navUser } = useUser();
   const notifications = useNotificationStore((state) => state.notifications);
   const unreadNotificationCount = notifications.filter(
@@ -126,7 +142,7 @@ export function DashboardSidebar({
                 <Link href="/" className="flex items-center gap-2 font-medium">
                   <div className="text-primary-foreground flex items-center justify-center">
                     <Image
-                      src="/logo.svg"
+                      src={resolvedTheme === "dark" ? "/logo-dark.svg" : "/logo.svg"}
                       alt="Logo"
                       width={180}
                       height={300}

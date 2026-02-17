@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { axiosInstance } from "@/lib/axios";
 
-let isLoggingOut = false;
-
 const useAxios = () => {
+  const isLoggingOutRef = useRef(false);
   const { data: session } = useSession();
 
   useEffect(() => {
@@ -31,8 +30,18 @@ const useAxios = () => {
         const status = err.response?.status;
         const code = err.response?.data?.code;
 
-        if (!isLoggingOut && status === 401 && code === "SESSION_EXPIRED") {
-          isLoggingOut = true;
+        // if (!isLoggingOut && status === 401 && code === "SESSION_EXPIRED") {
+        //   isLoggingOut = true;
+        //   signOut({
+        //     callbackUrl: "/login?reason=session_expired",
+        //   });
+        // }
+        if (
+          !isLoggingOutRef.current &&
+          status === 401 &&
+          code === "SESSION_EXPIRED"
+        ) {
+          isLoggingOutRef.current = true;
           signOut({
             callbackUrl: "/login?reason=session_expired",
           });

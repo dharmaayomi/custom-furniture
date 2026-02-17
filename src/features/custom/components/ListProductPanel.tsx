@@ -87,7 +87,7 @@ export const ListProductPanel = ({
 
   return (
     <div
-      className={`fixed top-0 right-0 z-60 h-full w-[85vw] max-w-88 bg-white shadow-md sm:w-80 sm:max-w-none ${
+      className={`bg-background text-foreground fixed top-0 right-0 z-60 h-full w-[85vw] max-w-88 shadow-md sm:w-80 sm:max-w-none ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
     >
@@ -119,7 +119,7 @@ export const ListProductPanel = ({
                   <div className="bg-muted mb-3 aspect-square w-full rounded-lg" />
 
                   {/* Product Info */}
-                  <h3 className="text-sm font-semibold text-black">
+                  <h3 className="text-foreground text-sm font-semibold">
                     {product.name}
                   </h3>
                   <p className="text-muted-foreground mb-2 text-xs">
@@ -128,7 +128,7 @@ export const ListProductPanel = ({
 
                   {/* Price and Quantity */}
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-black">
+                    <span className="text-foreground text-sm font-semibold">
                       {formatPrice(product.price)}
                     </span>
                     <span className="text-muted-foreground text-xs">
@@ -141,7 +141,7 @@ export const ListProductPanel = ({
                     <span className="text-muted-foreground text-xs">
                       Subtotal
                     </span>
-                    <span className="font-semibold text-black">
+                    <span className="text-foreground font-semibold">
                       {formatPrice(product.price * product.quantity)}
                     </span>
                   </div>
@@ -156,7 +156,7 @@ export const ListProductPanel = ({
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-sm">Total</span>
             <div className="text-right">
-              <p className="font-semibold text-black">
+              <p className="text-foreground font-semibold">
                 {formatPrice(totalPrice)}
               </p>
               <p className="text-muted-foreground text-xs">{itemCount} items</p>

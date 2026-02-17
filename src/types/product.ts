@@ -5,6 +5,9 @@ export type ProductBase = {
   productUrl: string;
   description: string;
   basePrice: number;
+  height: number;
+  width: number;
+  depth: number;
   images: string[];
   isActive: boolean;
   isCustomizable: boolean;

@@ -155,13 +155,13 @@ export const ShareDesign = ({
 
       {/* Modal */}
       <div
-        className={`fixed top-0 left-0 z-58 h-full w-90 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`bg-background text-foreground fixed top-0 left-0 z-58 h-full w-90 shadow-2xl transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between border-b p-4">
+          <div className="border-border flex items-center justify-between border-b p-4">
             <Button
               variant="ghost"
               size="icon"
@@ -184,7 +184,7 @@ export const ShareDesign = ({
             <div className="space-y-4">
               <div className="space-y-2">
                 <h2 className="text-lg font-semibold">Share Your Design</h2>
-                <p className="text-sm text-gray-600">
+                <p className="text-muted-foreground text-sm">
                   Generate a code or link to share your design with others.
                 </p>
               </div>
@@ -223,7 +223,7 @@ export const ShareDesign = ({
                   <div className="space-y-2">
                     <label
                       htmlFor="share-link"
-                      className="text-sm font-medium text-gray-700"
+                      className="text-foreground text-sm font-medium"
                     >
                       Shareable Link
                     </label>
@@ -247,7 +247,7 @@ export const ShareDesign = ({
                         <Copy size={16} />
                       </Button>
                     </div>
-                    <p className="text-xs font-light text-gray-500 italic">
+                    <p className="text-muted-foreground text-xs font-light italic">
                       This link represents a snapshot of your design at the time
                       it was generated.
                     </p>
@@ -265,7 +265,7 @@ export const ShareDesign = ({
                   <div className="space-y-2">
                     <label
                       htmlFor="design-code"
-                      className="text-sm font-medium text-gray-700"
+                      className="text-foreground text-sm font-medium"
                     >
                       Design Code
                     </label>
@@ -290,10 +290,10 @@ export const ShareDesign = ({
                         <Copy size={16} />
                       </Button>
                     </div>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-muted-foreground text-xs">
                       Codes are 5-6 characters long (letters & numbers)
                     </p>
-                    <p className="text-xs font-light text-gray-500 italic">
+                    <p className="text-muted-foreground text-xs font-light italic">
                       This code represents a snapshot of your design at the time
                       it was generated.
                     </p>
@@ -309,19 +309,19 @@ export const ShareDesign = ({
               </Tabs>
 
               {copyStatus ? (
-                <p className="text-xs text-gray-500">{copyStatus}</p>
+                <p className="text-muted-foreground text-xs">{copyStatus}</p>
               ) : null}
             </div>
           </div>
 
           {/* Footer */}
-          <div className="border-t p-4">
+          <div className="border-border border-t p-4">
             {navUser ? (
               <NavUserMenu user={navUser} />
             ) : (
               <button
                 onClick={handleLogin}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-3 text-white transition-opacity hover:opacity-90"
+                className="bg-primary text-primary-foreground flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 transition-opacity hover:opacity-90"
               >
                 <LogIn size={20} />
                 <span className="font-medium">Login</span>

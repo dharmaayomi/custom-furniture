@@ -21,10 +21,11 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, CheckCheck, Moon } from "lucide-react";
+import { Bell, CheckCheck, Moon, Sun } from "lucide-react";
 import { useUser } from "@/providers/UserProvider";
 import { NavUser } from "./NavUser";
 import { useNotificationStore } from "@/store/useNotificationStore";
+import { useTheme } from "next-themes";
 
 const LABEL_MAP: Record<string, string> = {
   dashboard: "Dashboard",
@@ -50,6 +51,7 @@ const formatSegment = (segment: string) => {
 };
 
 const HeaderDashboard = () => {
+  const { theme, setTheme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
   const segments = pathname
@@ -119,10 +121,19 @@ const HeaderDashboard = () => {
                 : null}
             </BreadcrumbList>
           </Breadcrumb>
-          <div className="mr-1 flex items-center gap-2 sm:mr-3 sm:gap-4 lg:gap-6">
-            <Button variant="ghost" size="icon" className="relative sm:block">
-              <Moon size={20} />
-            </Button>
+          <div className="mr-1 flex items-center gap-1.5 sm:mr-3 sm:gap-4 lg:gap-6">
+            <div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="sm:block"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                aria-label="Toggle theme"
+                title="Toggle theme"
+              >
+                {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+              </Button>
+            </div>
             <div className="hidden sm:block">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

@@ -104,13 +104,13 @@ export const MyDesign = ({
 
       {/* Modal */}
       <div
-        className={`fixed top-0 left-0 z-58 h-full w-90 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`bg-background text-foreground fixed top-0 left-0 z-58 h-full w-90 shadow-2xl transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between border-b p-4">
+          <div className="border-border flex items-center justify-between border-b p-4">
             <Button
               variant="ghost"
               size="icon"
@@ -178,8 +178,8 @@ export const MyDesign = ({
                             key={index}
                             className={
                               viewMode === "grid"
-                                ? "overflow-hidden rounded-lg border bg-white shadow-sm"
-                                : "rounded-lg border bg-white p-3 shadow-sm"
+                                ? "bg-card overflow-hidden rounded-lg border shadow-sm"
+                                : "bg-card rounded-lg border p-3 shadow-sm"
                             }
                           >
                             {viewMode === "grid" ? (
@@ -209,7 +209,7 @@ export const MyDesign = ({
                         ))}
                       </div>
                     ) : savedDesigns.length === 0 ? (
-                      <p className="text-sm text-gray-600">
+                      <p className="text-muted-foreground text-sm">
                         You don&apos;t have any saved designs yet.
                       </p>
                     ) : (
@@ -229,9 +229,9 @@ export const MyDesign = ({
                             <div
                               key={design.id}
                               className={
-                                viewMode === "grid"
-                                  ? "overflow-hidden rounded-lg border bg-white shadow-sm"
-                                  : "rounded-lg border bg-white p-3 shadow-sm"
+                              viewMode === "grid"
+                                  ? "bg-card overflow-hidden rounded-lg border shadow-sm"
+                                  : "bg-card rounded-lg border p-3 shadow-sm"
                               }
                             >
                               {viewMode === "grid" ? (
@@ -244,20 +244,20 @@ export const MyDesign = ({
                                       loading="lazy"
                                     />
                                   ) : (
-                                    <div className="flex aspect-4/3 items-center justify-center bg-gray-100 text-xs text-gray-500">
+                                    <div className="bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center text-xs">
                                       Preview unavailable
                                     </div>
                                   )}
                                   <div className="flex flex-1 flex-col gap-2 p-3">
                                     <div className="min-w-0">
-                                      <p className="truncate text-sm font-semibold text-gray-800">
+                                      <p className="text-foreground truncate text-sm font-semibold">
                                         {design.designName || "Untitled design"}
                                       </p>
-                                      <p className="text-xs text-gray-500">
+                                      <p className="text-muted-foreground text-xs">
                                         Code: {design.designCode}
                                       </p>
                                       {createdAt ? (
-                                        <p className="text-xs text-gray-400">
+                                        <p className="text-muted-foreground/80 text-xs">
                                           Created {createdAt}
                                         </p>
                                       ) : null}
@@ -285,20 +285,20 @@ export const MyDesign = ({
                                       loading="lazy"
                                     />
                                   ) : (
-                                    <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-md bg-gray-100 text-xs text-gray-500">
+                                    <div className="bg-muted text-muted-foreground flex h-16 w-24 shrink-0 items-center justify-center rounded-md text-xs">
                                       No preview
                                     </div>
                                   )}
                                   <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
                                     <div className="min-w-0">
-                                      <p className="truncate text-sm font-semibold text-gray-800">
+                                      <p className="text-foreground truncate text-sm font-semibold">
                                         {design.designName || "Untitled design"}
                                       </p>
-                                      <p className="text-xs text-gray-500">
+                                      <p className="text-muted-foreground text-xs">
                                         Code: {design.designCode}
                                       </p>
                                       {createdAt ? (
-                                        <p className="text-xs text-gray-400">
+                                        <p className="text-muted-foreground/80 text-xs">
                                           Created {createdAt}
                                         </p>
                                       ) : null}
@@ -327,10 +327,10 @@ export const MyDesign = ({
                     <h3 className="mb-3 text-base font-semibold">
                       Your Designs
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-muted-foreground text-sm">
                       Log in to keep your designs saved and easy to find.
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-muted-foreground text-sm">
                       No login? No problem - just use Share to create a design
                       code.
                     </p>
@@ -342,7 +342,7 @@ export const MyDesign = ({
                   <h3 className="mb-3 text-base font-semibold">Design Code</h3>
                   <label
                     htmlFor="design-code-input"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-foreground text-sm font-medium"
                   >
                     Have a design code?
                   </label>
@@ -369,7 +369,7 @@ export const MyDesign = ({
                       {isFetching ? "Opening..." : "Open"}
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-muted-foreground text-xs">
                     A 5-6 character code using letters and numbers (e.g. SK9CP8)
                   </p>
                 </div>
@@ -379,13 +379,13 @@ export const MyDesign = ({
 
           {/* Footer */}
 
-          <div className="border-t p-4">
+          <div className="border-border border-t p-4">
             {navUser ? (
               <NavUserMenu user={navUser} />
             ) : (
               <button
                 onClick={handleLogin}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-3 text-white transition-opacity hover:opacity-90"
+                className="bg-primary text-primary-foreground flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 transition-opacity hover:opacity-90"
               >
                 <LogIn size={20} />
                 <span className="font-medium">Login</span>

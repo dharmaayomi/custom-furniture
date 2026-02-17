@@ -86,10 +86,10 @@ export const CustomizeRoomPanel = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed top-0 right-0 z-57 h-full w-80 overflow-y-auto bg-white p-6 shadow-md">
+    <div className="bg-background text-foreground border-border fixed top-0 right-0 z-57 h-full w-80 overflow-y-auto border-l p-6 shadow-md">
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-xl font-bold">Customize Room</h2>
-        <button onClick={onClose}>
+        <button onClick={onClose} className="hover:bg-muted rounded-md p-1">
           <X />
         </button>
       </div>
@@ -97,7 +97,7 @@ export const CustomizeRoomPanel = ({
       <div className="space-y-6">
         {/* DIMENSIONS */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-gray-700">Dimensions</h3>
+          <h3 className="text-foreground font-semibold">Dimensions</h3>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
@@ -122,7 +122,7 @@ export const CustomizeRoomPanel = ({
               max={10}
               step={0.1}
               onValueChange={([val]) => updateRoomConfig({ width: val })}
-              color="bg-white"
+              color="bg-primary"
             />
           </div>
 
@@ -181,7 +181,7 @@ export const CustomizeRoomPanel = ({
 
         {/* WALL COLOR */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-gray-700">Wall Color</h3>
+          <h3 className="text-foreground font-semibold">Wall Color</h3>
           <div className="flex gap-2">
             <Input
               type="color"
@@ -190,7 +190,9 @@ export const CustomizeRoomPanel = ({
               className="h-12 w-12 cursor-pointer p-1"
             />
             <div className="flex flex-col justify-center">
-              <span className="text-sm text-gray-500">Selected Color</span>
+              <span className="text-muted-foreground text-sm">
+                Selected Color
+              </span>
               <span className="font-mono text-sm">{roomConfig.wallColor}</span>
             </div>
           </div>
@@ -198,13 +200,13 @@ export const CustomizeRoomPanel = ({
 
         {/* FLOOR TEXTURE */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-gray-700">Floor Material</h3>
+          <h3 className="text-foreground font-semibold">Floor Material</h3>
           <div className="grid grid-cols-2 gap-2">
             {FLOOR_TEXTURES.map((tex) => (
               <div
                 key={tex.path}
                 onClick={() => updateRoomConfig({ floorTexture: tex.path })}
-                className={`cursor-pointer overflow-hidden rounded-lg border-2 p-1 ${roomConfig.floorTexture === tex.path ? "border-blue-500" : "border-transparent"}`}
+                className={`cursor-pointer overflow-hidden rounded-lg border-2 p-1 ${roomConfig.floorTexture === tex.path ? "border-ring" : "border-transparent"}`}
               >
                 <div
                   className="h-16 w-full rounded bg-cover bg-center"

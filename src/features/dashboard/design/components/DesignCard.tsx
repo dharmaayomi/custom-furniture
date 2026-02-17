@@ -87,7 +87,7 @@ export default function DesignCard({
                 loading="lazy"
               />
             ) : (
-              <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-md bg-gray-100 text-xs text-gray-500">
+              <div className="bg-muted text-muted-foreground flex h-16 w-24 shrink-0 items-center justify-center rounded-md text-xs">
                 No preview
               </div>
             )}
@@ -146,7 +146,7 @@ export default function DesignCard({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+    <div className="bg-card overflow-hidden rounded-lg border shadow-sm">
       {previewSrc ? (
         <img
           src={previewSrc}
@@ -155,17 +155,17 @@ export default function DesignCard({
           loading="lazy"
         />
       ) : (
-        <div className="flex aspect-4/3 items-center justify-center bg-gray-100 text-xs text-gray-500">
+        <div className="bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center text-xs">
           Preview unavailable
         </div>
       )}
 
       <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="min-w-0 space-y-1">
-          <p className="truncate text-sm font-semibold text-gray-800">
+          <p className="text-foreground truncate text-sm font-semibold">
             {title}
           </p>
-          <div className="flex items-center gap-1 text-xs text-gray-500">
+          <div className="text-muted-foreground flex items-center gap-1 text-xs">
             <span>Code: {design.designCode}</span>
             <Button
               type="button"
@@ -180,7 +180,7 @@ export default function DesignCard({
             </Button>
           </div>
           {createdAt ? (
-            <p className="text-xs text-gray-400">Created {createdAt}</p>
+            <p className="text-muted-foreground/80 text-xs">Created {createdAt}</p>
           ) : null}
         </div>
 
