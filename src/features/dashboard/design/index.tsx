@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import PaginationSection from "@/components/PaginationSection";
 import {
   Dialog,
   DialogContent,
@@ -22,14 +23,20 @@ import DesignCardSkeleton from "./components/DesignCardSkeleton";
 
 export const DesignPage = () => {
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+  const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<SavedDesign | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const perPage = 6;
   const { userId } = useUser();
-  const { data, isLoading, isError } = useGetSavedDesign(userId);
-  const designsPayload = (data as any)?.data ?? data;
-  const designs = Array.isArray(designsPayload)
-    ? (designsPayload as SavedDesign[])
-    : [];
+  const { data, isLoading, isError } = useGetSavedDesign(userId, {
+    page,
+    perPage,
+    sortBy: "createdAt",
+    orderBy: "desc",
+  });
+  const designs = data?.data ?? [];
+  const meta = data?.meta;
+  const totalDesigns = meta?.total ?? designs.length;
   const { mutateAsync: deleteDesign, isPending: isDeleting } = useDeleteDesign(
     userId,
     deleteTarget?.designCode,
@@ -70,7 +77,11 @@ export const DesignPage = () => {
               Manage and review your saved room designs.
             </p>
           </div>
-          <Link href="/custom?new=1" className="w-full sm:w-auto">
+          <Link
+            href="/custom?new=1"
+            target="_blank"
+            className="w-full sm:w-auto"
+          >
             <Button className="w-full gap-2 sm:w-auto">
               <Plus className="h-4 w-4" />
               Create New Design
@@ -122,7 +133,7 @@ export const DesignPage = () => {
         <div className="mx-auto px-1 py-3 sm:px-4 sm:py-4 lg:px-2 lg:py-2">
           <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-muted-foreground text-sm">
-              {designs.length} design{designs.length !== 1 ? "s" : ""}
+              {totalDesigns} design{totalDesigns !== 1 ? "s" : ""}
             </p>
             <div className="border-border bg-muted flex w-full gap-2 rounded-lg border p-1 sm:w-auto">
               <Button
@@ -180,7 +191,9 @@ export const DesignPage = () => {
                 Start creating to see your saved designs here.
               </p>
               <Link href="/custom?new=1" className="w-full sm:w-auto">
-                <Button className="w-full sm:w-auto">Create First Design</Button>
+                <Button className="w-full sm:w-auto">
+                  Create First Design
+                </Button>
               </Link>
             </div>
           ) : (
@@ -201,6 +214,19 @@ export const DesignPage = () => {
               ))}
             </div>
           )}
+
+          {meta ? (
+            <div className="mt-6">
+              <PaginationSection
+                page={meta.page}
+                perPage={meta.perPage}
+                total={meta.total}
+                hasNext={meta.hasNext}
+                hasPrevious={meta.hasPrevious}
+                onChangePage={setPage}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

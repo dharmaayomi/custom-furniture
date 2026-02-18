@@ -100,3 +100,23 @@ export type GetProductsResponse = PageableResponse<ProductBase>;
 export type UpdateProductInput = Partial<
   Pick<ProductBase, "isActive" | "isCustomizable">
 >;
+
+export type ProductFormData = {
+  productName: string;
+  sku: string;
+  productFileName: string;
+  description: string;
+  basePrice: string;
+  width: string;
+  height: string;
+  depth: string;
+  weight: string;
+  images: string[];
+  isActive: boolean;
+  isCustomizable: boolean;
+};
+
+export type UploadedProductImage = {
+  file: File;
+  previewUrl: string;
+};

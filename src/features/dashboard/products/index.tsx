@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/providers/UserProvider";
 
 type ComponentItem = {
   id: number;
@@ -124,6 +126,7 @@ const Preview = ({
 };
 
 export const ProductsPage = () => {
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [page, setPage] = useState(1);
   const [pendingToggle, setPendingToggle] = useState<{
@@ -133,7 +136,9 @@ export const ProductsPage = () => {
     nextValue: boolean;
   } | null>(null);
   const perPage = 6;
-  const { data, isLoading, isError, isFetching } = useGetProducts({
+  const { userId } = useUser();
+
+  const { data, isLoading, isError, isFetching } = useGetProducts(userId, {
     page,
     perPage,
     sortBy: "createdAt",
@@ -193,7 +198,10 @@ export const ProductsPage = () => {
               Manage product catalog, components, and materials.
             </p>
           </div>
-          <Button className="w-full gap-2 sm:w-auto">
+          <Button
+            className="w-full gap-2 sm:w-auto"
+            onClick={() => router.push("/dashboard/products/add")}
+          >
             <Plus className="h-4 w-4" />
             Add Product
           </Button>
@@ -203,9 +211,7 @@ export const ProductsPage = () => {
       <div className="bg-muted/50 min-h-screen rounded-md p-3 sm:p-4">
         <div className="mx-auto px-1 py-3 sm:px-4 sm:py-4 lg:px-2 lg:py-2">
           <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-muted-foreground text-sm">
-              {totalItems} items
-            </p>
+            <p className="text-muted-foreground text-sm">{totalItems} items</p>
             <div className="border-border bg-muted flex w-full gap-2 rounded-lg border p-1 sm:w-auto">
               <Button
                 variant={viewMode === "grid" ? "default" : "ghost"}
@@ -242,39 +248,47 @@ export const ProductsPage = () => {
             </TabsList>
 
             <TabsContent value="base-products">
-              <div
-                className={
-                  viewMode === "grid"
-                    ? "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
-                    : "space-y-4"
-                }
-              >
-                {isLoading ? (
-                  Array.from({ length: perPage }).map((_, index) => (
+              {isLoading ? (
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                      : "space-y-4"
+                  }
+                >
+                  {Array.from({ length: perPage }).map((_, index) => (
                     <BaseProductCardSkeleton key={index} viewMode={viewMode} />
-                  ))
-                ) : isError ? (
-                  <div className="border-border bg-card mx-auto flex w-full max-w-xl flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12 lg:max-w-full">
-                    <PackageSearch className="text-muted-foreground/40 mb-3 h-12 w-12" />
-                    <h3 className="text-foreground mb-2 text-lg font-medium">
-                      Failed to load products
-                    </h3>
-                    <p className="text-muted-foreground text-sm">
-                      Please try again later.
-                    </p>
-                  </div>
-                ) : baseProducts.length === 0 ? (
-                  <div className="border-border bg-card mx-auto flex w-full max-w-xl flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12 lg:max-w-full">
-                    <PackageSearch className="text-muted-foreground/40 mb-3 h-12 w-12" />
-                    <h3 className="text-foreground mb-2 text-lg font-medium">
-                      No base products
-                    </h3>
-                    <p className="text-muted-foreground text-sm">
-                      Add your first base product to get started.
-                    </p>
-                  </div>
-                ) : (
-                  baseProducts.map((item) =>
+                  ))}
+                </div>
+              ) : isError ? (
+                <div className="border-border bg-card flex w-full flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12">
+                  <PackageSearch className="text-muted-foreground/40 mb-3 h-12 w-12" />
+                  <h3 className="text-foreground mb-2 text-lg font-medium">
+                    Failed to load products
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    Please try again later.
+                  </p>
+                </div>
+              ) : baseProducts.length === 0 ? (
+                <div className="border-border bg-card flex w-full flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12">
+                  <PackageSearch className="text-muted-foreground/40 mb-3 h-12 w-12" />
+                  <h3 className="text-foreground mb-2 text-lg font-medium">
+                    No base products
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    Add your first base product to get started.
+                  </p>
+                </div>
+              ) : (
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                      : "space-y-4"
+                  }
+                >
+                  {baseProducts.map((item) => (
                     <BaseProductCard
                       key={item.id}
                       item={item}
@@ -283,10 +297,10 @@ export const ProductsPage = () => {
                       onToggle={(field, nextValue) =>
                         openToggleConfirm(item, field, nextValue)
                       }
-                    />,
-                  )
-                )}
-              </div>
+                    />
+                  ))}
+                </div>
+              )}
               {baseMeta ? (
                 <div className="mt-4 flex items-center justify-between">
                   <p className="text-muted-foreground text-xs">
@@ -344,7 +358,9 @@ export const ProductsPage = () => {
                           Price: {item.price}
                         </p>
                         <div className="mt-3">
-                          <Badge variant={item.isActive ? "default" : "secondary"}>
+                          <Badge
+                            variant={item.isActive ? "default" : "secondary"}
+                          >
                             {item.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </div>
@@ -356,9 +372,7 @@ export const ProductsPage = () => {
                       className="bg-card rounded-lg border p-4 shadow-sm"
                     >
                       <div className="flex items-start gap-3">
-                        <Preview
-                          list
-                        />
+                        <Preview list />
                         <div className="min-w-0 flex-1">
                           <div className="mb-1 flex items-center gap-2">
                             <Layers className="text-muted-foreground h-4 w-4" />
@@ -373,7 +387,9 @@ export const ProductsPage = () => {
                             Price: {item.price}
                           </p>
                         </div>
-                        <Badge variant={item.isActive ? "default" : "secondary"}>
+                        <Badge
+                          variant={item.isActive ? "default" : "secondary"}
+                        >
                           {item.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </div>
@@ -409,7 +425,9 @@ export const ProductsPage = () => {
                           Finish: {item.finish}
                         </p>
                         <div className="mt-3">
-                          <Badge variant={item.isActive ? "default" : "secondary"}>
+                          <Badge
+                            variant={item.isActive ? "default" : "secondary"}
+                          >
                             {item.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </div>
@@ -421,9 +439,7 @@ export const ProductsPage = () => {
                       className="bg-card rounded-lg border p-4 shadow-sm"
                     >
                       <div className="flex items-start gap-3">
-                        <Preview
-                          list
-                        />
+                        <Preview list />
                         <div className="min-w-0 flex-1">
                           <div className="mb-1 flex items-center gap-2">
                             <Palette className="text-muted-foreground h-4 w-4" />
@@ -435,7 +451,9 @@ export const ProductsPage = () => {
                             Finish: {item.finish}
                           </p>
                         </div>
-                        <Badge variant={item.isActive ? "default" : "secondary"}>
+                        <Badge
+                          variant={item.isActive ? "default" : "secondary"}
+                        >
                           {item.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </div>

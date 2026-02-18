@@ -45,8 +45,34 @@ const useCreateNewAddress = (
       return data as Address;
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({
+      queryClient.setQueryData(
+        ["user-addresses", userId],
+        (
+          previous:
+            | Address[]
+            | ({ data: Address[] } & Record<string, unknown>)
+            | undefined,
+        ) => {
+          if (Array.isArray(previous)) {
+            return [result, ...previous.filter((item) => item.id !== result.id)];
+          }
+
+          if (previous && Array.isArray(previous.data)) {
+            return {
+              ...previous,
+              data: [
+                result,
+                ...previous.data.filter((item) => item.id !== result.id),
+              ],
+            };
+          }
+
+          return [result];
+        },
+      );
+      queryClient.refetchQueries({
         queryKey: ["user-addresses", userId],
+        type: "all",
       });
       queryClient.setQueryData(["user-address", userId, result.id], result);
       options?.onSuccess?.(result);

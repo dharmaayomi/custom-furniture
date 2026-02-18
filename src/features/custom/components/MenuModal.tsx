@@ -126,7 +126,7 @@ export const MenuModal = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="sm:block"
+                className="sm:inline-flex"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 aria-label="Toggle theme"
                 title="Toggle theme"
