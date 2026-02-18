@@ -62,9 +62,16 @@ const HeaderDashboard = () => {
   const filteredSegments = segments.filter((segment, index) => {
     const isNumeric = /^\d+$/.test(segment);
     const prevSegment = index > 0 ? segments[index - 1] : null;
+    const nextSegment = index < segments.length - 1 ? segments[index + 1] : null;
+
     if (isNumeric && prevSegment === "address") {
       return false;
     }
+
+    if (prevSegment === "products" && nextSegment === "edit") {
+      return false;
+    }
+
     return true;
   });
   const { navUser } = useUser();
@@ -229,3 +236,4 @@ const HeaderDashboard = () => {
 };
 
 export default HeaderDashboard;
+

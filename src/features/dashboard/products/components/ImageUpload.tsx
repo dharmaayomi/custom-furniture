@@ -76,7 +76,7 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
           aria-label="Upload images"
         />
 
-        <div className="flex flex-col items-center justify-center gap-3 px-4 py-8">
+        <div className="flex flex-col items-center justify-center gap-3 px-4 py-6 sm:py-8">
           <Upload className="text-muted-foreground h-8 w-8" />
           <div className="text-center">
             <p className="text-foreground font-medium">
@@ -89,7 +89,7 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
             variant="outline"
             size="sm"
             onClick={() => fileInputRef.current?.click()}
-            className="border-input text-foreground"
+            className="border-input text-foreground w-full sm:w-auto"
           >
             Select Images
           </Button>
@@ -101,21 +101,21 @@ export function ImageUpload({ onImagesChange, images }: ImageUploadProps) {
           <p className="text-foreground mb-2 text-sm font-medium">
             Uploaded Images ({images.length})
           </p>
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-3">
             {images.map((image, index) => (
               <div
                 key={`${image.file.name}-${index}`}
-                className="group border-border bg-muted relative overflow-hidden rounded-lg border"
+                className="group border-border bg-muted relative aspect-square overflow-hidden rounded-lg border"
               >
                 <img
                   src={image.previewUrl}
                   alt={`Product ${index + 1}`}
-                  className="h-32 w-full object-cover"
+                  className="h-full w-full object-cover"
                 />
                 <button
                   type="button"
                   onClick={() => removeImage(index)}
-                  className="absolute top-1 right-1 hidden rounded-md bg-red-500/90 p-1 text-white transition-all group-hover:block hover:bg-red-600"
+                  className="absolute top-1 right-1 rounded-md bg-red-500/90 p-1 text-white transition-all hover:bg-red-600 sm:opacity-0 sm:group-hover:opacity-100"
                   aria-label="Remove image"
                 >
                   <X className="h-4 w-4" />

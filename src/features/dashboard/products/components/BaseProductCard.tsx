@@ -1,10 +1,11 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { formatPrice } from "@/lib/price";
 import { ProductBase } from "@/types/product";
-import { Box } from "lucide-react";
+import { Box, Edit2, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type BaseProductCardProps = {
@@ -15,6 +16,8 @@ type BaseProductCardProps = {
     field: "isActive" | "isCustomizable",
     nextValue: boolean,
   ) => void;
+  onEdit: () => void;
+  onDelete: () => void;
 };
 
 const ProductPreview = ({ src, alt, list }: { src?: string; alt: string; list?: boolean }) => {
@@ -25,7 +28,7 @@ const ProductPreview = ({ src, alt, list }: { src?: string; alt: string; list?: 
   }, [src]);
 
   const baseClass = list
-    ? "bg-muted text-muted-foreground flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs"
+    ? "bg-muted text-muted-foreground flex h-20 w-full shrink-0 items-center justify-center overflow-hidden rounded-md text-xs sm:h-16 sm:w-24"
     : "bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center overflow-hidden text-xs";
 
   if (src && !hasError) {
@@ -50,6 +53,8 @@ export const BaseProductCard = ({
   viewMode,
   isUpdatingProduct,
   onToggle,
+  onEdit,
+  onDelete,
 }: BaseProductCardProps) => {
   if (viewMode === "grid") {
     return (
@@ -92,6 +97,27 @@ export const BaseProductCard = ({
               />
             </div>
           </div>
+          <div className="border-border mt-4 flex gap-2 border-t pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onEdit}
+              className="flex-1 bg-transparent"
+            >
+              <Edit2 className="h-4 w-4" />
+              Edit
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onDelete}
+              className="text-destructive hover:bg-destructive bg-transparent hover:text-white"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -99,7 +125,7 @@ export const BaseProductCard = ({
 
   return (
     <div className="bg-card rounded-lg border p-4 shadow-sm">
-      <div className="flex items-start gap-3">
+      <div className="flex flex-col items-start gap-3 sm:flex-row">
         <ProductPreview list src={item.images?.[0]} alt={item.productName} />
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center gap-2">
@@ -137,6 +163,27 @@ export const BaseProductCard = ({
                 onCheckedChange={(checked) => onToggle("isCustomizable", checked)}
               />
             </div>
+          </div>
+          <div className="mt-3 flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onEdit}
+              className="bg-transparent sm:w-auto"
+            >
+              <Edit2 className="h-4 w-4" />
+              Edit
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onDelete}
+              className="text-destructive hover:bg-destructive bg-transparent hover:text-white sm:w-auto"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>

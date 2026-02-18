@@ -34,6 +34,17 @@ export const formatPrice = (price: number): string => {
   }).format(price);
 };
 
+export const formatIdrAmount = (
+  amount: number,
+  minimumFractionDigits = 2,
+  maximumFractionDigits = 2,
+): string => {
+  return new Intl.NumberFormat("id-ID", {
+    minimumFractionDigits,
+    maximumFractionDigits,
+  }).format(amount);
+};
+
 export const extractModelNameFromId = (uniqueId: string): string => {
   const parts = uniqueId.split("_");
   let base = uniqueId;

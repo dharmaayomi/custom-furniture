@@ -1,7 +1,7 @@
 import { PageableResponse } from "./pagination";
 
 export type ProductBase = {
-  id: number;
+  id: string;
   productName: string;
   sku: string;
   productUrl: string;
@@ -19,7 +19,7 @@ export type ProductBase = {
 };
 
 export type ProductComponent = {
-  id: number;
+  id: string;
   componentName: string;
   componentUrl: string;
   category: ComponentCategory;
@@ -40,7 +40,7 @@ enum ComponentCategory {
 }
 
 export type ProductMaterial = {
-  id: number;
+  id: string;
   materialName: string;
   materialUrl: string;
   materialDesc: string;

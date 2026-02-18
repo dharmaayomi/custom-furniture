@@ -177,11 +177,11 @@ export function CreateProductForm() {
   };
 
   return (
-    <div className="grid gap-8 md:grid-cols-3">
+    <div className="grid gap-6 md:grid-cols-3 md:gap-8">
       <div className="md:col-span-2">
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8">
           <div>
-            <h1 className="text-foreground text-3xl font-bold">
+            <h1 className="text-foreground text-2xl font-bold md:text-3xl">
               Create New Product
             </h1>
             <p className="text-muted-foreground mt-2 text-sm">
@@ -190,8 +190,8 @@ export function CreateProductForm() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <Card className="border-border bg-card border p-6">
+          <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+            <Card className="border-border bg-card border p-4 sm:p-6">
               <h2 className="text-foreground mb-4 text-lg font-semibold">
                 Product Images *
               </h2>
@@ -212,12 +212,12 @@ export function CreateProductForm() {
               </p>
             </Card>
 
-            <Card className="border-border bg-card border p-6">
+            <Card className="border-border bg-card border p-4 sm:p-6">
               <h2 className="text-foreground mb-4 text-lg font-semibold">
                 Basic Information
               </h2>
               <div className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="productName" className="text-foreground">
                       Product Name *
@@ -286,7 +286,7 @@ export function CreateProductForm() {
               </div>
             </Card>
 
-            <Card className="border-border bg-card border p-6">
+            <Card className="border-border bg-card border p-4 sm:p-6">
               <h2 className="text-foreground mb-4 text-lg font-semibold">
                 Pricing
               </h2>
@@ -309,12 +309,12 @@ export function CreateProductForm() {
               </div>
             </Card>
 
-            <Card className="border-border bg-card border p-6">
+            <Card className="border-border bg-card border p-4 sm:p-6">
               <h2 className="text-foreground mb-4 text-lg font-semibold">
                 Dimensions & Weight
               </h2>
               <div className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div>
                     <Label htmlFor="width" className="text-foreground">
                       Width (cm) *
@@ -384,7 +384,7 @@ export function CreateProductForm() {
               </div>
             </Card>
 
-            <Card className="border-border bg-card border p-6">
+            <Card className="border-border bg-card border p-4 sm:p-6">
               <h2 className="text-foreground mb-4 text-lg font-semibold">
                 Options
               </h2>
@@ -422,18 +422,18 @@ export function CreateProductForm() {
               </div>
             </Card>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <Button
                 type="submit"
                 disabled={isPending}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
               >
                 {isPending ? "Creating..." : "Create Product"}
               </Button>
               <Button
                 type="reset"
                 variant="outline"
-                className="border-input text-foreground"
+                className="border-input text-foreground w-full sm:w-auto"
                 onClick={resetForm}
               >
                 Reset

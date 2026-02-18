@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
+import { formatIdrAmount } from "@/lib/price";
 import { ProductFormData } from "@/types/product";
 import { Check, X } from "lucide-react";
 
@@ -9,6 +10,11 @@ type FormPreviewProps = {
 };
 
 export function FormPreview({ formData }: FormPreviewProps) {
+  const parsedBasePrice = Number(formData.basePrice);
+  const formattedBasePrice = Number.isFinite(parsedBasePrice)
+    ? formatIdrAmount(parsedBasePrice)
+    : null;
+
   const completeness = {
     productName: !!formData.productName,
     sku: !!formData.sku,
@@ -28,7 +34,7 @@ export function FormPreview({ formData }: FormPreviewProps) {
   );
 
   return (
-    <div className="sticky top-4 space-y-4">
+    <div className="space-y-4 md:sticky md:top-4">
       <div>
         <h2 className="text-foreground text-lg font-semibold">
           Preview & Progress
@@ -62,7 +68,7 @@ export function FormPreview({ formData }: FormPreviewProps) {
           <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
             Required Fields
           </p>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+          <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
             {[
               { key: "productName", label: "Product Name" },
               { key: "sku", label: "SKU" },
@@ -118,9 +124,9 @@ export function FormPreview({ formData }: FormPreviewProps) {
               </h3>
             </div>
 
-            {formData.basePrice && (
-              <p className="text-primary text-lg font-bold">
-                Rp. {parseFloat(formData.basePrice || "0").toFixed(2)}
+            {formData.basePrice && formattedBasePrice && (
+              <p className="text-primary break-words text-lg font-bold">
+                Rp {formattedBasePrice}
               </p>
             )}
 
@@ -190,7 +196,7 @@ export function FormPreview({ formData }: FormPreviewProps) {
           <p className="text-muted-foreground mb-2 text-xs font-semibold">
             Images ({formData.images.length})
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {formData.images.map((image, idx) => (
               <div
                 key={idx}

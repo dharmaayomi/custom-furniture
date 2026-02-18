@@ -130,11 +130,16 @@ export const ProductsPage = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [page, setPage] = useState(1);
   const [pendingToggle, setPendingToggle] = useState<{
-    productId: number;
+    productId: string;
     productName: string;
     field: "isActive" | "isCustomizable";
     nextValue: boolean;
   } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    productName: string;
+  } | null>(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const perPage = 6;
   const { userId } = useUser();
 
@@ -184,6 +189,23 @@ export const ProductsPage = () => {
           ?.data?.message ?? "Failed to update product.";
       toast.error(message);
     }
+  };
+
+  const handleDeleteClick = (product: ProductBase) => {
+    setDeleteTarget({ id: product.id, productName: product.productName });
+    setIsDeleteOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    console.log("[ProductDelete] dummy delete", {
+      productId: deleteTarget.id,
+      productName: deleteTarget.productName,
+    });
+    toast.success("Delete action logged in console.");
+    setIsDeleteOpen(false);
+    setDeleteTarget(null);
   };
 
   return (
@@ -297,6 +319,10 @@ export const ProductsPage = () => {
                       onToggle={(field, nextValue) =>
                         openToggleConfirm(item, field, nextValue)
                       }
+                      onEdit={() =>
+                        router.push(`/dashboard/products/${item.id}/edit`)
+                      }
+                      onDelete={() => handleDeleteClick(item)}
                     />
                   ))}
                 </div>
@@ -491,6 +517,43 @@ export const ProductsPage = () => {
             </Button>
             <Button onClick={handleConfirmToggle} disabled={isUpdatingProduct}>
               {isUpdatingProduct ? "Updating..." : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          setIsDeleteOpen(open);
+          if (!open) {
+            setDeleteTarget(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete product?</DialogTitle>
+            <DialogDescription>
+              {deleteTarget ? (
+                <>
+                  You are about to delete{" "}
+                  <span className="text-foreground font-semibold">
+                    {deleteTarget.productName}
+                  </span>
+                  . This is a dummy action for now.
+                </>
+              ) : (
+                "Confirm delete."
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              Delete Product
             </Button>
           </DialogFooter>
         </DialogContent>

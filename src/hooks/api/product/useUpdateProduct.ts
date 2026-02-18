@@ -3,7 +3,7 @@ import { UpdateProductInput } from "@/types/product";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 type UpdateProductParams = {
-  productId: number;
+  productId: string;
   payload: UpdateProductInput;
 };
 
