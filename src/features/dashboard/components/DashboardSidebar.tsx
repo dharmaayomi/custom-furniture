@@ -149,12 +149,7 @@ export function DashboardSidebar({
               <div className="flex justify-center gap-2 md:justify-start">
                 <Link href="/" className="flex items-center gap-2 font-medium">
                   <div className="text-primary-foreground flex items-center justify-center">
-                    <Image
-                      src={logoSrc}
-                      alt="Logo"
-                      width={180}
-                      height={300}
-                    />
+                    <Image src={logoSrc} alt="Logo" width={180} height={56} />
                   </div>
                 </Link>
               </div>
@@ -170,9 +165,7 @@ export function DashboardSidebar({
         />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
-        {/* {navUser ? <NavUser user={navUser} /> : null} */}
-      </SidebarFooter>
+      <SidebarFooter></SidebarFooter>
     </Sidebar>
   );
 }

@@ -63,53 +63,14 @@ export function FormPreview({ formData }: FormPreviewProps) {
         </div>
       </Card>
 
-      <Card className="border-border bg-card border p-4">
-        <div className="space-y-3">
-          <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-            Required Fields
-          </p>
-          <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
-            {[
-              { key: "productName", label: "Product Name" },
-              { key: "sku", label: "SKU" },
-              { key: "productFile", label: "Product File" },
-              { key: "description", label: "Description" },
-              { key: "basePrice", label: "Price" },
-              { key: "width", label: "Width" },
-              { key: "height", label: "Height" },
-              { key: "depth", label: "Depth" },
-              { key: "weight", label: "Weight" },
-              { key: "image", label: "Image" },
-            ].map(({ key, label }) => (
-              <div key={key} className="flex items-center gap-2">
-                {completeness[key as keyof typeof completeness] ? (
-                  <Check className="h-4 w-4 text-green-600" />
-                ) : (
-                  <X className="text-muted-foreground h-4 w-4" />
-                )}
-                <span
-                  className={`text-xs ${
-                    completeness[key as keyof typeof completeness]
-                      ? "text-foreground"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
-
       {completeness.productName && (
         <Card className="border-border bg-card overflow-hidden border">
           {formData.images.length > 0 && (
-            <div className="bg-muted relative h-40 w-full">
+            <div className="relative h-40 w-full px-4">
               <img
                 src={formData.images[0]}
                 alt={formData.productName}
-                className="h-full w-full object-cover"
+                className="h-full w-full rounded-lg object-cover"
               />
             </div>
           )}
@@ -125,7 +86,7 @@ export function FormPreview({ formData }: FormPreviewProps) {
             </div>
 
             {formData.basePrice && formattedBasePrice && (
-              <p className="text-primary break-words text-lg font-bold">
+              <p className="text-primary text-lg font-bold wrap-break-word">
                 Rp {formattedBasePrice}
               </p>
             )}

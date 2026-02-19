@@ -86,6 +86,8 @@ export type GetProductsQuery = {
   perPage?: number;
   sortBy?: ProductSortBy;
   orderBy?: ProductOrderBy;
+  minPrice?: number;
+  maxPrice?: number;
   isActive?: boolean;
   isCustomizable?: boolean;
   sku?: string;

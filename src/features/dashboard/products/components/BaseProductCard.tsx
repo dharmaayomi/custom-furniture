@@ -22,7 +22,7 @@ const ProductPreview = ({ src, alt, list }: { src?: string; alt: string; list?: 
   }, [src]);
 
   const baseClass = list
-    ? "bg-muted text-muted-foreground flex h-20 w-full shrink-0 items-center justify-center overflow-hidden rounded-md text-xs sm:h-16 sm:w-24"
+    ? "bg-muted text-muted-foreground flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs"
     : "bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center overflow-hidden text-xs";
 
   if (src && !hasError) {
@@ -52,18 +52,18 @@ export const BaseProductCard = ({
     return (
       <div className="bg-card overflow-hidden rounded-lg border shadow-sm">
         <ProductPreview src={item.images?.[0]} alt={item.productName} />
-        <div className="p-4">
+        <div className="p-3">
           <div className="mb-1 flex items-center gap-2">
             <Box className="text-muted-foreground h-4 w-4" />
-            <p className="text-foreground truncate text-sm font-semibold sm:text-base">
+            <p className="text-foreground truncate text-sm font-semibold">
               {item.productName}
             </p>
           </div>
-          <p className="text-muted-foreground text-xs sm:text-sm">SKU: {item.sku}</p>
-          <p className="text-muted-foreground text-xs sm:text-sm">
+          <p className="text-muted-foreground text-xs">SKU: {item.sku}</p>
+          <p className="text-muted-foreground text-xs">
             Base Price: {formatPrice(item.basePrice)}
           </p>
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-2 flex items-center gap-2">
             <Badge variant={item.isActive ? "default" : "secondary"}>
               {item.isActive ? "Active" : "Inactive"}
             </Badge>
@@ -71,7 +71,7 @@ export const BaseProductCard = ({
               {item.isCustomizable ? "Customizable" : "Fixed"}
             </Badge>
           </div>
-          <div className="border-border mt-4 flex gap-2 border-t pt-3">
+          <div className="border-border mt-3 flex gap-2 border-t pt-2">
             <Button
               type="button"
               variant="outline"
@@ -98,18 +98,18 @@ export const BaseProductCard = ({
   }
 
   return (
-    <div className="bg-card rounded-lg border p-4 shadow-sm">
-      <div className="flex flex-col items-start gap-3 sm:flex-row">
+    <div className="bg-card rounded-lg border p-3 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <ProductPreview list src={item.images?.[0]} alt={item.productName} />
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center gap-2">
             <Box className="text-muted-foreground h-4 w-4" />
-            <p className="text-foreground truncate text-sm font-semibold sm:text-base">
+            <p className="text-foreground truncate text-sm font-semibold">
               {item.productName}
             </p>
           </div>
-          <p className="text-muted-foreground text-xs sm:text-sm">SKU: {item.sku}</p>
-          <p className="text-muted-foreground text-xs sm:text-sm">
+          <p className="text-muted-foreground text-xs">SKU: {item.sku}</p>
+          <p className="text-muted-foreground text-xs">
             Base Price: {formatPrice(item.basePrice)}
           </p>
           <div className="mt-2 flex items-center gap-2">
@@ -120,27 +120,27 @@ export const BaseProductCard = ({
               {item.isCustomizable ? "Customizable" : "Fixed"}
             </Badge>
           </div>
-          <div className="mt-3 flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onEdit}
-              className="bg-transparent sm:w-auto"
-            >
-              <Edit2 className="h-4 w-4" />
-              Edit
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onDelete}
-              className="text-destructive hover:bg-destructive bg-transparent hover:text-white sm:w-auto"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+        </div>
+        <div className="flex w-full gap-2 sm:w-auto sm:shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onEdit}
+            className="flex-1 bg-transparent sm:flex-none"
+          >
+            <Edit2 className="h-4 w-4" />
+            Edit
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onDelete}
+            className="text-destructive hover:bg-destructive bg-transparent hover:text-white sm:flex-none"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import ReactQueryProvider from "@/providers/ReactQueryProviders";
 import { UserProvider } from "@/providers/UserProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 export const metadata: Metadata = {
   title: "Custom Furniture",
@@ -29,11 +30,13 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <SessionProvider>
-            <ReactQueryProvider>
-              <UserProvider>{children}</UserProvider>
-            </ReactQueryProvider>
-          </SessionProvider>
+          <NuqsAdapter>
+            <SessionProvider>
+              <ReactQueryProvider>
+                <UserProvider>{children}</UserProvider>
+              </ReactQueryProvider>
+            </SessionProvider>
+          </NuqsAdapter>
           <Toaster position="top-right" duration={2000} />
         </ThemeProvider>
       </body>
