@@ -2,7 +2,6 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { formatPrice } from "@/lib/price";
 import { ProductBase } from "@/types/product";
 import { Box, Edit2, Trash2 } from "lucide-react";
@@ -11,11 +10,6 @@ import { useEffect, useState } from "react";
 type BaseProductCardProps = {
   item: ProductBase;
   viewMode: "grid" | "list";
-  isUpdatingProduct: boolean;
-  onToggle: (
-    field: "isActive" | "isCustomizable",
-    nextValue: boolean,
-  ) => void;
   onEdit: () => void;
   onDelete: () => void;
 };
@@ -51,8 +45,6 @@ const ProductPreview = ({ src, alt, list }: { src?: string; alt: string; list?: 
 export const BaseProductCard = ({
   item,
   viewMode,
-  isUpdatingProduct,
-  onToggle,
   onEdit,
   onDelete,
 }: BaseProductCardProps) => {
@@ -78,24 +70,6 @@ export const BaseProductCard = ({
             <Badge variant="outline">
               {item.isCustomizable ? "Customizable" : "Fixed"}
             </Badge>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-xs">Active</span>
-              <Switch
-                checked={item.isActive}
-                disabled={isUpdatingProduct}
-                onCheckedChange={(checked) => onToggle("isActive", checked)}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-xs">Customizable</span>
-              <Switch
-                checked={item.isCustomizable}
-                disabled={isUpdatingProduct}
-                onCheckedChange={(checked) => onToggle("isCustomizable", checked)}
-              />
-            </div>
           </div>
           <div className="border-border mt-4 flex gap-2 border-t pt-3">
             <Button
@@ -145,24 +119,6 @@ export const BaseProductCard = ({
             <Badge variant="outline">
               {item.isCustomizable ? "Customizable" : "Fixed"}
             </Badge>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-xs">Active</span>
-              <Switch
-                checked={item.isActive}
-                disabled={isUpdatingProduct}
-                onCheckedChange={(checked) => onToggle("isActive", checked)}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-xs">Customizable</span>
-              <Switch
-                checked={item.isCustomizable}
-                disabled={isUpdatingProduct}
-                onCheckedChange={(checked) => onToggle("isCustomizable", checked)}
-              />
-            </div>
           </div>
           <div className="mt-3 flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Button

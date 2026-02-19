@@ -98,7 +98,21 @@ export type GetProductsQuery = {
 export type GetProductsResponse = PageableResponse<ProductBase>;
 
 export type UpdateProductInput = Partial<
-  Pick<ProductBase, "isActive" | "isCustomizable">
+  Pick<
+    ProductBase,
+    | "productName"
+    | "sku"
+    | "productUrl"
+    | "description"
+    | "basePrice"
+    | "width"
+    | "height"
+    | "depth"
+    | "weight"
+    | "images"
+    | "isActive"
+    | "isCustomizable"
+  >
 >;
 
 export type ProductFormData = {

@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useGetProductById from "@/hooks/api/product/useGetProductById";
+import useEditProduct from "@/hooks/api/product/useUpdateProduct";
 import { ProductBase, ProductFormData, UploadedProductImage } from "@/types/product";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
@@ -35,9 +36,11 @@ const INITIAL_FORM_DATA: ProductFormData = {
 export function ProductEditForm({ productId }: ProductEditFormProps) {
   const [formData, setFormData] = useState<ProductFormData>(INITIAL_FORM_DATA);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [productFile, setProductFile] = useState<File | null>(null);
   const [uploadedImageItems, setUploadedImageItems] = useState<UploadedProductImage[]>([]);
   const uploadedImageItemsRef = useRef<UploadedProductImage[]>([]);
   const { data, isLoading, isError } = useGetProductById(productId);
+  const { mutateAsync: editProduct, isPending: isSaving } = useEditProduct();
 
   const productPayload = (data as { data?: unknown } | undefined)?.data ?? data;
   const product = productPayload as ProductBase | undefined;
@@ -71,7 +74,7 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
         });
         return [];
       });
-      setExistingImages(product.images ?? []);
+      setExistingImages(originalData.images);
       setFormData(originalData);
     }
   }, [originalData]);
@@ -111,6 +114,11 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
     setUploadedImageItems(items);
   };
 
+  const handleProductFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setProductFile(file);
+  };
+
   const handleRemoveExistingImage = (imageUrl: string) => {
     setExistingImages((prev) => prev.filter((url) => url !== imageUrl));
   };
@@ -126,6 +134,7 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
     const payload: Partial<{
       productName: string;
       sku: string;
+      productUrl: string;
       description: string;
       basePrice: number;
       width: number;
@@ -188,25 +197,47 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
     return payload;
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!product) return;
 
     const payload = buildUpdatePayload(formData, product);
+    if (productFile) {
+      payload.productUrl = product.productUrl;
+    }
+    if (
+      Array.isArray(payload.images) &&
+      JSON.stringify(payload.images) === JSON.stringify(product.images ?? [])
+    ) {
+      delete payload.images;
+    }
 
-    if (Object.keys(payload).length === 0) {
+    if (existingImages.length === 0 && uploadedImageItems.length === 0) {
+      toast.error("At least one image is required.");
+      return;
+    }
+
+    if (Object.keys(payload).length === 0 && uploadedImageItems.length === 0 && !productFile) {
       toast("No changes", { description: "Nothing to update." });
       return;
     }
 
-    console.log("[ProductEdit] update payload", {
-      productId,
-      payload,
-      newImageFiles: uploadedImageItems.map((item) => item.file.name),
-    });
-
-    toast.success("Update payload logged in console.");
+    try {
+      await editProduct({
+        productId,
+        payload,
+        productFile: productFile ?? undefined,
+        imageFiles: uploadedImageItems.map((item) => item.file),
+      });
+      toast.success("Product updated.");
+      setProductFile(null);
+    } catch (error) {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message ?? "Failed to update product.";
+      toast.error(message);
+    }
   };
 
   if (isLoading) {
@@ -325,6 +356,24 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
                   <div className="border-input bg-background text-muted-foreground mt-1 rounded-md border px-3 py-2 text-xs break-all">
                     {formData.productFileName || "-"}
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="productFile" className="text-foreground">
+                    Replace Product File
+                  </Label>
+                  <Input
+                    id="productFile"
+                    type="file"
+                    accept=".glb,.gltf,.obj,.fbx,.stl,model/*"
+                    onChange={handleProductFileChange}
+                    className="border-input bg-background mt-1"
+                  />
+                  {productFile ? (
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      Selected: {productFile.name}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div>
@@ -473,9 +522,10 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
 
             <Button
               type="submit"
+              disabled={isSaving}
               className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
             >
-              Update Product
+              {isSaving ? "Updating..." : "Update Product"}
             </Button>
           </form>
         </div>

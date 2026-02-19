@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import useGetProducts from "@/hooks/api/product/useGetProducts";
-import useUpdateProduct from "@/hooks/api/product/useUpdateProduct";
 import { BaseProductCard } from "./components/BaseProductCard";
 import { BaseProductCardSkeleton } from "./components/BaseProductCardSkeleton";
 import { ProductBase } from "@/types/product";
@@ -129,12 +128,6 @@ export const ProductsPage = () => {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [page, setPage] = useState(1);
-  const [pendingToggle, setPendingToggle] = useState<{
-    productId: string;
-    productName: string;
-    field: "isActive" | "isCustomizable";
-    nextValue: boolean;
-  } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{
     id: string;
     productName: string;
@@ -149,47 +142,11 @@ export const ProductsPage = () => {
     sortBy: "createdAt",
     orderBy: "desc",
   });
-  const { mutateAsync: updateProduct, isPending: isUpdatingProduct } =
-    useUpdateProduct();
 
   const baseProducts: ProductBase[] = data?.data ?? [];
   const baseMeta = data?.meta;
   const baseTotal = baseMeta?.total ?? baseProducts.length;
   const totalItems = baseTotal + COMPONENTS.length + MATERIALS.length;
-
-  const openToggleConfirm = (
-    product: ProductBase,
-    field: "isActive" | "isCustomizable",
-    nextValue: boolean,
-  ) => {
-    setPendingToggle({
-      productId: product.id,
-      productName: product.productName,
-      field,
-      nextValue,
-    });
-  };
-
-  const handleConfirmToggle = async () => {
-    if (!pendingToggle) return;
-
-    try {
-      await updateProduct({
-        productId: pendingToggle.productId,
-        payload: { [pendingToggle.field]: pendingToggle.nextValue },
-      });
-
-      const label =
-        pendingToggle.field === "isActive" ? "Active status" : "Customizable";
-      toast.success(`${label} updated`);
-      setPendingToggle(null);
-    } catch (error) {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ?? "Failed to update product.";
-      toast.error(message);
-    }
-  };
 
   const handleDeleteClick = (product: ProductBase) => {
     setDeleteTarget({ id: product.id, productName: product.productName });
@@ -315,10 +272,6 @@ export const ProductsPage = () => {
                       key={item.id}
                       item={item}
                       viewMode={viewMode}
-                      isUpdatingProduct={isUpdatingProduct}
-                      onToggle={(field, nextValue) =>
-                        openToggleConfirm(item, field, nextValue)
-                      }
                       onEdit={() =>
                         router.push(`/dashboard/products/${item.id}/edit`)
                       }
@@ -491,36 +444,6 @@ export const ProductsPage = () => {
           </Tabs>
         </div>
       </div>
-
-      <Dialog
-        open={Boolean(pendingToggle)}
-        onOpenChange={(open) => {
-          if (!open) setPendingToggle(null);
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Update product setting?</DialogTitle>
-            <DialogDescription>
-              {pendingToggle
-                ? `Apply ${pendingToggle.field === "isActive" ? "Active" : "Customizable"} = ${pendingToggle.nextValue ? "On" : "Off"} for "${pendingToggle.productName}"?`
-                : "Confirm update."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setPendingToggle(null)}
-              disabled={isUpdatingProduct}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleConfirmToggle} disabled={isUpdatingProduct}>
-              {isUpdatingProduct ? "Updating..." : "Confirm"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={isDeleteOpen}
