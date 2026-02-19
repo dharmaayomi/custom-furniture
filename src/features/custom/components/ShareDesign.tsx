@@ -100,15 +100,37 @@ export const ShareDesign = ({
     onClose();
   };
 
-  const handleGenerateShareable = async () => {
-    await shareableLink({
-      configuration: buildDesignConfig(),
-    });
+  const requestShareableCode = async () => {
+    try {
+      await shareableLink({
+        configuration: buildDesignConfig(),
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleGenerateCode = async () => {
+    await requestShareableCode();
+  };
+
+  const handleGenerateLink = async () => {
+    const existingCode = getStoredCode();
+
+    if (existingCode) {
+      setShareLink(buildShareLink(existingCode));
+      setCopyStatus("");
+      return;
+    }
+
+    await requestShareableCode();
   };
 
   const handleShareViaEmail = async () => {
     if (!getStoredCode()) {
-      await handleGenerateShareable();
+      const ok = await requestShareableCode();
+      if (!ok) return;
     }
     const code = getStoredCode();
     const link = shareLink || buildShareLink(code);
@@ -252,8 +274,9 @@ export const ShareDesign = ({
                       it was generated.
                     </p>
                     <Button
+                      type="button"
                       className="w-full"
-                      onClick={handleGenerateShareable}
+                      onClick={handleGenerateLink}
                       disabled={isPending}
                     >
                       {isPending ? "Generating..." : "Generate Link"}
@@ -298,8 +321,9 @@ export const ShareDesign = ({
                       it was generated.
                     </p>
                     <Button
+                      type="button"
                       className="w-full"
-                      onClick={handleGenerateShareable}
+                      onClick={handleGenerateCode}
                       disabled={isPending}
                     >
                       {isPending ? "Generating..." : "Generate Code"}
