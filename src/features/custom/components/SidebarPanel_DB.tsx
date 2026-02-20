@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/price";
 import { X } from "lucide-react";
-import { ProductBase } from "@/types/product";
+import { ProductBase, ProductComponent } from "@/types/product";
 import { Tool, ToolType } from "@/types/toolType";
 import { useState } from "react";
 import {
@@ -17,8 +17,10 @@ interface SidebarPanelProps {
   tools: Tool[];
   onClose: () => void;
   assetList3D: string[];
+  assetListAddOn: string[];
   assetListTexture: string[];
   productsFromDb?: ProductBase[];
+  componentsFromDb?: ProductComponent[];
   mainModels: string[];
   onSelectMainModel: (name: string) => void;
   onAddAdditionalModel: (name: string) => void;
@@ -33,8 +35,10 @@ export const SidebarPanel = ({
   tools,
   onClose,
   assetList3D,
+  assetListAddOn,
   assetListTexture,
   productsFromDb = [],
+  componentsFromDb = [],
   mainModels,
   onSelectMainModel,
   onAddAdditionalModel,
@@ -43,6 +47,9 @@ export const SidebarPanel = ({
 }: SidebarPanelProps) => {
   const [previousState, setPreviousState] = useState(null);
   const productMap = new Map(productsFromDb.map((product) => [product.id, product]));
+  const componentMap = new Map(
+    componentsFromDb.map((component) => [component.id, component]),
+  );
 
   const renderToolSidebar = () => {
     const tool = tools.find((t) => t.id === selectedTool);
@@ -56,7 +63,7 @@ export const SidebarPanel = ({
       itemsToShow = assetList3D;
       handleItemClick = onSelectMainModel;
     } else if (tool.id === "tambahan") {
-      itemsToShow = assetList3D;
+      itemsToShow = assetListAddOn;
       handleItemClick = onAddAdditionalModel;
     } else if (tool.id === "paint") {
       itemsToShow = assetListTexture;
@@ -147,6 +154,32 @@ export const SidebarPanel = ({
                 ) : (
                   (() => {
                     const dbProduct = productMap.get(item);
+                    const dbComponent = componentMap.get(item);
+
+                    if (tool.id === "tambahan" && dbComponent) {
+                      return (
+                        <div className="flex h-full w-full flex-col">
+                          <div className="bg-muted aspect-square w-full overflow-hidden">
+                            {dbComponent.componentImageUrls?.[0] ? (
+                              <img
+                                src={dbComponent.componentImageUrls[0]}
+                                alt={dbComponent.componentName}
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : null}
+                          </div>
+                          <div className="bg-background flex flex-1 flex-col justify-between p-2">
+                            <p className="text-foreground line-clamp-2 text-xs font-semibold">
+                              {dbComponent.componentName}
+                            </p>
+                            <p className="text-muted-foreground mt-1 text-[11px] font-medium">
+                              {formatPrice(dbComponent.price)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
 
                     if (!dbProduct) {
                       return (

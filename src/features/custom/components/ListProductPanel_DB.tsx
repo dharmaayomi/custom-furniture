@@ -5,7 +5,7 @@ import {
   formatPrice,
   extractModelNameFromId,
 } from "@/lib/price";
-import { Product, ProductBase } from "@/types/product";
+import { Product, ProductBase, ProductComponent } from "@/types/product";
 import { X } from "lucide-react";
 
 interface ListProductPanelProps {
@@ -14,6 +14,7 @@ interface ListProductPanelProps {
   mainModels: string[];
   addOnModels: string[];
   productsFromDb: ProductBase[];
+  componentsFromDb: ProductComponent[];
 }
 
 export const ListProductPanel = ({
@@ -22,11 +23,15 @@ export const ListProductPanel = ({
   mainModels,
   addOnModels,
   productsFromDb,
+  componentsFromDb,
 }: ListProductPanelProps) => {
   const products: (Product & { image?: string })[] = [];
 
   const allModels = [...mainModels, ...addOnModels];
   const productMap = new Map(productsFromDb.map((product) => [product.id, product]));
+  const componentMap = new Map(
+    componentsFromDb.map((component) => [component.id, component]),
+  );
 
   // Count models with their quantities
   const modelCounts: Record<string, number> = {};
@@ -35,18 +40,31 @@ export const ListProductPanel = ({
     modelCounts[modelName] = (modelCounts[modelName] || 0) + 1;
   });
 
-  Object.entries(modelCounts).forEach(([model, quantity]) => {
-    const dbProduct = productMap.get(model);
-    if (!dbProduct) return;
+  Object.entries(modelCounts).forEach(([modelId, quantity]) => {
+    const dbProduct = productMap.get(modelId);
+    if (dbProduct) {
+      products.push({
+        id: dbProduct.id,
+        name: dbProduct.productName,
+        description: dbProduct.description,
+        price: dbProduct.basePrice,
+        quantity,
+        image: dbProduct.images?.[0],
+      });
+      return;
+    }
 
-    products.push({
-      id: dbProduct.id,
-      name: dbProduct.productName,
-      description: dbProduct.description,
-      price: dbProduct.basePrice,
-      quantity,
-      image: dbProduct.images?.[0],
-    });
+    const dbComponent = componentMap.get(modelId);
+    if (dbComponent) {
+      products.push({
+        id: dbComponent.id,
+        name: dbComponent.componentName,
+        description: dbComponent.componentDesc,
+        price: dbComponent.price,
+        quantity,
+        image: dbComponent.componentImageUrls?.[0],
+      });
+    }
   });
 
   const itemCount = products.reduce((sum, p) => sum + p.quantity, 0);

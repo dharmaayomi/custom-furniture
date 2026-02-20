@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import useCreateComponent from "@/hooks/api/product/useCreateComponent";
 import useDeleteComponent from "@/hooks/api/product/useDeleteComponent";
 import useGetComponents from "@/hooks/api/product/useGetComponents";
@@ -883,6 +884,24 @@ const ComponentFormFields = ({
           onChange={handleInputChange}
           className="border-input bg-background text-foreground placeholder-muted-foreground focus:ring-primary mt-1 min-h-20 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           required
+        />
+      </div>
+
+      <div className="flex items-center justify-between rounded-md border p-3">
+        <div className="space-y-0.5">
+          <Label htmlFor="isActive" className="cursor-pointer">
+            Active Status
+          </Label>
+          <p className="text-muted-foreground text-xs">
+            Enable to make this component available.
+          </p>
+        </div>
+        <Switch
+          id="isActive"
+          checked={formData.isActive}
+          onCheckedChange={(checked) =>
+            setFormData((prev) => ({ ...prev, isActive: checked }))
+          }
         />
       </div>
     </div>

@@ -5,10 +5,7 @@ import { FooterCustom } from "./FooterCustom";
 import * as BABYLON from "@babylonjs/core";
 
 import { HeaderCustom } from "./HeaderCustom";
-import {
-  extractModelNameFromId,
-  formatPrice,
-} from "@/lib/price";
+import { extractModelNameFromId, formatPrice } from "@/lib/price";
 import { useRoomStore } from "@/store/useRoomStore";
 import {
   clearDesignCodeFromStorage,
@@ -38,6 +35,8 @@ import { ProductInfoPanel } from "./ProductInfoPanel_DB";
 import { CAMERA_CONFIG } from "../_components/RoomConfig";
 import useGetProducts from "@/hooks/api/product/useGetProducts";
 import useGetProductById from "@/hooks/api/product/useGetProductById";
+import useGetComponents from "@/hooks/api/product/useGetComponents";
+import useGetComponentById from "@/hooks/api/product/useGetComponentById";
 import { useUser } from "@/providers/UserProvider";
 import { SummaryOrderItem } from "@/types/summary";
 
@@ -103,17 +102,43 @@ export const RoomPageDB = () => {
     orderBy: "desc",
   });
   const productList = productListResponse?.data ?? [];
+  const { data: componentListResponse } = useGetComponents(
+    {
+      page: 1,
+      perPage: 100,
+      sortBy: "componentName",
+      orderBy: "asc",
+    },
+    true,
+  );
+  const componentList = componentListResponse?.data ?? [];
 
-  const selectedModelBaseId = useMemo(() => {
+  const selectedModelId = useMemo(() => {
     const selected = present.selectedFurniture ?? mainModels[0];
     if (!selected) return undefined;
     const extracted = extractModelNameFromId(selected);
-    return productList.some((product) => product.id === extracted)
-      ? extracted
-      : undefined;
-  }, [present.selectedFurniture, mainModels, productList]);
+    return extracted;
+  }, [present.selectedFurniture, mainModels]);
 
-  const { data: selectedProduct } = useGetProductById(selectedModelBaseId);
+  const selectedProductId = useMemo(
+    () =>
+      selectedModelId &&
+      productList.some((product) => product.id === selectedModelId)
+        ? selectedModelId
+        : undefined,
+    [selectedModelId, productList],
+  );
+  const selectedComponentId = useMemo(
+    () =>
+      selectedModelId &&
+      componentList.some((component) => component.id === selectedModelId)
+        ? selectedModelId
+        : undefined,
+    [selectedModelId, componentList],
+  );
+
+  const { data: selectedProduct } = useGetProductById(selectedProductId);
+  const { data: selectedComponent } = useGetComponentById(selectedComponentId);
 
   const productUrlMap = useMemo(
     () =>
@@ -124,36 +149,64 @@ export const RoomPageDB = () => {
       ) as Record<string, string>,
     [productList],
   );
+  const componentUrlMap = useMemo(
+    () =>
+      Object.fromEntries(
+        componentList
+          .filter((component) => Boolean(component.componentUrl))
+          .map((component) => [component.id, component.componentUrl]),
+      ) as Record<string, string>,
+    [componentList],
+  );
 
   const resolveProductModelUrl = useCallback(
     (modelId: string) => {
       return (
         productUrlMap[modelId] ||
-        (selectedProduct?.id === modelId ? selectedProduct.productUrl : undefined)
+        (selectedProduct?.id === modelId
+          ? selectedProduct.productUrl
+          : undefined) ||
+        componentUrlMap[modelId] ||
+        (selectedComponent?.id === modelId
+          ? selectedComponent.componentUrl
+          : undefined)
       );
     },
-    [productUrlMap, selectedProduct],
+    [productUrlMap, componentUrlMap, selectedProduct, selectedComponent],
   );
 
   const productAssetIds = useMemo(() => {
     if (productList.length === 0) return ASSETS_3D;
     return productList.map((product) => product.id);
   }, [productList]);
+  const componentAssetIds = useMemo(() => {
+    if (componentList.length === 0) return [];
+    return componentList.map((component) => component.id);
+  }, [componentList]);
 
   const totalPriceFromDb = useMemo(() => {
     const allModels = [...mainModels, ...addOnModels];
-    const dbMap = new Map(productList.map((product) => [product.id, product]));
+    const productMap = new Map(
+      productList.map((product) => [product.id, product.basePrice]),
+    );
+    const componentMap = new Map(
+      componentList.map((component) => [component.id, component.price]),
+    );
 
     return allModels.reduce((sum, modelId) => {
       const extracted = extractModelNameFromId(modelId);
-      const product = dbMap.get(extracted);
-      return sum + (product?.basePrice ?? 0);
+      return sum + (productMap.get(extracted) ?? componentMap.get(extracted) ?? 0);
     }, 0);
-  }, [mainModels, addOnModels, productList]);
+  }, [mainModels, addOnModels, productList, componentList]);
 
   const summaryItems = useMemo<SummaryOrderItem[]>(() => {
     const allModels = [...mainModels, ...addOnModels];
-    const productMap = new Map(productList.map((product) => [product.id, product]));
+    const productMap = new Map(
+      productList.map((product) => [product.id, product]),
+    );
+    const componentMap = new Map(
+      componentList.map((component) => [component.id, component]),
+    );
     const counts: Record<string, number> = {};
 
     allModels.forEach((modelId) => {
@@ -162,23 +215,37 @@ export const RoomPageDB = () => {
     });
 
     const items: SummaryOrderItem[] = [];
-    Object.entries(counts).forEach(([productId, quantity]) => {
-      const product = productMap.get(productId);
-      if (!product) return;
+    Object.entries(counts).forEach(([modelId, quantity]) => {
+      const product = productMap.get(modelId);
+      if (product) {
+        items.push({
+          id: product.id,
+          name: product.productName,
+          sku: product.sku || product.id,
+          image: product.images?.[0],
+          unitPrice: product.basePrice,
+          quantity,
+          subtotal: product.basePrice * quantity,
+        });
+        return;
+      }
 
-      items.push({
-        id: product.id,
-        name: product.productName,
-        sku: product.sku || product.id,
-        image: product.images?.[0],
-        unitPrice: product.basePrice,
-        quantity,
-        subtotal: product.basePrice * quantity,
-      });
+      const component = componentMap.get(modelId);
+      if (component) {
+        items.push({
+          id: component.id,
+          name: component.componentName,
+          sku: component.id,
+          image: component.componentImageUrls?.[0],
+          unitPrice: component.price,
+          quantity,
+          subtotal: component.price * quantity,
+        });
+      }
     });
 
     return items;
-  }, [mainModels, addOnModels, productList]);
+  }, [mainModels, addOnModels, productList, componentList]);
 
   const summaryPayload = useMemo(
     () => ({
@@ -440,11 +507,13 @@ export const RoomPageDB = () => {
         mainModels={mainModels}
         addOnModels={addOnModels}
         productsFromDb={productList}
+        componentsFromDb={componentList}
       />
       <ProductInfoPanel
         isOpen={activePanel === "productInfo"}
         onClose={closePanelWithRestore}
         productsFromDb={productList}
+        componentsFromDb={componentList}
       />
 
       <div
@@ -506,8 +575,10 @@ export const RoomPageDB = () => {
         tools={tools}
         onClose={closeSidebar}
         assetList3D={productAssetIds}
+        assetListAddOn={componentAssetIds}
         assetListTexture={ASSETS_TEXTURE}
         productsFromDb={productList}
+        componentsFromDb={componentList}
         mainModels={mainModels}
         selectedFurniture={present.selectedFurniture}
         onSelectMainModel={(model) => setMainModel(model)}
