@@ -62,11 +62,11 @@ const data = {
       items: [
         {
           title: "Component Management",
-          url: "#",
+          url: "/dashboard/products/component",
         },
         {
           title: "Material Management",
-          url: "#",
+          url: "/dashboard/products/material",
         },
         {
           title: "Archived Products",

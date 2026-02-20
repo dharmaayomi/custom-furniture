@@ -22,22 +22,50 @@ export type ProductComponent = {
   id: string;
   componentName: string;
   componentUrl: string;
-  category: ComponentCategory;
+  componentCategory: ComponentCategory;
   componentDesc: string;
   price: number;
+  weight: number;
   componentImageUrls: string[];
   isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
 };
 
-enum ComponentCategory {
-  "SHELF",
-  "DRAWER",
-  "HANGER",
-  "DOOR",
-  "RAIL",
-  "ACCESSORY",
-  "HARDWARE",
-}
+export type ComponentCategory =
+  | "SHELF"
+  | "DRAWER"
+  | "HANGER"
+  | "DOOR"
+  | "RAIL"
+  | "ACCESSORY"
+  | "HARDWARE";
+
+export type CreateComponentInput = {
+  componentName: string;
+  componentUrl: string;
+  componentDesc: string;
+  componentCategory: ComponentCategory;
+  price: number | string;
+  weight: number | string;
+  componentImageUrls: string[];
+};
+
+export type UpdateComponentInput = Partial<
+  Pick<
+    CreateComponentInput,
+    | "componentName"
+    | "componentUrl"
+    | "componentDesc"
+    | "componentCategory"
+    | "price"
+    | "weight"
+    | "componentImageUrls"
+  >
+> & {
+  isActive?: boolean;
+};
 
 export type ProductMaterial = {
   id: string;
@@ -98,6 +126,29 @@ export type GetProductsQuery = {
 };
 
 export type GetProductsResponse = PageableResponse<ProductBase>;
+
+export type ComponentSortBy =
+  | "componentName"
+  | "componentCategory"
+  | "price"
+  | "createdAt"
+  | "updatedAt";
+
+export type ComponentOrderBy = "asc" | "desc";
+
+export type GetComponentsQuery = {
+  page?: number;
+  perPage?: number;
+  sortBy?: ComponentSortBy;
+  orderBy?: ComponentOrderBy;
+  minPrice?: number;
+  maxPrice?: number;
+  isActive?: boolean;
+  category?: ComponentCategory;
+  search?: string;
+};
+
+export type GetComponentsResponse = PageableResponse<ProductComponent>;
 
 export type UpdateProductInput = Partial<
   Pick<

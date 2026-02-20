@@ -80,7 +80,7 @@ export default function SummaryDesignPage() {
 
   return (
     <main className="min-h-screen">
-      <div className="mx-2 px-1 py-5 sm:mx-6 sm:px-2 sm:py-7 lg:mx-10 lg:px-4 lg:py-12">
+      <div className="mx-2 px-1 py-5 sm:mx-6 sm:px-2 sm:py-7 lg:mx-8 lg:px-4 lg:py-12">
         <h1 className="mb-5 text-2xl font-bold sm:mb-8 sm:text-3xl">
           Design Overview
         </h1>
@@ -111,7 +111,7 @@ export default function SummaryDesignPage() {
               {payload?.items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex-col items-start gap-3 border-b border-gray-200 pb-4 last:border-b-0 sm:gap-6 sm:rounded-lg sm:border sm:p-6"
+                  className="border-b border-gray-200 pb-4 last:border-b-0 sm:flex sm:items-start sm:justify-between sm:gap-6 sm:rounded-lg sm:border sm:p-4"
                 >
                   <div className="flex items-start gap-3">
                     <div className="shrink-0 self-start">
@@ -138,17 +138,23 @@ export default function SummaryDesignPage() {
                           In Stock
                         </span>
                       </div>
-                      <div className="text-xs text-gray-700 md:text-sm">
+                      <div className="hidden text-xs text-gray-700 sm:block md:text-sm">
                         Quantity:{" "}
                         <span className="font-semibold">{item.quantity}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="mt-2 text-right sm:hidden">
-                    <p className="text-sm font-bold md:text-xl">
-                      {formatPrice(item.unitPrice)}
-                    </p>
-                    <p className="text-sm text-gray-500">
+                  <div className="mt-2 sm:hidden">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs text-gray-700">
+                        Quantity:{" "}
+                        <span className="font-semibold">{item.quantity}</span>
+                      </p>
+                      <p className="text-sm font-bold">
+                        {formatPrice(item.unitPrice)}
+                      </p>
+                    </div>
+                    <p className="mt-1 text-right text-xs text-gray-500">
                       {formatPrice(item.subtotal)} subtotal
                     </p>
                   </div>
@@ -198,7 +204,7 @@ export default function SummaryDesignPage() {
                     >
                       <ComboboxInput
                         placeholder="Choose delivery address"
-                        className="w-full"
+                        className="w-full text-xs md:text-sm"
                         showClear
                       />
                       <ComboboxContent>
