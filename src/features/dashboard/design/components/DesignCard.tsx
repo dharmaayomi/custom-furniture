@@ -30,6 +30,7 @@ export default function DesignCard({
     ? new Date(design.createdAt).toLocaleDateString()
     : "";
   const title = design.designName || "Untitled design";
+  const previewSrc = (design?.previewUrl || "").trim();
 
   useEffect(() => {
     if (!data || !submittedCode) return;
@@ -77,30 +78,44 @@ export default function DesignCard({
     return (
       <Card className="p-4">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="text-foreground text-lg font-semibold">{title}</div>
-            <div className="mt-3 space-y-2 text-sm">
-              <div className="text-muted-foreground flex items-center gap-2">
-                <Hash className="h-4 w-4" />
-                <span>Code: {design.designCode}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={handleCopyCode}
-                  aria-label="Copy design code"
-                  title="Copy design code"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </Button>
+          <div className="flex items-start gap-3">
+            {previewSrc ? (
+              <img
+                src={previewSrc}
+                alt={`${title} preview`}
+                className="h-16 w-24 shrink-0 rounded-md object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="bg-muted text-muted-foreground flex h-16 w-24 shrink-0 items-center justify-center rounded-md text-xs">
+                No preview
               </div>
-              {createdAt ? (
+            )}
+            <div className="flex-1">
+              <div className="text-foreground text-lg font-semibold">{title}</div>
+              <div className="mt-3 space-y-2 text-sm">
                 <div className="text-muted-foreground flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4" />
-                  <span>Created: {createdAt}</span>
+                  <Hash className="h-4 w-4" />
+                  <span>Code: {design.designCode}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={handleCopyCode}
+                    aria-label="Copy design code"
+                    title="Copy design code"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-              ) : null}
+                {createdAt ? (
+                  <div className="text-muted-foreground flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4" />
+                    <span>Created: {createdAt}</span>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -131,17 +146,26 @@ export default function DesignCard({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
-      <div className="flex aspect-4/3 items-center justify-center bg-gray-100 text-xs text-gray-500">
-        Preview
-      </div>
+    <div className="bg-card overflow-hidden rounded-lg border shadow-sm">
+      {previewSrc ? (
+        <img
+          src={previewSrc}
+          alt={`${title} preview`}
+          className="aspect-4/3 w-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div className="bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center text-xs">
+          Preview unavailable
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="min-w-0 space-y-1">
-          <p className="truncate text-sm font-semibold text-gray-800">
+          <p className="text-foreground truncate text-sm font-semibold">
             {title}
           </p>
-          <div className="flex items-center gap-1 text-xs text-gray-500">
+          <div className="text-muted-foreground flex items-center gap-1 text-xs">
             <span>Code: {design.designCode}</span>
             <Button
               type="button"
@@ -156,7 +180,7 @@ export default function DesignCard({
             </Button>
           </div>
           {createdAt ? (
-            <p className="text-xs text-gray-400">Created {createdAt}</p>
+            <p className="text-muted-foreground/80 text-xs">Created {createdAt}</p>
           ) : null}
         </div>
 

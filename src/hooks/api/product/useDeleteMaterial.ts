@@ -1,0 +1,12 @@
+import useAxios from "@/hooks/useAxios";
+import { useMutation } from "@tanstack/react-query";
+import React, { use } from "react";
+
+const useDeleteMaterial = () => {
+  const axiosInstance = useAxios();
+  return useMutation({
+    mutationFn: async () => {},
+  });
+};
+
+export default useDeleteMaterial;

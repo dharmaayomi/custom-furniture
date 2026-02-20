@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -21,10 +21,11 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, CheckCheck, Moon } from "lucide-react";
+import { Bell, CheckCheck, Moon, Sun } from "lucide-react";
 import { useUser } from "@/providers/UserProvider";
 import { NavUser } from "./NavUser";
 import { useNotificationStore } from "@/store/useNotificationStore";
+import { useTheme } from "next-themes";
 
 const LABEL_MAP: Record<string, string> = {
   dashboard: "Dashboard",
@@ -50,6 +51,8 @@ const formatSegment = (segment: string) => {
 };
 
 const HeaderDashboard = () => {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const segments = pathname
@@ -59,9 +62,16 @@ const HeaderDashboard = () => {
   const filteredSegments = segments.filter((segment, index) => {
     const isNumeric = /^\d+$/.test(segment);
     const prevSegment = index > 0 ? segments[index - 1] : null;
+    const nextSegment = index < segments.length - 1 ? segments[index + 1] : null;
+
     if (isNumeric && prevSegment === "address") {
       return false;
     }
+
+    if (prevSegment === "products" && nextSegment === "edit") {
+      return false;
+    }
+
     return true;
   });
   const { navUser } = useUser();
@@ -81,6 +91,10 @@ const HeaderDashboard = () => {
   });
   const currentPageLabel =
     crumbs.length > 0 ? crumbs[crumbs.length - 1].label : "Dashboard";
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <header className="bg-background/95 supports-backdrop-filter:bg-background/75 sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b backdrop-blur sm:h-16">
@@ -119,10 +133,23 @@ const HeaderDashboard = () => {
                 : null}
             </BreadcrumbList>
           </Breadcrumb>
-          <div className="mr-1 flex items-center gap-2 sm:mr-3 sm:gap-4 lg:gap-6">
-            <Button variant="ghost" size="icon" className="relative sm:block">
-              <Moon size={20} />
-            </Button>
+          <div className="mr-1 flex items-center gap-1.5 sm:mr-3 sm:gap-4 lg:gap-6">
+            <div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="sm:inline-flex"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                aria-label="Toggle theme"
+                title="Toggle theme"
+              >
+                {mounted && theme === "dark" ? (
+                  <Sun size={20} />
+                ) : (
+                  <Moon size={20} />
+                )}
+              </Button>
+            </div>
             <div className="hidden sm:block">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -209,3 +236,4 @@ const HeaderDashboard = () => {
 };
 
 export default HeaderDashboard;
+

@@ -5,6 +5,8 @@ import { SessionProvider } from "next-auth/react";
 import { Toaster } from "@/components/ui/sonner";
 import ReactQueryProvider from "@/providers/ReactQueryProviders";
 import { UserProvider } from "@/providers/UserProvider";
+import { ThemeProvider } from "@/providers/ThemeProvider";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 export const metadata: Metadata = {
   title: "Custom Furniture",
@@ -17,17 +19,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${montserrat.className} antialiased`}
         suppressHydrationWarning
       >
-        <SessionProvider>
-          <ReactQueryProvider>
-            <UserProvider>{children}</UserProvider>
-          </ReactQueryProvider>
-        </SessionProvider>
-        <Toaster position="top-right" duration={2000} />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          <NuqsAdapter>
+            <SessionProvider>
+              <ReactQueryProvider>
+                <UserProvider>{children}</UserProvider>
+              </ReactQueryProvider>
+            </SessionProvider>
+          </NuqsAdapter>
+          <Toaster position="top-right" duration={2000} />
+        </ThemeProvider>
       </body>
     </html>
   );

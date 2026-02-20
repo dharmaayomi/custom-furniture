@@ -2,6 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PackageSearch } from "lucide-react";
+import { getStatusBadgeClass } from "@/lib/statusStyles";
 
 type OrderStatus =
   | "WAITING_FOR_PAYMENT"
@@ -73,13 +74,16 @@ const statusLabel: Record<OrderStatus, string> = {
   CANCELLED: "Cancelled",
 };
 
-const statusClass: Record<OrderStatus, string> = {
-  WAITING_FOR_PAYMENT: "bg-amber-100 text-amber-800",
-  IN_PROGRESS: "bg-amber-100 text-amber-800",
-  READY_TO_SHIP: "bg-sky-100 text-sky-800",
-  IN_DELIVERY: "bg-indigo-100 text-indigo-800",
-  COMPLETED: "bg-emerald-100 text-emerald-800",
-  CANCELLED: "bg-rose-100 text-rose-800",
+const statusTone: Record<
+  OrderStatus,
+  "warning" | "info" | "success" | "danger" | "neutral"
+> = {
+  WAITING_FOR_PAYMENT: "warning",
+  IN_PROGRESS: "warning",
+  READY_TO_SHIP: "info",
+  IN_DELIVERY: "info",
+  COMPLETED: "success",
+  CANCELLED: "danger",
 };
 
 export const OrdersPage = () => {
@@ -111,7 +115,7 @@ export const OrdersPage = () => {
     return (
       <div className="space-y-4">
         {items.map((item) => (
-          <div key={item.id} className="rounded-lg border bg-white p-4 shadow-sm">
+          <div key={item.id} className="bg-card rounded-lg border p-4 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-foreground truncate text-sm font-semibold sm:text-base">
@@ -128,9 +132,7 @@ export const OrdersPage = () => {
                 <p className="text-foreground text-sm font-semibold sm:text-base">
                   {item.amount}
                 </p>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass[item.status]}`}
-                >
+                <span className={getStatusBadgeClass(statusTone[item.status])}>
                   {statusLabel[item.status]}
                 </span>
               </div>

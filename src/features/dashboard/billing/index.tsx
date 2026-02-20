@@ -2,6 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReceiptText } from "lucide-react";
+import { getStatusBadgeClass } from "@/lib/statusStyles";
 
 type PaymentStatus = "WAITING_PAYMENT" | "PAID" | "FAILED" | "EXPIRED";
 
@@ -51,11 +52,14 @@ const statusLabel: Record<PaymentStatus, string> = {
   EXPIRED: "Expired",
 };
 
-const statusClass: Record<PaymentStatus, string> = {
-  WAITING_PAYMENT: "bg-amber-100 text-amber-800",
-  PAID: "bg-emerald-100 text-emerald-800",
-  FAILED: "bg-rose-100 text-rose-800",
-  EXPIRED: "bg-slate-200 text-slate-700",
+const statusTone: Record<
+  PaymentStatus,
+  "warning" | "info" | "success" | "danger" | "neutral"
+> = {
+  WAITING_PAYMENT: "warning",
+  PAID: "success",
+  FAILED: "danger",
+  EXPIRED: "neutral",
 };
 
 export const BillingPage = () => {
@@ -84,7 +88,7 @@ export const BillingPage = () => {
     return (
       <div className="space-y-4">
         {items.map((item) => (
-          <div key={item.id} className="rounded-lg border bg-white p-4 shadow-sm">
+          <div key={item.id} className="bg-card rounded-lg border p-4 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-foreground truncate text-sm font-semibold sm:text-base">
@@ -101,9 +105,7 @@ export const BillingPage = () => {
                 <p className="text-foreground text-sm font-semibold sm:text-base">
                   {item.amount}
                 </p>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass[item.status]}`}
-                >
+                <span className={getStatusBadgeClass(statusTone[item.status])}>
                   {statusLabel[item.status]}
                 </span>
               </div>

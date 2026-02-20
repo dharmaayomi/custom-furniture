@@ -9,7 +9,8 @@ export const saveDesignSchema = z.object({
   configuration: z.record(z.string(), z.any()),
   designCode: z.string().optional(),
   designName: z.string().min(1, "Design name is required"),
-  fileFinalUrl: z.string().optional(),
+  fileFinalUrl: z.string().url().optional(),
+  previewUrl: z.string().url().optional(),
 });
 
 export type SaveDesignInput = z.infer<typeof saveDesignSchema>;
@@ -28,23 +29,46 @@ const useSaveDesign = () => {
         configuration: data.configuration,
         designName: data.designName,
         ...(data.fileFinalUrl ? { fileFinalUrl: data.fileFinalUrl } : {}),
+        ...(data.previewUrl ? { previewUrl: data.previewUrl } : {}),
         ...(finalDesignCode ? { designCode: finalDesignCode } : {}),
       });
       return result.data;
     },
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       const payload = (result as any)?.data ?? result;
       const designCode = payload?.designCode;
       if (designCode) {
         setDesignCode(designCode);
         saveDesignCodeToStorage(designCode);
       }
-      queryClient.invalidateQueries({
-        queryKey: ["saved-designs"],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["saved-design"],
-      });
+
+      if (designCode) {
+        queryClient.setQueriesData(
+          { queryKey: ["saved-design"], exact: false },
+          (current) => {
+            if (!current || typeof current !== "object") return current;
+            const currentPayload = (current as any)?.data ?? current;
+            if (currentPayload?.designCode !== designCode) return current;
+            if ((current as any)?.data) {
+              return { ...(current as any), data: payload };
+            }
+            return payload;
+          },
+        );
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["saved-designs"],
+          exact: false,
+          refetchType: "all",
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["saved-design"],
+          exact: false,
+          refetchType: "all",
+        }),
+      ]);
     },
     onError: (error) => {
       console.error("[useSaveDesign] request failed", {

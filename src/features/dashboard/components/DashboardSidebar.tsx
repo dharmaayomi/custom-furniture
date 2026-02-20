@@ -36,6 +36,7 @@ import { NavUser } from "./NavUser";
 import { useUser } from "@/providers/UserProvider";
 import { useNotificationStore } from "@/store/useNotificationStore";
 import Link from "next/link";
+import { useTheme } from "next-themes";
 
 const data = {
   navMain: [
@@ -58,6 +59,20 @@ const data = {
       title: "Products",
       url: "/dashboard/products",
       icon: Frame,
+      items: [
+        {
+          title: "Component Management",
+          url: "/dashboard/products/component",
+        },
+        {
+          title: "Material Management",
+          url: "/dashboard/products/material",
+        },
+        {
+          title: "Archived Products",
+          url: "#",
+        },
+      ],
     },
 
     {
@@ -110,11 +125,20 @@ const data = {
 export function DashboardSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
   const { navUser } = useUser();
   const notifications = useNotificationStore((state) => state.notifications);
   const unreadNotificationCount = notifications.filter(
     (item) => !item.isRead,
   ).length;
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const logoSrc =
+    mounted && resolvedTheme === "dark" ? "/logo-dark.svg" : "/logo.svg";
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -125,12 +149,7 @@ export function DashboardSidebar({
               <div className="flex justify-center gap-2 md:justify-start">
                 <Link href="/" className="flex items-center gap-2 font-medium">
                   <div className="text-primary-foreground flex items-center justify-center">
-                    <Image
-                      src="/logo.svg"
-                      alt="Logo"
-                      width={180}
-                      height={300}
-                    />
+                    <Image src={logoSrc} alt="Logo" width={180} height={56} />
                   </div>
                 </Link>
               </div>
@@ -146,9 +165,7 @@ export function DashboardSidebar({
         />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
-        {/* {navUser ? <NavUser user={navUser} /> : null} */}
-      </SidebarFooter>
+      <SidebarFooter></SidebarFooter>
     </Sidebar>
   );
 }

@@ -353,6 +353,7 @@ export const RoomPage = () => {
             <HeaderCustom
               onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
               onListClick={handleOpenProductList}
+              scene={scene}
               totalPrice={calculateTotalPrice(
                 mainModels,
                 addOnModels,

@@ -1,0 +1,19 @@
+prisma material
+create material 
+create material service
+create material router
+update material controller
+update material service
+update material router
+delete material controller
+delete material service
+delete material router
+get material service
+get material controller
+get material router
+get material service
+get material controller
+get material router
+connect to fe
+price filter
+category filter

@@ -1,3 +1,4 @@
+"use client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -6,23 +7,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  clearDesignCodeFromStorage,
-} from "@/lib/designCode";
+import { clearDesignCodeFromStorage } from "@/lib/designCode";
 import { useRoomStore } from "@/store/useRoomStore";
 import {
   ArrowLeft,
   FolderClosed,
   FolderOpen,
   Frame,
+  Moon,
   Save,
   Share,
+  Sun,
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavUserMenu } from "./NavUserMenu";
 import { useUser } from "@/providers/UserProvider";
+import { useTheme } from "next-themes";
 
 interface MenuModalProps {
   isOpen: boolean;
@@ -44,6 +46,9 @@ export const MenuModal = ({
   const router = useRouter();
   const resetRoom = useRoomStore((state) => state.reset);
   const setDesignCode = useRoomStore((state) => state.setDesignCode);
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const { navUser } = useUser();
@@ -92,6 +97,10 @@ export const MenuModal = ({
     router.push("/login");
   };
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <>
       {/* Overlay */}
@@ -104,24 +113,42 @@ export const MenuModal = ({
 
       {/* Modal */}
       <div
-        className={`fixed top-0 left-0 z-58 h-full w-90 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`bg-background text-foreground fixed top-0 left-0 z-58 h-full w-90 shadow-2xl transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between border-b p-4">
+          <div className="border-border flex items-center justify-between border-b p-4">
             <h2 className="text-lg font-semibold">Menu</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              id="menu-close-button"
-              name="menu-close"
-              className="hover:bg-gray-100"
-            >
-              <X size={20} />
-            </Button>
+
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="sm:inline-flex"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                aria-label="Toggle theme"
+                title="Toggle theme"
+              >
+                {mounted && theme === "dark" ? (
+                  <Sun size={20} />
+                ) : (
+                  <Moon size={20} />
+                )}
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                id="menu-close-button"
+                name="menu-close"
+                className="hover:bg-muted"
+              >
+                <X size={20} />
+              </Button>
+            </div>
           </div>
 
           {/* Menu Items */}
@@ -132,7 +159,7 @@ export const MenuModal = ({
                 onClick={handleBack}
                 id="menu-back-button"
                 name="menu-back"
-                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
+                className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
               >
                 <ArrowLeft size={20} />
                 <span className="font-medium">Back</span>
@@ -143,7 +170,7 @@ export const MenuModal = ({
                 onClick={handleSave}
                 id="menu-save-button"
                 name="menu-save"
-                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100 md:hidden"
+                className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors md:hidden"
               >
                 <Save size={20} />
                 <span className="font-medium">Save</span>
@@ -154,7 +181,7 @@ export const MenuModal = ({
                 onClick={handleOpenShareDesign}
                 id="menu-share-design-button"
                 name="menu-share-design"
-                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
+                className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
               >
                 <Share size={20} />
                 <span className="font-medium">Share Design</span>
@@ -165,7 +192,7 @@ export const MenuModal = ({
                 onClick={handleOpenMyDesign}
                 id="menu-my-design-button"
                 name="menu-my-design"
-                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
+                className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
               >
                 <FolderClosed size={20} />
                 <span className="font-medium">My Design</span>
@@ -176,7 +203,7 @@ export const MenuModal = ({
                 onClick={handleOpenDesignCode}
                 id="menu-open-design-code-button"
                 name="menu-open-design-code"
-                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
+                className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
               >
                 <FolderOpen size={20} />
                 <span className="font-medium">Open Design Code</span>
@@ -187,7 +214,7 @@ export const MenuModal = ({
                 onClick={handleStartFromScratch}
                 id="menu-start-from-scratch-button"
                 name="menu-start-from-scratch"
-                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-gray-100"
+                className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
               >
                 <Frame size={20} />
                 <span className="font-medium">Start from scratch</span>
@@ -204,7 +231,7 @@ export const MenuModal = ({
                 onClick={handleLogin}
                 id="menu-login-button"
                 name="menu-login"
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-black p-4 text-white transition-opacity hover:opacity-90"
+                className="bg-primary text-primary-foreground flex w-full items-center justify-center gap-2 rounded-lg p-4 transition-opacity hover:opacity-90"
               >
                 <span className="font-medium">Login</span>
               </Button>
@@ -222,7 +249,7 @@ export const MenuModal = ({
           </DialogHeader>
 
           <div className="py-2">
-            <DialogDescription className="text-base text-gray-600">
+            <DialogDescription className="text-muted-foreground text-base">
               This will remove your current configuration and reset the room.
             </DialogDescription>
           </div>

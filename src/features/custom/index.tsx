@@ -1,9 +1,9 @@
-import { RoomPage } from "./components/room";
+import { RoomPageDB } from "./components/room_db";
 
 export const CustomPage = () => {
   return (
     <div>
-      <RoomPage />
+      <RoomPageDB />
     </div>
   );
 };

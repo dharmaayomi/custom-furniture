@@ -1,7 +1,11 @@
-import React from "react";
+import { ProductsPage } from "@/features/dashboard/products";
 
 const Products = () => {
-  return <div className="text-2xl font-black">Products</div>;
+  return (
+    <div>
+      <ProductsPage />
+    </div>
+  );
 };
 
 export default Products;

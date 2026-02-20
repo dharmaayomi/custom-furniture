@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import * as BABYLON from "@babylonjs/core";
 import { Check, ListOrdered, Menu, MoveRight, Save } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
@@ -22,18 +23,26 @@ import {
 import useSaveDesign from "@/hooks/api/design/useSaveDesign";
 import { useUser } from "@/providers/UserProvider";
 import useGetSavedDesignByCode from "@/hooks/api/design/useGetSavedDesignByCode";
+import useGetDesignPreviewUploadSignature from "@/hooks/api/design/useGetDesignPreviewUploadSignature";
+import { CAMERA_CONFIG } from "../_components/RoomConfig";
+import { SummaryOrderPayload } from "@/types/summary";
+import { saveSummaryPayload } from "@/lib/summaryStorage";
 
 interface HeaderCustomProps {
   onMenuClick: () => void;
   onListClick?: () => void;
   totalPrice?: number;
   formattedPrice?: string;
+  scene?: BABYLON.Scene | null;
+  summaryPayload?: Omit<SummaryOrderPayload, "previewImage">;
 }
 
 export const HeaderCustom = ({
   onMenuClick,
   onListClick,
   formattedPrice = "Rp.0",
+  scene = null,
+  summaryPayload,
 }: HeaderCustomProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
@@ -44,10 +53,13 @@ export const HeaderCustom = ({
   const designCode = useRoomStore((state) => state.designCode);
   const setDesignCode = useRoomStore((state) => state.setDesignCode);
   const { mutateAsync: saveDesign, isPending } = useSaveDesign();
+  const { mutateAsync: getPreviewUploadSignature } =
+    useGetDesignPreviewUploadSignature();
   const [designName, setDesignName] = useState("");
   const [nameInput, setNameInput] = useState("");
   const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
   const [lastSavedHash, setLastSavedHash] = useState<string | null>(null);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const routeDesignCode = useMemo(() => {
     const parts = pathname.split("/").filter(Boolean);
     if (parts[0] !== "custom" || !parts[1]) return "";
@@ -63,6 +75,165 @@ export const HeaderCustom = ({
     savedDesignByCodePayload?.designName ?? ""
   ).trim();
   const activeDesignName = designName.trim() || existingDesignName;
+
+  const capturePreviewFromCanvas = async (): Promise<Blob | undefined> => {
+    try {
+      if (typeof window === "undefined") return undefined;
+      let sourceCanvas: HTMLCanvasElement | undefined;
+
+      if (scene) {
+        const activeCamera = scene.activeCamera;
+        if (activeCamera && activeCamera instanceof BABYLON.ArcRotateCamera) {
+          const previousState = {
+            alpha: activeCamera.alpha,
+            beta: activeCamera.beta,
+            radius: activeCamera.radius,
+            target: activeCamera.target.clone(),
+            inertialAlphaOffset: activeCamera.inertialAlphaOffset,
+            inertialBetaOffset: activeCamera.inertialBetaOffset,
+            inertialRadiusOffset: activeCamera.inertialRadiusOffset,
+            inertialPanningX: activeCamera.inertialPanningX,
+            inertialPanningY: activeCamera.inertialPanningY,
+          };
+
+          activeCamera.inertialAlphaOffset = 0;
+          activeCamera.inertialBetaOffset = 0;
+          activeCamera.inertialRadiusOffset = 0;
+          activeCamera.inertialPanningX = 0;
+          activeCamera.inertialPanningY = 0;
+
+          activeCamera.alpha = CAMERA_CONFIG.alpha;
+          activeCamera.beta = CAMERA_CONFIG.beta;
+          activeCamera.radius = CAMERA_CONFIG.radius;
+          activeCamera.setTarget(new BABYLON.Vector3(0, CAMERA_CONFIG.targetY, 0));
+
+          scene.render();
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+
+          sourceCanvas = scene.getEngine().getRenderingCanvas() ?? undefined;
+
+          activeCamera.alpha = previousState.alpha;
+          activeCamera.beta = previousState.beta;
+          activeCamera.radius = previousState.radius;
+          activeCamera.setTarget(previousState.target);
+          activeCamera.inertialAlphaOffset = previousState.inertialAlphaOffset;
+          activeCamera.inertialBetaOffset = previousState.inertialBetaOffset;
+          activeCamera.inertialRadiusOffset =
+            previousState.inertialRadiusOffset;
+          activeCamera.inertialPanningX = previousState.inertialPanningX;
+          activeCamera.inertialPanningY = previousState.inertialPanningY;
+          scene.render();
+        }
+      }
+
+      if (!sourceCanvas) {
+        const canvases = Array.from(document.querySelectorAll("canvas"));
+        if (!canvases.length) return undefined;
+        sourceCanvas = canvases
+          .filter((canvas) => canvas.width > 0 && canvas.height > 0)
+          .sort((a, b) => b.width * b.height - a.width * a.height)[0];
+      }
+
+      if (!sourceCanvas) return undefined;
+
+      const maxWidth = 960;
+      const scale = Math.min(1, maxWidth / sourceCanvas.width);
+      const targetWidth = Math.max(1, Math.round(sourceCanvas.width * scale));
+      const targetHeight = Math.max(1, Math.round(sourceCanvas.height * scale));
+
+      const previewCanvas = document.createElement("canvas");
+      previewCanvas.width = targetWidth;
+      previewCanvas.height = targetHeight;
+
+      const context = previewCanvas.getContext("2d", { alpha: false });
+      if (!context) return undefined;
+
+      context.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
+
+      const toJpegBlob = (quality: number) =>
+        new Promise<Blob | undefined>((resolve) => {
+          previewCanvas.toBlob(
+            (blob) => {
+              resolve(blob ?? undefined);
+            },
+            "image/jpeg",
+            quality,
+          );
+        });
+
+      let quality = 0.7;
+      let blob = await toJpegBlob(quality);
+      const maxBytes = 250 * 1024;
+
+      while ((blob?.size ?? 0) > maxBytes && quality > 0.4) {
+        quality -= 0.1;
+        blob = await toJpegBlob(quality);
+      }
+
+      return blob;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const uploadPreviewToCloudinary = async (
+    previewBlob: Blob,
+  ): Promise<string | undefined> => {
+    try {
+      const signaturePayload = await getPreviewUploadSignature();
+      const {
+        apiKey,
+        cloudName,
+        folder,
+        signature,
+        timestamp,
+      } = signaturePayload ?? {};
+
+      if (!apiKey || !cloudName || !folder || !signature || !timestamp) {
+        return undefined;
+      }
+
+      const formData = new FormData();
+      formData.append("file", previewBlob, `design-preview-${Date.now()}.jpg`);
+      formData.append("api_key", String(apiKey));
+      formData.append("timestamp", String(timestamp));
+      formData.append("signature", String(signature));
+      formData.append("folder", String(folder));
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
+
+      if (!response.ok) {
+        return undefined;
+      }
+
+      const uploaded = await response.json();
+      return typeof uploaded?.secure_url === "string"
+        ? uploaded.secure_url
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const blobToDataUrl = (blob: Blob) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result);
+          return;
+        }
+        reject(new Error("Failed to read image blob"));
+      };
+      reader.onerror = () => reject(new Error("Failed to read image blob"));
+      reader.readAsDataURL(blob);
+    });
 
   const buildDesignConfig = () => ({
     units: { distance: "m", rotation: "rad" },
@@ -165,16 +336,23 @@ export const HeaderCustom = ({
       saveDesignCodeToStorage(code);
     }
 
+    const previewBlob = await capturePreviewFromCanvas();
+    const previewUrl = previewBlob
+      ? await uploadPreviewToCloudinary(previewBlob)
+      : undefined;
+
     const payload = {
       configuration: buildDesignConfig(),
       designName: name,
       designCode: code || undefined,
+      previewUrl,
     };
     try {
       const result = await saveDesign({
         configuration: payload.configuration,
         designName: payload.designName,
         designCode: payload.designCode,
+        previewUrl: payload.previewUrl,
       });
       const responsePayload = (result as any)?.data ?? result;
       const savedName = responsePayload?.designName || name;
@@ -193,13 +371,41 @@ export const HeaderCustom = ({
     router.push("/login");
   };
 
+  const handleSummaryClick = async () => {
+    if (isSummaryLoading) return;
+
+    setIsSummaryLoading(true);
+    try {
+      const previewBlob = await capturePreviewFromCanvas();
+      const previewImage = previewBlob
+        ? await blobToDataUrl(previewBlob).catch(() => undefined)
+        : undefined;
+
+      const payload: SummaryOrderPayload = {
+        ...(summaryPayload ?? {
+          items: [],
+          subtotal: 0,
+          totalItems: 0,
+          currency: "IDR" as const,
+          generatedAt: new Date().toISOString(),
+        }),
+        previewImage,
+      };
+
+      saveSummaryPayload(payload);
+      router.push("/custom/summary");
+    } finally {
+      setIsSummaryLoading(false);
+    }
+  };
+
   return (
     <>
       <header className="pointer-events-none absolute z-5 mx-auto flex w-full justify-between gap-4 px-4 pt-5 sm:px-6 sm:pt-4 md:px-8">
         {/* left button */}
         <div className="pointer-events-auto flex items-center gap-2 sm:gap-4">
           <div
-            className="cursor-pointer rounded-full bg-gray-100 p-3 shadow-md md:p-4"
+            className="bg-card text-foreground border-border cursor-pointer rounded-full border p-3 shadow-md md:p-4"
             onClick={onMenuClick}
           >
             <Menu className="h-4 w-4 md:h-6 md:w-6" />
@@ -207,7 +413,7 @@ export const HeaderCustom = ({
           <Button
             id="header-save-button"
             name="header-save"
-            className="hidden cursor-pointer items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-xs font-semibold text-black shadow-md hover:text-white md:flex"
+            className="bg-card text-foreground border-border hover:bg-muted hidden cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-md md:flex"
             onClick={handleSaveClick}
             disabled={isPending || (!isDirty && !!activeDesignName)}
           >
@@ -219,19 +425,23 @@ export const HeaderCustom = ({
         {/* right button */}
         <div className="pointer-events-auto flex items-center gap-4">
           <div
-            className="cursor-pointer rounded-full bg-gray-100 p-2 shadow-md"
+            className="bg-card text-foreground border-border cursor-pointer rounded-full border p-2 shadow-md"
             onClick={onListClick}
           >
             <ListOrdered className="h-4 w-4" />
           </div>
-          <div className="items-center justify-center text-center text-black">
+          <div className="text-foreground items-center justify-center text-center">
             {formattedPrice}
           </div>
-          <div className="flex cursor-pointer items-center gap-2 rounded-full bg-slate-900 px-2 py-2 text-sm font-bold text-white sm:px-4">
+          <button
+            type="button"
+            className="bg-primary text-primary-foreground flex cursor-pointer items-center gap-2 rounded-full px-2 py-2 text-sm font-bold sm:px-4"
+            onClick={handleSummaryClick}
+            disabled={isSummaryLoading}
+          >
             <span className="hidden sm:inline">SUMMARY</span>
-
             <MoveRight />
-          </div>
+          </button>
         </div>
       </header>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -241,7 +451,7 @@ export const HeaderCustom = ({
           </DialogHeader>
 
           <div className="py-2">
-            <DialogDescription className="text-base text-gray-600">
+            <DialogDescription className="text-muted-foreground text-base">
               You need to log in to save your designs.
             </DialogDescription>
           </div>
@@ -265,7 +475,7 @@ export const HeaderCustom = ({
           </DialogHeader>
 
           <div className="py-2">
-            <DialogDescription className="text-base text-gray-600">
+            <DialogDescription className="text-muted-foreground text-base">
               Give your design a name so you can find it later.
             </DialogDescription>
           </div>

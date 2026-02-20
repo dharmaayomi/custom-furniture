@@ -19,7 +19,7 @@ export const LoginPage = ({ reason }: LoginPageProps) => {
         <div className="flex justify-center gap-2 md:justify-start">
           <Link href="/" className="flex items-center gap-2 font-medium">
             <div className="text-primary-foreground flex items-center justify-center">
-              <Image src="/logo.svg" alt="Logo" width={200} height={300} />
+              <Image src="/logo.svg" alt="Logo" width={200} height={62} />
             </div>
           </Link>
         </div>

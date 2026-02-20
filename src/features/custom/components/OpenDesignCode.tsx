@@ -81,13 +81,13 @@ export const OpenDesignCode = ({
 
       {/* Modal */}
       <div
-        className={`fixed top-0 left-0 z-58 h-full w-90 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`bg-background text-foreground fixed top-0 left-0 z-58 h-full w-90 shadow-2xl transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between border-b p-4">
+          <div className="border-border flex items-center justify-between border-b p-4">
             <Button
               variant="ghost"
               size="icon"
@@ -137,13 +137,13 @@ export const OpenDesignCode = ({
 
           {/* Footer */}
 
-          <div className="border-t p-4">
+          <div className="border-border border-t p-4">
             {navUser ? (
               <NavUserMenu user={navUser} />
             ) : (
               <button
                 onClick={handleLogin}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-3 text-white transition-opacity hover:opacity-90"
+                className="bg-primary text-primary-foreground flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 transition-opacity hover:opacity-90"
               >
                 <LogIn size={20} />
                 <span className="font-medium">Login</span>

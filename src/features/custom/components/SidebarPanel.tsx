@@ -2,6 +2,11 @@
 import { X } from "lucide-react";
 import { Tool, ToolType } from "@/types/toolType";
 import { useState } from "react";
+import {
+  getStatusAlertClass,
+  getStatusAlertDescriptionClass,
+  getStatusAlertTitleClass,
+} from "@/lib/statusStyles";
 
 interface SidebarPanelProps {
   isOpen: boolean;
@@ -58,37 +63,39 @@ export const SidebarPanel = ({
     return (
       <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-gray-800">{tool.label}</h2>
+          <h2 className="text-foreground text-2xl font-semibold">
+            {tool.label}
+          </h2>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="hover:bg-gray-200"
+            className="hover:bg-muted"
           >
             <X size={20} />
           </Button>
         </div>
 
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">Kategori: {tool.category}</p>
+          <p className="text-muted-foreground text-sm">Kategori: {tool.category}</p>
 
           {tool.id === "tambahan" && mainModels.length === 0 && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <p className="text-sm font-medium text-amber-900">
+            <div className={getStatusAlertClass("warning")}>
+              <p className={getStatusAlertTitleClass("warning")}>
                 Please select a model first
               </p>
-              <p className="mt-1 text-xs text-amber-700">
+              <p className={getStatusAlertDescriptionClass("warning")}>
                 You need to place the furniture before adding additional items.
               </p>
             </div>
           )}
 
           {tool.id === "paint" && mainModels.length === 0 && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <p className="text-sm font-medium text-amber-900">
+            <div className={getStatusAlertClass("warning")}>
+              <p className={getStatusAlertTitleClass("warning")}>
                 Please select a model first
               </p>
-              <p className="mt-1 text-xs text-amber-700">
+              <p className={getStatusAlertDescriptionClass("warning")}>
                 You need to place the furniture before adding paint textures.
               </p>
             </div>
@@ -96,11 +103,11 @@ export const SidebarPanel = ({
           {tool.id === "paint" &&
             mainModels.length > 0 &&
             !selectedFurniture && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                <p className="text-sm font-medium text-amber-900">
+              <div className={getStatusAlertClass("warning")}>
+                <p className={getStatusAlertTitleClass("warning")}>
                   Please select a model
                 </p>
-                <p className="mt-1 text-xs text-amber-700">
+                <p className={getStatusAlertDescriptionClass("warning")}>
                   Select a furniture item to apply a texture.
                 </p>
               </div>
@@ -118,7 +125,7 @@ export const SidebarPanel = ({
                   }
                   handleItemClick(item);
                 }}
-                className={`relative aspect-square cursor-pointer overflow-hidden rounded-lg border-2 border-gray-200 bg-gray-100 transition-all hover:border-blue-500 ${
+                className={`bg-muted border-border hover:border-ring relative aspect-square cursor-pointer overflow-hidden rounded-lg border-2 transition-all ${
                   (tool.id === "tambahan" && mainModels.length === 0) ||
                   (tool.id === "paint" && !selectedFurniture)
                     ? "pointer-events-none cursor-not-allowed opacity-50"
@@ -134,9 +141,9 @@ export const SidebarPanel = ({
                   />
                 ) : (
                   // Preview 3D Model (Thumbnail Placeholder)
-                  <div className="flex h-full w-full flex-col items-center justify-center p-2 text-center text-xs text-gray-600">
+                  <div className="text-muted-foreground flex h-full w-full flex-col items-center justify-center p-2 text-center text-xs">
                     <span className="font-bold">{item}</span>
-                    <span className="mt-1 text-[10px] text-gray-400">
+                    <span className="text-muted-foreground/70 mt-1 text-[10px]">
                       (3D Asset)
                     </span>
                   </div>
@@ -157,7 +164,7 @@ export const SidebarPanel = ({
                   }
                 }}
                 disabled={!selectedFurniture}
-                className={`w-full font-semibold ${selectedFurniture ? "bg-slate-900 text-white hover:bg-slate-700" : "cursor-not-allowed bg-gray-100 text-gray-400"}`}
+                className={`w-full font-semibold ${selectedFurniture ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground cursor-not-allowed"}`}
               >
                 Reset Texture
               </Button>
@@ -182,10 +189,10 @@ export const SidebarPanel = ({
       <div className="p-6">
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-800">
+            <h2 className="text-foreground text-2xl font-semibold">
               Browse products by room
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="text-muted-foreground mt-2 text-sm">
               Furnish your space from different areas of the home to meet your
               lifestyle needs
             </p>
@@ -194,7 +201,7 @@ export const SidebarPanel = ({
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="hover:bg-gray-200"
+            className="hover:bg-muted"
           >
             <X size={20} />
           </Button>
@@ -205,13 +212,13 @@ export const SidebarPanel = ({
           {rooms.map((room) => (
             <div
               key={room.id}
-              className="group relative cursor-pointer overflow-hidden rounded-lg border-2 border-gray-200 transition-all hover:border-blue-500"
+              className="border-border hover:border-ring group relative cursor-pointer overflow-hidden rounded-lg border-2 transition-all"
             >
-              <div className="flex aspect-4/3 items-center justify-center bg-gray-100">
-                <span className="text-sm text-gray-400">{room.name}</span>
+              <div className="bg-muted flex aspect-4/3 items-center justify-center">
+                <span className="text-muted-foreground text-sm">{room.name}</span>
               </div>
-              <div className="bg-opacity-90 absolute right-0 bottom-0 left-0 bg-white p-3">
-                <p className="text-sm font-medium text-gray-800">{room.name}</p>
+              <div className="bg-card/90 absolute right-0 bottom-0 left-0 p-3 backdrop-blur">
+                <p className="text-foreground text-sm font-medium">{room.name}</p>
               </div>
             </div>
           ))}
@@ -222,7 +229,7 @@ export const SidebarPanel = ({
 
   return (
     <div
-      className={`fixed top-0 right-0 z-60 h-full w-[85vw] max-w-88 bg-white shadow-md sm:w-80 sm:max-w-none ${
+      className={`bg-background text-foreground fixed top-0 right-0 z-60 h-full w-[85vw] max-w-88 shadow-md sm:w-80 sm:max-w-none ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
     >
