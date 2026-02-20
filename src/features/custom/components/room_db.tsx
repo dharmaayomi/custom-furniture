@@ -39,6 +39,7 @@ import { CAMERA_CONFIG } from "../_components/RoomConfig";
 import useGetProducts from "@/hooks/api/product/useGetProducts";
 import useGetProductById from "@/hooks/api/product/useGetProductById";
 import { useUser } from "@/providers/UserProvider";
+import { SummaryOrderItem } from "@/types/summary";
 
 const ASSETS_3D = [
   "lemaritest.glb",
@@ -149,6 +150,46 @@ export const RoomPageDB = () => {
       return sum + (product?.basePrice ?? 0);
     }, 0);
   }, [mainModels, addOnModels, productList]);
+
+  const summaryItems = useMemo<SummaryOrderItem[]>(() => {
+    const allModels = [...mainModels, ...addOnModels];
+    const productMap = new Map(productList.map((product) => [product.id, product]));
+    const counts: Record<string, number> = {};
+
+    allModels.forEach((modelId) => {
+      const extracted = extractModelNameFromId(modelId);
+      counts[extracted] = (counts[extracted] || 0) + 1;
+    });
+
+    const items: SummaryOrderItem[] = [];
+    Object.entries(counts).forEach(([productId, quantity]) => {
+      const product = productMap.get(productId);
+      if (!product) return;
+
+      items.push({
+        id: product.id,
+        name: product.productName,
+        sku: product.sku || product.id,
+        image: product.images?.[0],
+        unitPrice: product.basePrice,
+        quantity,
+        subtotal: product.basePrice * quantity,
+      });
+    });
+
+    return items;
+  }, [mainModels, addOnModels, productList]);
+
+  const summaryPayload = useMemo(
+    () => ({
+      items: summaryItems,
+      subtotal: totalPriceFromDb,
+      totalItems: summaryItems.reduce((sum, item) => sum + item.quantity, 0),
+      currency: "IDR" as const,
+      generatedAt: new Date().toISOString(),
+    }),
+    [summaryItems, totalPriceFromDb],
+  );
   const tools: Tool[] = [
     {
       id: "furniture",
@@ -418,6 +459,7 @@ export const RoomPageDB = () => {
               scene={scene}
               totalPrice={totalPriceFromDb}
               formattedPrice={formatPrice(totalPriceFromDb)}
+              summaryPayload={summaryPayload}
             />
           </div>
         </div>

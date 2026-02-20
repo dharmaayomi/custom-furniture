@@ -28,7 +28,10 @@ const resolveModelSource = (
   const extracted = extractModelNameFromId(modelName);
   const dbUrl = resolveModelUrl?.(extracted) ?? resolveModelUrl?.(modelName);
   if (dbUrl) return dbUrl;
-  return "/assets/3d/" + modelName;
+  if (/\.glb$/i.test(modelName)) {
+    return "/assets/3d/" + modelName;
+  }
+  return undefined;
 };
 
 // ===========load main model ===========
@@ -42,9 +45,13 @@ export const loadMainModel = async (
 ): Promise<BABYLON.AbstractMesh | null> => {
   try {
     updateRoomDimensions();
+    const modelSource = resolveModelSource(modelName, resolveModelUrl);
+    if (!modelSource) {
+      return null;
+    }
 
     const container = await BABYLON.LoadAssetContainerAsync(
-      resolveModelSource(modelName, resolveModelUrl),
+      modelSource,
       scene,
     );
 
@@ -420,6 +427,10 @@ export const loadAdditionalModel = async (
 ): Promise<void> => {
   try {
     updateRoomDimensions();
+    const modelSource = resolveModelSource(modelName, resolveModelUrl);
+    if (!modelSource) {
+      return;
+    }
 
     let uniqueId = savedTransform?.modelName;
 
@@ -440,7 +451,7 @@ export const loadAdditionalModel = async (
     }
 
     const container = await BABYLON.LoadAssetContainerAsync(
-      resolveModelSource(modelName, resolveModelUrl),
+      modelSource,
       scene,
     );
 

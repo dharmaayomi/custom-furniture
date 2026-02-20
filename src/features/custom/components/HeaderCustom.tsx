@@ -25,6 +25,8 @@ import { useUser } from "@/providers/UserProvider";
 import useGetSavedDesignByCode from "@/hooks/api/design/useGetSavedDesignByCode";
 import useGetDesignPreviewUploadSignature from "@/hooks/api/design/useGetDesignPreviewUploadSignature";
 import { CAMERA_CONFIG } from "../_components/RoomConfig";
+import { SummaryOrderPayload } from "@/types/summary";
+import { saveSummaryPayload } from "@/lib/summaryStorage";
 
 interface HeaderCustomProps {
   onMenuClick: () => void;
@@ -32,6 +34,7 @@ interface HeaderCustomProps {
   totalPrice?: number;
   formattedPrice?: string;
   scene?: BABYLON.Scene | null;
+  summaryPayload?: Omit<SummaryOrderPayload, "previewImage">;
 }
 
 export const HeaderCustom = ({
@@ -39,6 +42,7 @@ export const HeaderCustom = ({
   onListClick,
   formattedPrice = "Rp.0",
   scene = null,
+  summaryPayload,
 }: HeaderCustomProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
@@ -55,6 +59,7 @@ export const HeaderCustom = ({
   const [nameInput, setNameInput] = useState("");
   const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
   const [lastSavedHash, setLastSavedHash] = useState<string | null>(null);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const routeDesignCode = useMemo(() => {
     const parts = pathname.split("/").filter(Boolean);
     if (parts[0] !== "custom" || !parts[1]) return "";
@@ -216,6 +221,20 @@ export const HeaderCustom = ({
     }
   };
 
+  const blobToDataUrl = (blob: Blob) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result);
+          return;
+        }
+        reject(new Error("Failed to read image blob"));
+      };
+      reader.onerror = () => reject(new Error("Failed to read image blob"));
+      reader.readAsDataURL(blob);
+    });
+
   const buildDesignConfig = () => ({
     units: { distance: "m", rotation: "rad" },
     room: roomState.roomConfig,
@@ -352,6 +371,34 @@ export const HeaderCustom = ({
     router.push("/login");
   };
 
+  const handleSummaryClick = async () => {
+    if (isSummaryLoading) return;
+
+    setIsSummaryLoading(true);
+    try {
+      const previewBlob = await capturePreviewFromCanvas();
+      const previewImage = previewBlob
+        ? await blobToDataUrl(previewBlob).catch(() => undefined)
+        : undefined;
+
+      const payload: SummaryOrderPayload = {
+        ...(summaryPayload ?? {
+          items: [],
+          subtotal: 0,
+          totalItems: 0,
+          currency: "IDR" as const,
+          generatedAt: new Date().toISOString(),
+        }),
+        previewImage,
+      };
+
+      saveSummaryPayload(payload);
+      router.push("/custom/summary");
+    } finally {
+      setIsSummaryLoading(false);
+    }
+  };
+
   return (
     <>
       <header className="pointer-events-none absolute z-5 mx-auto flex w-full justify-between gap-4 px-4 pt-5 sm:px-6 sm:pt-4 md:px-8">
@@ -386,11 +433,15 @@ export const HeaderCustom = ({
           <div className="text-foreground items-center justify-center text-center">
             {formattedPrice}
           </div>
-          <div className="bg-primary text-primary-foreground flex cursor-pointer items-center gap-2 rounded-full px-2 py-2 text-sm font-bold sm:px-4">
+          <button
+            type="button"
+            className="bg-primary text-primary-foreground flex cursor-pointer items-center gap-2 rounded-full px-2 py-2 text-sm font-bold sm:px-4"
+            onClick={handleSummaryClick}
+            disabled={isSummaryLoading}
+          >
             <span className="hidden sm:inline">SUMMARY</span>
-
             <MoveRight />
-          </div>
+          </button>
         </div>
       </header>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

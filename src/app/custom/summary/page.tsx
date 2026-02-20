@@ -1,4 +1,4 @@
-import { SummaryDesignPage } from "@/features/dashboard/summary";
+import SummaryDesignPage from "@/features/dashboard/summary";
 import React from "react";
 
 const SummaryDesign = () => {
