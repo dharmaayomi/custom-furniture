@@ -393,7 +393,7 @@ export const HeaderCustom = ({
       };
 
       saveSummaryPayload(payload);
-      router.push("/custom/summary");
+      router.push("/summary");
     } finally {
       setIsSummaryLoading(false);
     }
