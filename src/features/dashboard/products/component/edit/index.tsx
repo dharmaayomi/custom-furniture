@@ -22,8 +22,9 @@ type EditComponentPageProps = {
 
 type ComponentFormData = {
   componentName: string;
+  componentSku: string;
   componentDesc: string;
-  componentCategory: ComponentCategory;
+  componentCategory: ComponentCategory | "";
   price: string;
   weight: string;
   isActive: boolean;
@@ -71,8 +72,9 @@ export const EditComponentPage = ({ componentId }: EditComponentPageProps) => {
     setExistingImages(component.componentImageUrls ?? []);
     setFormData({
       componentName: component.componentName,
+      componentSku: component.componentSku,
       componentDesc: component.componentDesc,
-      componentCategory: component.componentCategory,
+      componentCategory: component.componentCategory ?? "",
       price: String(component.price),
       weight: String(component.weight),
       isActive: component.isActive,
@@ -120,14 +122,19 @@ export const EditComponentPage = ({ componentId }: EditComponentPageProps) => {
       toast.error("At least one image is required.");
       return;
     }
+    if (!formData.componentCategory) {
+      toast.error("Please select a component category.");
+      return;
+    }
 
     try {
       await updateComponent({
         componentId,
         payload: {
           componentName: formData.componentName,
+          componentSku: formData.componentSku,
           componentDesc: formData.componentDesc,
-          componentCategory: formData.componentCategory,
+          componentCategory: formData.componentCategory as ComponentCategory,
           price: formData.price,
           weight: formData.weight,
           isActive: formData.isActive,
@@ -238,6 +245,22 @@ export const EditComponentPage = ({ componentId }: EditComponentPageProps) => {
                     />
                   </div>
                   <div>
+                    <Label htmlFor="componentSku" className="text-foreground">
+                      Component SKU *
+                    </Label>
+                    <Input
+                      id="componentSku"
+                      name="componentSku"
+                      value={formData.componentSku}
+                      onChange={handleInputChange}
+                      className="border-input bg-background mt-1"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
                     <Label
                       htmlFor="componentCategory"
                       className="text-foreground"
@@ -245,21 +268,24 @@ export const EditComponentPage = ({ componentId }: EditComponentPageProps) => {
                       Category *
                     </Label>
                     <select
-                      id="componentCategory"
-                      value={formData.componentCategory}
-                      onChange={(e) =>
+                    id="componentCategory"
+                    value={formData.componentCategory}
+                    onChange={(e) =>
                         setFormData((prev) =>
                           prev
                             ? {
                                 ...prev,
                                 componentCategory: e.target
-                                  .value as ComponentCategory,
+                                  .value as ComponentCategory | "",
                               }
                             : prev,
                         )
                       }
                       className="border-input bg-background mt-1 h-9 w-full rounded-md border px-3 text-sm"
                     >
+                      <option value="" disabled>
+                        Select category
+                      </option>
                       {COMPONENT_CATEGORIES.map((category) => (
                         <option key={category} value={category}>
                           {category}

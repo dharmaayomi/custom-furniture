@@ -4,6 +4,7 @@ export type ProductComponent = {
   id: string;
   componentName: string;
   componentUrl: string;
+  componentSku: string;
   componentCategory: ComponentCategory;
   componentDesc: string;
   price: number;
@@ -27,6 +28,7 @@ export type ComponentCategory =
 export type CreateComponentInput = {
   componentName: string;
   componentUrl: string;
+  componentSku: string;
   componentDesc: string;
   componentCategory: ComponentCategory;
   price: number | string;
@@ -39,6 +41,7 @@ export type UpdateComponentInput = Partial<
     CreateComponentInput,
     | "componentName"
     | "componentUrl"
+    | "componentSku"
     | "componentDesc"
     | "componentCategory"
     | "price"

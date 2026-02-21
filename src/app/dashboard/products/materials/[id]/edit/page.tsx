@@ -1,9 +1,15 @@
 import { EditMaterialProductPage } from "@/features/dashboard/products/material/edit";
 
-const EditMaterialProduct = () => {
+const EditMaterialProduct = async ({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) => {
+  const { id } = await params;
+
   return (
     <div>
-      <EditMaterialProductPage />
+      <EditMaterialProductPage materialId={id} />
     </div>
   );
 };

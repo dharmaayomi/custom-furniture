@@ -1,20 +1,20 @@
 import useAxios from "@/hooks/useAxios";
 import {
-  GetComponentsQuery,
-  GetComponentsResponse,
-} from "@/types/componentProduct";
-
+  GetMaterialsQuery,
+  GetMaterialsResponse,
+} from "@/types/materialProduct";
 import { useQuery } from "@tanstack/react-query";
+import React from "react";
 
-const normalizePageableResponse = (payload: unknown): GetComponentsResponse => {
+const normalizePageableResponse = (payload: unknown): GetMaterialsResponse => {
   const raw = payload as any;
 
   if (Array.isArray(raw?.data) && raw?.meta) {
-    return raw as GetComponentsResponse;
+    return raw as GetMaterialsResponse;
   }
 
   if (Array.isArray(raw?.data?.data) && raw?.data?.meta) {
-    return raw.data as GetComponentsResponse;
+    return raw.data as GetMaterialsResponse;
   }
 
   return {
@@ -29,13 +29,13 @@ const normalizePageableResponse = (payload: unknown): GetComponentsResponse => {
   };
 };
 
-const useGetComponents = (query?: GetComponentsQuery, enabled = true) => {
+const useGetMaterials = (query?: GetMaterialsQuery, enabled = true) => {
   const axiosInstance = useAxios();
 
-  return useQuery<GetComponentsResponse>({
-    queryKey: ["components", query],
+  return useQuery<GetMaterialsResponse>({
+    queryKey: ["materials", query],
     queryFn: async () => {
-      const { data } = await axiosInstance.get("/product/component", {
+      const { data } = await axiosInstance.get("/product/material", {
         params: query,
       });
       return normalizePageableResponse(data);
@@ -44,4 +44,4 @@ const useGetComponents = (query?: GetComponentsQuery, enabled = true) => {
   });
 };
 
-export default useGetComponents;
+export default useGetMaterials;
