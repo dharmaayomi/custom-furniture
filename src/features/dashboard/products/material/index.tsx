@@ -12,91 +12,49 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import useDeleteComponent from "@/hooks/api/product/useDeleteComponent";
-import useGetComponents from "@/hooks/api/product/useGetComponents";
-import { ComponentCategory, ProductComponent } from "@/types/componentProduct";
+import useDeleteMaterial from "@/hooks/api/product/useDeleteMaterial";
+import useGetMaterials from "@/hooks/api/product/useGetMaterials";
+import { MaterialCategory, ProductMaterial } from "@/types/materialProduct";
 import {
   Filter,
   Grid3x3,
-  Layers,
   List,
   PackageSearch,
+  Palette,
   Pencil,
   Plus,
   RotateCcw,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { toast } from "sonner";
 import { useDebounceValue } from "usehooks-ts";
 
-const COMPONENT_CATEGORIES: ComponentCategory[] = [
-  "SHELF",
-  "DRAWER",
-  "HANGER",
-  "DOOR",
-  "RAIL",
-  "ACCESSORY",
-  "HARDWARE",
-];
+const MATERIAL_CATEGORIES: MaterialCategory[] = ["FLOOR", "WALL", "FURNITURE"];
 
-const toCloudinaryThumbUrl = (url?: string) => {
-  if (!url) return undefined;
-  if (!url.includes("res.cloudinary.com") || !url.includes("/upload/")) {
-    return undefined;
-  }
-
-  const transformed = url.replace(
-    "/upload/",
-    "/upload/w_320,h_240,c_fill,q_auto,f_auto/",
-  );
-
-  return transformed;
-};
-
-const ComponentPreview = ({
-  candidates,
-  name,
-  list,
-}: {
-  candidates: (string | undefined)[];
-  name: string;
-  list?: boolean;
-}) => {
-  const normalizedCandidates = useMemo(
-    () => candidates.filter((item): item is string => !!item),
-    [candidates],
-  );
-  const [activeIndex, setActiveIndex] = useState(0);
+const MaterialPreview = ({ url, name, list }: { url?: string; name: string; list?: boolean }) => {
   const baseClass = list
     ? "bg-muted text-muted-foreground flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs"
     : "bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center overflow-hidden text-xs";
 
-  const activeImage = normalizedCandidates[activeIndex];
-
-  if (!activeImage) return <div className={baseClass}>Preview</div>;
+  if (!url) return <div className={baseClass}>Preview</div>;
 
   return (
     <div className={baseClass}>
-      <img
-        src={activeImage}
-        alt={name}
-        className="h-full w-full object-cover"
-        onError={() => {
-          if (activeIndex < normalizedCandidates.length - 1) {
-            setActiveIndex((prev) => prev + 1);
-          }
-        }}
-      />
+      <img src={url} alt={name} className="h-full w-full object-cover" />
     </div>
   );
 };
 
-export const ProductComponentPage = () => {
+export const ProductMaterialPage = () => {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<ProductMaterial | null>(
+    null,
+  );
   const [search, setSearch] = useQueryState("search", { defaultValue: "" });
   const [categoryFilter, setCategoryFilter] = useQueryState("category", {
     defaultValue: "ALL",
@@ -107,7 +65,7 @@ export const ProductComponentPage = () => {
   const [minPrice, setMinPrice] = useQueryState("minPrice", parseAsInteger);
   const [maxPrice, setMaxPrice] = useQueryState("maxPrice", parseAsInteger);
   const [sortBy, setSortBy] = useQueryState("sortBy", {
-    defaultValue: "componentName",
+    defaultValue: "materialName",
   });
   const [orderBy, setOrderBy] = useQueryState("orderBy", {
     defaultValue: "asc",
@@ -116,14 +74,10 @@ export const ProductComponentPage = () => {
   const perPage = 6;
   const [debouncedSearch] = useDebounceValue(search, 500);
 
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [selectedComponent, setSelectedComponent] =
-    useState<ProductComponent | null>(null);
-
   const resolvedCategory =
     categoryFilter === "ALL"
       ? undefined
-      : (categoryFilter as ComponentCategory);
+      : (categoryFilter as MaterialCategory);
   const resolvedIsActive =
     statusFilter === "ACTIVE"
       ? true
@@ -132,14 +86,14 @@ export const ProductComponentPage = () => {
         : undefined;
   const resolvedSortBy =
     sortBy === "price" ||
-    sortBy === "componentCategory" ||
+    sortBy === "materialCategory" ||
     sortBy === "createdAt" ||
     sortBy === "updatedAt"
       ? sortBy
-      : "componentName";
+      : "materialName";
   const resolvedOrderBy = orderBy === "desc" ? "desc" : "asc";
 
-  const { data, isLoading, isError } = useGetComponents(
+  const { data, isLoading, isError } = useGetMaterials(
     {
       page,
       perPage,
@@ -154,11 +108,11 @@ export const ProductComponentPage = () => {
     true,
   );
 
-  const components = data?.data ?? [];
+  const materials: ProductMaterial[] = data?.data ?? [];
   const meta = data?.meta;
-  const { mutateAsync: deleteComponent, isPending: isDeleting } =
-    useDeleteComponent();
-  const totalItems = meta?.total ?? components.length;
+  const totalItems = meta?.total ?? materials.length;
+  const { mutateAsync: deleteMaterial, isPending: isDeleting } =
+    useDeleteMaterial();
 
   const handleResetFilters = () => {
     void setSearch("");
@@ -166,27 +120,27 @@ export const ProductComponentPage = () => {
     void setStatusFilter("ALL");
     void setMinPrice(null);
     void setMaxPrice(null);
-    void setSortBy("componentName");
+    void setSortBy("materialName");
     void setOrderBy("asc");
     void setPage(1);
   };
 
-  const openDeleteDialog = (component: ProductComponent) => {
-    setSelectedComponent(component);
+  const openDeleteDialog = (material: ProductMaterial) => {
+    setSelectedMaterial(material);
     setIsDeleteOpen(true);
   };
 
   const handleDelete = async () => {
-    if (!selectedComponent) return;
+    if (!selectedMaterial) return;
     try {
-      await deleteComponent(selectedComponent.id);
-      toast.success("Component deleted successfully.");
+      await deleteMaterial(selectedMaterial.id);
+      toast.success("Material deleted successfully.");
       setIsDeleteOpen(false);
-      setSelectedComponent(null);
+      setSelectedMaterial(null);
     } catch (error) {
       const message =
         (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ?? "Failed to delete component.";
+          ?.data?.message ?? "Failed to delete material.";
       toast.error(message);
     }
   };
@@ -197,18 +151,18 @@ export const ProductComponentPage = () => {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-foreground text-2xl font-semibold tracking-tight md:text-3xl">
-              Components
+              Materials
             </h1>
             <p className="text-muted-foreground mt-2 text-sm">
-              Manage customization components.
+              Manage product material catalog.
             </p>
           </div>
           <Button
             className="w-full gap-2 sm:w-auto"
-            onClick={() => router.push("/dashboard/products/components/add")}
+            onClick={() => router.push("/dashboard/products/materials/add")}
           >
             <Plus className="h-4 w-4" />
-            Add Component
+            Add Material
           </Button>
         </div>
       </div>
@@ -221,35 +175,36 @@ export const ProductComponentPage = () => {
                 <Filter className="text-muted-foreground h-4 w-4" />
                 <h2 className="text-sm font-semibold">Filters</h2>
               </div>
+
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="component-search">Search</Label>
+                  <Label htmlFor="material-search">Search</Label>
                   <Input
-                    id="component-search"
+                    id="material-search"
                     placeholder="Name or category"
                     value={search}
                     onChange={(event) => {
-                      setSearch(event.target.value);
+                      void setSearch(event.target.value);
                       void setPage(1);
                     }}
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="component-category">Category</Label>
+                  <Label htmlFor="material-category">Category</Label>
                   <select
-                    id="component-category"
+                    id="material-category"
                     value={categoryFilter}
                     className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none"
                     onChange={(event) => {
                       void setCategoryFilter(
-                        event.target.value as "ALL" | ComponentCategory,
+                        event.target.value as "ALL" | MaterialCategory,
                       );
                       void setPage(1);
                     }}
                   >
                     <option value="ALL">All Categories</option>
-                    {COMPONENT_CATEGORIES.map((category) => (
+                    {MATERIAL_CATEGORIES.map((category) => (
                       <option key={category} value={category}>
                         {category}
                       </option>
@@ -258,9 +213,9 @@ export const ProductComponentPage = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="component-status">Status</Label>
+                  <Label htmlFor="material-status">Status</Label>
                   <select
-                    id="component-status"
+                    id="material-status"
                     value={statusFilter}
                     className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none"
                     onChange={(event) => {
@@ -279,9 +234,9 @@ export const ProductComponentPage = () => {
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Price range</p>
                   <div className="space-y-1.5">
-                    <Label htmlFor="component-min-price">Min price</Label>
+                    <Label htmlFor="material-min-price">Min price</Label>
                     <Input
-                      id="component-min-price"
+                      id="material-min-price"
                       type="number"
                       min={0}
                       value={minPrice ?? ""}
@@ -293,9 +248,9 @@ export const ProductComponentPage = () => {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="component-max-price">Max price</Label>
+                    <Label htmlFor="material-max-price">Max price</Label>
                     <Input
-                      id="component-max-price"
+                      id="material-max-price"
                       type="number"
                       min={0}
                       value={maxPrice ?? ""}
@@ -309,28 +264,28 @@ export const ProductComponentPage = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="component-sort-by">Sort by</Label>
+                  <Label htmlFor="material-sort-by">Sort by</Label>
                   <select
-                    id="component-sort-by"
+                    id="material-sort-by"
                     value={sortBy}
                     className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none"
                     onChange={(event) => {
                       void setSortBy(
-                        event.target.value as "componentName" | "price",
+                        event.target.value as "materialName" | "price",
                       );
                       void setPage(1);
                     }}
                   >
-                    <option value="componentName">Component Name</option>
-                    <option value="componentCategory">Category</option>
+                    <option value="materialName">Material Name</option>
+                    <option value="materialCategory">Category</option>
                     <option value="price">Price</option>
                   </select>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="component-sort-order">Sort order</Label>
+                  <Label htmlFor="material-sort-order">Sort order</Label>
                   <select
-                    id="component-sort-order"
+                    id="material-sort-order"
                     value={orderBy}
                     className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none"
                     onChange={(event) => {
@@ -356,9 +311,7 @@ export const ProductComponentPage = () => {
 
             <div className="lg:col-start-1 lg:row-start-1">
               <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-muted-foreground text-sm">
-                  {totalItems} items
-                </p>
+                <p className="text-muted-foreground text-sm">{totalItems} items</p>
                 <div className="border-border bg-muted flex w-full gap-2 rounded-lg border p-1 sm:w-auto">
                   <Button
                     variant={viewMode === "grid" ? "default" : "ghost"}
@@ -406,20 +359,20 @@ export const ProductComponentPage = () => {
                 <div className="border-border bg-card flex w-full flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12">
                   <PackageSearch className="text-muted-foreground/40 mb-3 h-12 w-12" />
                   <h3 className="text-foreground mb-2 text-lg font-medium">
-                    Failed to load components
+                    Failed to load materials
                   </h3>
                   <p className="text-muted-foreground text-sm">
                     Please try again later.
                   </p>
                 </div>
-              ) : components.length === 0 ? (
+              ) : materials.length === 0 ? (
                 <div className="border-border bg-card flex w-full flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12">
                   <PackageSearch className="text-muted-foreground/40 mb-3 h-12 w-12" />
                   <h3 className="text-foreground mb-2 text-lg font-medium">
-                    No components found
+                    No materials found
                   </h3>
                   <p className="text-muted-foreground text-sm">
-                    Create your first component to get started.
+                    Create your first material to get started.
                   </p>
                 </div>
               ) : (
@@ -430,39 +383,28 @@ export const ProductComponentPage = () => {
                       : "space-y-4"
                   }
                 >
-                  {components.map((item) =>
+                  {materials.map((item) =>
                     viewMode === "grid" ? (
                       <div
                         key={item.id}
                         className="bg-card overflow-hidden rounded-lg border shadow-sm"
                       >
-                        <ComponentPreview
-                          candidates={[
-                            toCloudinaryThumbUrl(item.componentUrl),
-                            item.componentImageUrls?.[0],
-                          ]}
-                          name={item.componentName}
-                        />
+                        <MaterialPreview url={item.materialUrl} name={item.materialName} />
                         <div className="p-3">
                           <div className="mb-1 flex items-center gap-2">
-                            <Layers className="text-muted-foreground h-4 w-4" />
+                            <Palette className="text-muted-foreground h-4 w-4" />
                             <p className="text-foreground truncate text-sm font-semibold">
-                              {item.componentName}
+                              {item.materialName}
                             </p>
                           </div>
                           <p className="text-muted-foreground text-xs">
-                            Category: {item.componentCategory}
+                            Category: {item.materialCategory ?? "-"}
                           </p>
                           <p className="text-muted-foreground text-xs">
-                            Price: {item.price}
-                          </p>
-                          <p className="text-muted-foreground text-xs">
-                            Weight: {item.weight} kg
+                            Price: {item.price ?? "-"}
                           </p>
                           <div className="mt-2">
-                            <Badge
-                              variant={item.isActive ? "default" : "secondary"}
-                            >
+                            <Badge variant={item.isActive ? "default" : "secondary"}>
                               {item.isActive ? "Active" : "Inactive"}
                             </Badge>
                           </div>
@@ -472,9 +414,7 @@ export const ProductComponentPage = () => {
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                router.push(
-                                  `/dashboard/products/components/${item.id}/edit`,
-                                )
+                                router.push(`/dashboard/products/materials/${item.id}/edit`)
                               }
                               className="flex-1 bg-transparent"
                             >
@@ -499,36 +439,26 @@ export const ProductComponentPage = () => {
                         className="bg-card rounded-lg border p-3 shadow-sm"
                       >
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                          <ComponentPreview
+                          <MaterialPreview
                             list
-                            candidates={[
-                              toCloudinaryThumbUrl(item.componentUrl),
-                              item.componentImageUrls?.[0],
-                            ]}
-                            name={item.componentName}
+                            url={item.materialUrl}
+                            name={item.materialName}
                           />
                           <div className="min-w-0 flex-1">
                             <div className="mb-1 flex items-center gap-2">
-                              <Layers className="text-muted-foreground h-4 w-4" />
+                              <Palette className="text-muted-foreground h-4 w-4" />
                               <p className="text-foreground truncate text-sm font-semibold">
-                                {item.componentName}
+                                {item.materialName}
                               </p>
                             </div>
                             <p className="text-muted-foreground text-xs">
-                              Category: {item.componentCategory}
+                              Category: {item.materialCategory ?? "-"}
                             </p>
                             <p className="text-muted-foreground text-xs">
-                              Price: {item.price}
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                              Weight: {item.weight} kg
+                              Price: {item.price ?? "-"}
                             </p>
                             <div className="mt-2">
-                              <Badge
-                                variant={
-                                  item.isActive ? "default" : "secondary"
-                                }
-                              >
+                              <Badge variant={item.isActive ? "default" : "secondary"}>
                                 {item.isActive ? "Active" : "Inactive"}
                               </Badge>
                             </div>
@@ -539,9 +469,7 @@ export const ProductComponentPage = () => {
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                router.push(
-                                  `/dashboard/products/components/${item.id}/edit`,
-                                )
+                                router.push(`/dashboard/products/materials/${item.id}/edit`)
                               }
                               className="flex-1 bg-transparent sm:flex-none"
                             >
@@ -569,17 +497,13 @@ export const ProductComponentPage = () => {
                 <div className="mt-4 flex items-center justify-between">
                   <p className="text-muted-foreground text-xs">
                     Page {meta?.page ?? page} of{" "}
-                    {meta
-                      ? Math.max(1, Math.ceil(meta.total / meta.perPage))
-                      : 1}
+                    {meta ? Math.max(1, Math.ceil(meta.total / meta.perPage)) : 1}
                   </p>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() =>
-                        void setPage(Math.max(1, (meta?.page ?? page) - 1))
-                      }
+                      onClick={() => void setPage(Math.max(1, (meta?.page ?? page) - 1))}
                       disabled={!meta?.hasPrevious}
                     >
                       Previous
@@ -604,18 +528,18 @@ export const ProductComponentPage = () => {
         open={isDeleteOpen}
         onOpenChange={(open) => {
           setIsDeleteOpen(open);
-          if (!open) setSelectedComponent(null);
+          if (!open) setSelectedMaterial(null);
         }}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Delete component?</DialogTitle>
+            <DialogTitle>Delete material?</DialogTitle>
             <DialogDescription>
-              {selectedComponent ? (
+              {selectedMaterial ? (
                 <>
                   You are about to delete{" "}
                   <span className="text-foreground font-semibold">
-                    {selectedComponent.componentName}
+                    {selectedMaterial.materialName}
                   </span>
                   . This action cannot be undone.
                 </>
@@ -633,7 +557,7 @@ export const ProductComponentPage = () => {
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? "Deleting..." : "Delete Component"}
+              {isDeleting ? "Deleting..." : "Delete Material"}
             </Button>
           </DialogFooter>
         </DialogContent>

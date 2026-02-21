@@ -1,7 +1,11 @@
-import React from "react";
+import { ProductMaterialPage } from "@/features/dashboard/products/material";
 
 const ProductMaterial = () => {
-  return <div>ProductMaterial</div>;
+  return (
+    <div>
+      <ProductMaterialPage />
+    </div>
+  );
 };
 
 export default ProductMaterial;

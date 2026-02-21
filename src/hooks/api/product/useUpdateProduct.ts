@@ -44,7 +44,19 @@ const uploadToCloudinary = async (
   );
 
   if (!response.ok) {
-    throw new Error(`Failed to upload ${resourceType} to Cloudinary`);
+    let details = "";
+    try {
+      const errorPayload = await response.json();
+      details =
+        errorPayload?.error?.message ??
+        errorPayload?.message ??
+        JSON.stringify(errorPayload);
+    } catch {
+      details = await response.text();
+    }
+    throw new Error(
+      `Failed to upload ${resourceType} to Cloudinary (${response.status}): ${details || "Unknown error"}`,
+    );
   }
 
   const result = await response.json();
@@ -55,6 +67,21 @@ const uploadToCloudinary = async (
   }
 
   return secureUrl;
+};
+
+const uploadProductModelToCloudinary = async (
+  file: File,
+  signaturePayload: CloudinarySignaturePayload,
+) => {
+  try {
+    return await uploadToCloudinary(file, signaturePayload, "image");
+  } catch (imageError) {
+    console.warn(
+      "[useUpdateProduct] image upload for product model failed, falling back to raw upload",
+      imageError,
+    );
+    return uploadToCloudinary(file, signaturePayload, "raw");
+  }
 };
 
 const useEditProduct = () => {
@@ -78,7 +105,10 @@ const useEditProduct = () => {
         );
         const glbSignature =
           normalizeResponse<CloudinarySignaturePayload>(glbSignatureRes.data);
-        const productUrl = await uploadToCloudinary(productFile, glbSignature, "raw");
+        const productUrl = await uploadProductModelToCloudinary(
+          productFile,
+          glbSignature,
+        );
         cleanedPayload.productUrl = productUrl;
       }
 

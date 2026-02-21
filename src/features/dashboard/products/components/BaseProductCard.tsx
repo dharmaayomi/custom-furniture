@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/price";
 import { ProductBase } from "@/types/product";
 import { Box, Edit2, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
 type BaseProductCardProps = {
   item: ProductBase;
@@ -14,25 +14,71 @@ type BaseProductCardProps = {
   onDelete: () => void;
 };
 
-const ProductPreview = ({ src, alt, list }: { src?: string; alt: string; list?: boolean }) => {
-  const [hasError, setHasError] = useState(false);
+const toCloudinaryThumbUrl = (url?: string) => {
+  if (!url) return undefined;
+  if (!url.includes("res.cloudinary.com") || !url.includes("/upload/")) {
+    return undefined;
+  }
 
-  useEffect(() => {
-    setHasError(false);
-  }, [src]);
+  return url.replace(
+    "/upload/",
+    "/upload/w_320,h_240,c_fill,q_auto,f_auto/",
+  );
+};
+
+const ProductPreview = ({
+  candidates,
+  alt,
+  list,
+}: {
+  candidates: (string | undefined)[];
+  alt: string;
+  list?: boolean;
+}) => {
+  const normalizedCandidates = useMemo(
+    () => candidates.filter((item): item is string => !!item),
+    [candidates],
+  );
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const baseClass = list
     ? "bg-muted text-muted-foreground flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs"
     : "bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center overflow-hidden text-xs";
 
-  if (src && !hasError) {
+  const activeImage = normalizedCandidates[activeIndex];
+
+  if (process.env.NODE_ENV !== "production") {
+    console.debug("[BaseProductCard] preview state", {
+      alt,
+      activeIndex,
+      activeImage,
+      candidates: normalizedCandidates,
+    });
+  }
+
+  if (activeImage) {
     return (
       <div className={baseClass}>
         <img
-          src={src}
+          src={activeImage}
           alt={alt}
           className="h-full w-full object-cover"
-          onError={() => setHasError(true)}
+          onError={() => {
+            if (process.env.NODE_ENV !== "production") {
+              console.warn("[BaseProductCard] preview image failed", {
+                alt,
+                failedImage: activeImage,
+                activeIndex,
+                nextIndex:
+                  activeIndex < normalizedCandidates.length - 1
+                    ? activeIndex + 1
+                    : null,
+              });
+            }
+            if (activeIndex < normalizedCandidates.length - 1) {
+              setActiveIndex((prev) => prev + 1);
+            }
+          }}
           loading="lazy"
         />
       </div>
@@ -48,10 +94,29 @@ export const BaseProductCard = ({
   onEdit,
   onDelete,
 }: BaseProductCardProps) => {
+  const previewCandidates = useMemo(() => {
+    const original = item.productUrl;
+    const cloudinaryThumb = toCloudinaryThumbUrl(original);
+    const imageFallback = item.images?.[0];
+    const resolved = [cloudinaryThumb, original, imageFallback];
+
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("[BaseProductCard] preview candidates", {
+        productName: item.productName,
+        original,
+        cloudinaryThumb,
+        imageFallback,
+        resolved,
+      });
+    }
+
+    return resolved;
+  }, [item.images, item.productName, item.productUrl]);
+
   if (viewMode === "grid") {
     return (
       <div className="bg-card overflow-hidden rounded-lg border shadow-sm">
-        <ProductPreview src={item.images?.[0]} alt={item.productName} />
+        <ProductPreview candidates={previewCandidates} alt={item.productName} />
         <div className="p-3">
           <div className="mb-1 flex items-center gap-2">
             <Box className="text-muted-foreground h-4 w-4" />
@@ -100,7 +165,11 @@ export const BaseProductCard = ({
   return (
     <div className="bg-card rounded-lg border p-3 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <ProductPreview list src={item.images?.[0]} alt={item.productName} />
+        <ProductPreview
+          list
+          candidates={previewCandidates}
+          alt={item.productName}
+        />
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center gap-2">
             <Box className="text-muted-foreground h-4 w-4" />

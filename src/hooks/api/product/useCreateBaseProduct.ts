@@ -58,7 +58,19 @@ const uploadToCloudinary = async (
   );
 
   if (!response.ok) {
-    throw new Error(`Failed to upload ${resourceType} to Cloudinary`);
+    let details = "";
+    try {
+      const errorPayload = await response.json();
+      details =
+        errorPayload?.error?.message ??
+        errorPayload?.message ??
+        JSON.stringify(errorPayload);
+    } catch {
+      details = await response.text();
+    }
+    throw new Error(
+      `Failed to upload ${resourceType} to Cloudinary (${response.status}): ${details || "Unknown error"}`,
+    );
   }
 
   const result = await response.json();
@@ -69,6 +81,21 @@ const uploadToCloudinary = async (
   }
 
   return secureUrl;
+};
+
+const uploadProductModelToCloudinary = async (
+  file: File,
+  signaturePayload: CloudinarySignaturePayload,
+) => {
+  try {
+    return await uploadToCloudinary(file, signaturePayload, "image");
+  } catch (imageError) {
+    console.warn(
+      "[useCreateBaseProduct] image upload for product model failed, falling back to raw upload",
+      imageError,
+    );
+    return uploadToCloudinary(file, signaturePayload, "raw");
+  }
 };
 
 const useCreateBaseProduct = (options?: CreateBaseProductOptions) => {
@@ -95,7 +122,7 @@ const useCreateBaseProduct = (options?: CreateBaseProductOptions) => {
         normalizeResponse<CloudinarySignaturePayload>(imageSignatureRes.data);
 
       const [productUrl, images] = await Promise.all([
-        uploadToCloudinary(input.productFile, glbSignature, "raw"),
+        uploadProductModelToCloudinary(input.productFile, glbSignature),
         Promise.all(
           input.imageFiles.map((imageFile) =>
             uploadToCloudinary(imageFile, imageSignature, "image"),

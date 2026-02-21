@@ -27,7 +27,7 @@ const normalizeResponse = <T>(payload: unknown): T => {
 const uploadToCloudinary = async (
   file: File,
   signaturePayload: CloudinarySignaturePayload,
-  resourceType: "image" | "raw",
+  resourceType: "image" | "raw" | "auto",
 ) => {
   const { apiKey, cloudName, folder, signature, timestamp } = signaturePayload;
   const formData = new FormData();
@@ -47,7 +47,19 @@ const uploadToCloudinary = async (
   );
 
   if (!response.ok) {
-    throw new Error(`Failed to upload ${resourceType} to Cloudinary`);
+    let details = "";
+    try {
+      const errorPayload = await response.json();
+      details =
+        errorPayload?.error?.message ??
+        errorPayload?.message ??
+        JSON.stringify(errorPayload);
+    } catch {
+      details = await response.text();
+    }
+    throw new Error(
+      `Failed to upload ${resourceType} to Cloudinary (${response.status}): ${details || "Unknown error"}`,
+    );
   }
 
   const result = await response.json();
@@ -83,7 +95,7 @@ const useUpdateComponent = () => {
         const componentUrl = await uploadToCloudinary(
           componentFile,
           glbSignature,
-          "raw",
+          "image",
         );
         cleanedPayload.componentUrl = componentUrl;
       }
@@ -115,6 +127,9 @@ const useUpdateComponent = () => {
 
       if (typeof cleanedPayload.componentName === "string") {
         cleanedPayload.componentName = cleanedPayload.componentName.trim();
+      }
+      if (typeof cleanedPayload.componentSku === "string") {
+        cleanedPayload.componentSku = cleanedPayload.componentSku.trim();
       }
       if (typeof cleanedPayload.componentUrl === "string") {
         cleanedPayload.componentUrl = cleanedPayload.componentUrl.trim();

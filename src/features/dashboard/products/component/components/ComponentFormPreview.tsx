@@ -6,6 +6,7 @@ import { Check, X } from "lucide-react";
 
 export type ComponentPreviewFormData = {
   componentName: string;
+  componentSku?: string;
   componentDesc: string;
   componentCategory: string;
   price: string;
@@ -32,6 +33,7 @@ export const ComponentFormPreview = ({
 
   const completeness = {
     componentName: !!formData.componentName,
+    componentSku: !!formData.componentSku,
     componentCategory: !!formData.componentCategory && isCategoryTouched,
     componentFile: !!(formData.componentFileName || formData.componentUrl),
     componentDesc: !!formData.componentDesc,
@@ -91,6 +93,9 @@ export const ComponentFormPreview = ({
             <div>
               <p className="text-muted-foreground text-xs">
                 Category: {formData.componentCategory || "-"}
+              </p>
+              <p className="text-muted-foreground text-xs">
+                SKU: {formData.componentSku || "-"}
               </p>
               <h3 className="text-foreground font-semibold text-balance">
                 {formData.componentName}

@@ -22,7 +22,6 @@ type CreateComponentMutationInput = Omit<
   componentImageUrls?: string[];
   componentFile?: File;
   imageFiles?: File[];
-  isActive?: boolean;
 };
 
 type CreateComponentOptions = {
@@ -37,7 +36,7 @@ const normalizeResponse = <T>(payload: unknown): T => {
 const uploadToCloudinary = async (
   file: File,
   signaturePayload: CloudinarySignaturePayload,
-  resourceType: "image" | "raw",
+  resourceType: "image" | "raw" | "auto",
 ) => {
   const { apiKey, cloudName, folder, signature, timestamp } = signaturePayload;
   const formData = new FormData();
@@ -57,7 +56,19 @@ const uploadToCloudinary = async (
   );
 
   if (!response.ok) {
-    throw new Error(`Failed to upload ${resourceType} to Cloudinary`);
+    let details = "";
+    try {
+      const errorPayload = await response.json();
+      details =
+        errorPayload?.error?.message ??
+        errorPayload?.message ??
+        JSON.stringify(errorPayload);
+    } catch {
+      details = await response.text();
+    }
+    throw new Error(
+      `Failed to upload ${resourceType} to Cloudinary (${response.status}): ${details || "Unknown error"}`,
+    );
   }
 
   const result = await response.json();
@@ -87,7 +98,7 @@ const useCreateComponent = (options?: CreateComponentOptions) => {
                 normalizeResponse<CloudinarySignaturePayload>(
                   glbSignatureRes.data,
                 );
-              return uploadToCloudinary(componentFile, glbSignature, "raw");
+              return uploadToCloudinary(componentFile, glbSignature, "image");
             })()
           : payload.componentUrl?.trim(),
         payload.imageFiles?.length
@@ -117,19 +128,18 @@ const useCreateComponent = (options?: CreateComponentOptions) => {
         throw new Error("At least one component image is required");
       }
 
-      const requestPayload = {
-        ...payload,
+      const requestPayload: CreateComponentInput = {
         componentName: payload.componentName.trim(),
         componentUrl,
+        componentSku: payload.componentSku.trim(),
         componentDesc: payload.componentDesc.trim(),
+        componentCategory: payload.componentCategory,
         price: Number(payload.price),
         weight: Number(payload.weight),
         componentImageUrls: componentImageUrls
           .map((imageUrl) => imageUrl.trim())
           .filter(Boolean),
       };
-      delete requestPayload.componentFile;
-      delete requestPayload.imageFiles;
 
       const { data } = await axiosInstance.post(
         "/product/component",

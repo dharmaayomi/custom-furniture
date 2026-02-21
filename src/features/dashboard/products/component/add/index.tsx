@@ -16,8 +16,9 @@ import { UploadedProductImage } from "@/types/product";
 
 type ComponentFormData = {
   componentName: string;
+  componentSku: string;
   componentDesc: string;
-  componentCategory: ComponentCategory;
+  componentCategory: ComponentCategory | "";
   price: string;
   weight: string;
   isActive: boolean;
@@ -25,8 +26,9 @@ type ComponentFormData = {
 
 const INITIAL_FORM_DATA: ComponentFormData = {
   componentName: "",
+  componentSku: "",
   componentDesc: "",
-  componentCategory: "SHELF",
+  componentCategory: "",
   price: "",
   weight: "",
   isActive: true,
@@ -99,6 +101,7 @@ export const CreateProductComponentPage = () => {
     });
 
     setFormData(INITIAL_FORM_DATA);
+    setIsCategoryTouched(false);
     setComponentFile(null);
     setImageItems([]);
     setSubmitMessage("");
@@ -112,7 +115,9 @@ export const CreateProductComponentPage = () => {
     try {
       if (
         !formData.componentName ||
+        !formData.componentSku ||
         !formData.componentDesc ||
+        !formData.componentCategory ||
         !formData.price ||
         !formData.weight ||
         !componentFile ||
@@ -124,11 +129,11 @@ export const CreateProductComponentPage = () => {
 
       await createComponent({
         componentName: formData.componentName,
+        componentSku: formData.componentSku,
         componentDesc: formData.componentDesc,
-        componentCategory: formData.componentCategory,
+        componentCategory: formData.componentCategory as ComponentCategory,
         price: formData.price,
         weight: formData.weight,
-        isActive: formData.isActive,
         componentFile,
         imageFiles: imageItems.map((item) => item.file),
       });
@@ -204,6 +209,23 @@ export const CreateProductComponentPage = () => {
                   </div>
 
                   <div>
+                    <Label htmlFor="componentSku" className="text-foreground">
+                      Component SKU *
+                    </Label>
+                    <Input
+                      id="componentSku"
+                      name="componentSku"
+                      value={formData.componentSku}
+                      onChange={handleInputChange}
+                      placeholder="Enter component SKU"
+                      className="border-input bg-background mt-1"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
                     <Label
                       htmlFor="componentCategory"
                       className="text-foreground"
@@ -211,18 +233,21 @@ export const CreateProductComponentPage = () => {
                       Category *
                     </Label>
                     <select
-                      id="componentCategory"
-                      value={formData.componentCategory}
-                      onChange={(e) => {
-                        setIsCategoryTouched(true);
+                    id="componentCategory"
+                    value={formData.componentCategory}
+                    onChange={(e) => {
+                        setIsCategoryTouched(Boolean(e.target.value));
                         setFormData((prev) => ({
                           ...prev,
                           componentCategory: e.target
-                            .value as ComponentCategory,
+                            .value as ComponentCategory | "",
                         }));
                       }}
                       className="border-input bg-background mt-1 h-9 w-full rounded-md border px-3 text-sm"
                     >
+                      <option value="" disabled>
+                        Select category
+                      </option>
                       {COMPONENT_CATEGORIES.map((category) => (
                         <option key={category} value={category}>
                           {category}

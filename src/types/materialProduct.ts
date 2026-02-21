@@ -5,7 +5,7 @@ export type ProductMaterial = {
   materialName: string;
   materialUrl: string;
   materialDesc: string;
-  materialImageUrls: string[];
+  materialSku: string;
   materialCategory?: MaterialCategory | null;
   price?: number | null;
   isActive: boolean;
@@ -19,10 +19,10 @@ export type MaterialCategory = "FLOOR" | "WALL" | "FURNITURE";
 export type CreateMaterialInput = {
   materialName: string;
   materialUrl: string;
+  materialSku: string;
   materialDesc: string;
   materialCategory: MaterialCategory;
   price: number | string;
-  materialImageUrls: string[];
 };
 
 export type UpdateMaterialInput = Partial<
@@ -30,10 +30,10 @@ export type UpdateMaterialInput = Partial<
     CreateMaterialInput,
     | "materialName"
     | "materialUrl"
+    | "materialSku"
     | "materialDesc"
     | "materialCategory"
     | "price"
-    | "materialImageUrls"
   >
 > & {
   isActive?: boolean;
