@@ -61,12 +61,12 @@ const data = {
       icon: Frame,
       items: [
         {
-          title: "Component Management",
-          url: "/dashboard/products/component",
+          title: "Component",
+          url: "/dashboard/products/components",
         },
         {
-          title: "Material Management",
-          url: "/dashboard/products/material",
+          title: "Material",
+          url: "/dashboard/products/materials",
         },
         {
           title: "Archived Products",

@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/price";
 import { X } from "lucide-react";
-import { ProductBase, ProductComponent } from "@/types/product";
+import { ProductBase } from "@/types/product";
+import { ProductComponent } from "@/types/componentProduct";
 import { Tool, ToolType } from "@/types/toolType";
 import { useState } from "react";
 import {

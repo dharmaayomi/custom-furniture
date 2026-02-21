@@ -1,10 +1,12 @@
 import useAxios from "@/hooks/useAxios";
-import { GetComponentsQuery, GetComponentsResponse } from "@/types/product";
+import {
+  GetComponentsQuery,
+  GetComponentsResponse,
+} from "@/types/componentProduct";
+
 import { useQuery } from "@tanstack/react-query";
 
-const normalizePageableResponse = (
-  payload: unknown,
-): GetComponentsResponse => {
+const normalizePageableResponse = (payload: unknown): GetComponentsResponse => {
   const raw = payload as any;
 
   // Direct shape: { data: [...], meta: {...} }

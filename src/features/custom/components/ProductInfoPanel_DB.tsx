@@ -6,7 +6,8 @@ import {
   extractModelNameFromId,
 } from "@/lib/price";
 import { useRoomStore } from "@/store/useRoomStore";
-import { ProductBase, ProductComponent } from "@/types/product";
+import { ProductBase } from "@/types/product";
+import { ProductComponent } from "@/types/componentProduct";
 import useGetProductById from "@/hooks/api/product/useGetProductById";
 import useGetComponentById from "@/hooks/api/product/useGetComponentById";
 

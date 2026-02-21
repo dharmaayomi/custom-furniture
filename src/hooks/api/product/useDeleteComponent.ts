@@ -1,5 +1,5 @@
 import useAxios from "@/hooks/useAxios";
-import { ProductComponent } from "@/types/product";
+import { ProductComponent } from "@/types/componentProduct";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 type DeleteComponentResponse = Pick<ProductComponent, "id" | "deletedAt">;

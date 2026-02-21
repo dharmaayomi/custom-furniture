@@ -6,7 +6,7 @@ const useGetProducts = (userId?: number, query?: GetProductsQuery) => {
   const axiosInstance = useAxios();
 
   return useQuery<GetProductsResponse>({
-    queryKey: ["products", query],
+    queryKey: ["products", query, userId],
     queryFn: async () => {
       const { data } = await axiosInstance.get("/product", {
         params: query,

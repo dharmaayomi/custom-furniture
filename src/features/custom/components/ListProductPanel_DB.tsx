@@ -5,7 +5,8 @@ import {
   formatPrice,
   extractModelNameFromId,
 } from "@/lib/price";
-import { Product, ProductBase, ProductComponent } from "@/types/product";
+import { Product, ProductBase } from "@/types/product";
+import { ProductComponent } from "@/types/componentProduct";
 import { X } from "lucide-react";
 
 interface ListProductPanelProps {

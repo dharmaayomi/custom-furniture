@@ -187,7 +187,8 @@ export const ProductsPage = () => {
   });
 
   const baseProducts: ProductBase[] = data?.data ?? [];
-  const { mutateAsync: deleteProduct, isPending: isDeleting } = useDeleteProduct();
+  const { mutateAsync: deleteProduct, isPending: isDeleting } =
+    useDeleteProduct();
   const baseMeta = data?.meta;
   const baseTotal = baseMeta?.total ?? baseProducts.length;
   const totalItems = baseTotal + COMPONENTS.length + MATERIALS.length;

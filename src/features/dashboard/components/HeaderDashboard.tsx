@@ -32,6 +32,8 @@ const LABEL_MAP: Record<string, string> = {
   address: "Address",
   create: "Create",
   edit: "Edit",
+  components: "Components",
+  materials: "Materials",
   revenue: "Revenue",
   settings: "Settings",
   notifications: "Notifications",
@@ -68,7 +70,12 @@ const HeaderDashboard = () => {
       return false;
     }
 
-    if (prevSegment === "products" && nextSegment === "edit") {
+    if (
+      nextSegment === "edit" &&
+      (prevSegment === "products" ||
+        prevSegment === "components" ||
+        prevSegment === "materials")
+    ) {
       return false;
     }
 

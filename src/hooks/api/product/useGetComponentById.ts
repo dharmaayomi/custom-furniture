@@ -1,8 +1,8 @@
 import useAxios from "@/hooks/useAxios";
-import { ProductComponent } from "@/types/product";
+import { ProductComponent } from "@/types/componentProduct";
 import { useQuery } from "@tanstack/react-query";
 
-const normalizeResponse = <T,>(payload: unknown): T => {
+const normalizeResponse = <T>(payload: unknown): T => {
   return ((payload as { data?: unknown })?.data ?? payload) as T;
 };
 

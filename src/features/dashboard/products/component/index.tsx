@@ -12,12 +12,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import useCreateComponent from "@/hooks/api/product/useCreateComponent";
 import useDeleteComponent from "@/hooks/api/product/useDeleteComponent";
 import useGetComponents from "@/hooks/api/product/useGetComponents";
-import useUpdateComponent from "@/hooks/api/product/useUpdateComponent";
-import { ComponentCategory, ProductComponent } from "@/types/product";
+import { ComponentCategory, ProductComponent } from "@/types/componentProduct";
 import {
   Filter,
   Grid3x3,
@@ -29,32 +26,11 @@ import {
   RotateCcw,
   Trash2,
 } from "lucide-react";
-import { Dispatch, SetStateAction, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { toast } from "sonner";
 import { useDebounceValue } from "usehooks-ts";
-
-type ComponentFormData = {
-  componentName: string;
-  componentUrl: string;
-  componentDesc: string;
-  componentCategory: ComponentCategory;
-  price: string;
-  weight: string;
-  componentImageUrls: string;
-  isActive: boolean;
-};
-
-const INITIAL_FORM_DATA: ComponentFormData = {
-  componentName: "",
-  componentUrl: "",
-  componentDesc: "",
-  componentCategory: "SHELF",
-  price: "",
-  weight: "",
-  componentImageUrls: "",
-  isActive: true,
-};
 
 const COMPONENT_CATEGORIES: ComponentCategory[] = [
   "SHELF",
@@ -65,23 +41,6 @@ const COMPONENT_CATEGORIES: ComponentCategory[] = [
   "ACCESSORY",
   "HARDWARE",
 ];
-
-const toFormData = (component: ProductComponent): ComponentFormData => ({
-  componentName: component.componentName,
-  componentUrl: component.componentUrl,
-  componentDesc: component.componentDesc,
-  componentCategory: component.componentCategory,
-  price: String(component.price),
-  weight: String(component.weight),
-  componentImageUrls: (component.componentImageUrls ?? []).join("\n"),
-  isActive: component.isActive,
-});
-
-const parseImageUrls = (value: string) =>
-  value
-    .split("\n")
-    .map((item) => item.trim())
-    .filter(Boolean);
 
 const ComponentPreview = ({
   image,
@@ -106,6 +65,7 @@ const ComponentPreview = ({
 };
 
 export const ProductComponentPage = () => {
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [search, setSearch] = useQueryState("search", { defaultValue: "" });
   const [categoryFilter, setCategoryFilter] = useQueryState("category", {
@@ -126,14 +86,7 @@ export const ProductComponentPage = () => {
   const perPage = 6;
   const [debouncedSearch] = useDebounceValue(search, 500);
 
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-
-  const [createForm, setCreateForm] =
-    useState<ComponentFormData>(INITIAL_FORM_DATA);
-  const [editForm, setEditForm] =
-    useState<ComponentFormData>(INITIAL_FORM_DATA);
   const [selectedComponent, setSelectedComponent] =
     useState<ProductComponent | null>(null);
 
@@ -173,13 +126,8 @@ export const ProductComponentPage = () => {
 
   const components = data?.data ?? [];
   const meta = data?.meta;
-  const { mutateAsync: createComponent, isPending: isCreating } =
-    useCreateComponent();
-  const { mutateAsync: updateComponent, isPending: isUpdating } =
-    useUpdateComponent();
   const { mutateAsync: deleteComponent, isPending: isDeleting } =
     useDeleteComponent();
-
   const totalItems = meta?.total ?? components.length;
 
   const handleResetFilters = () => {
@@ -193,72 +141,9 @@ export const ProductComponentPage = () => {
     void setPage(1);
   };
 
-  const openEditDialog = (component: ProductComponent) => {
-    setSelectedComponent(component);
-    setEditForm(toFormData(component));
-    setIsEditOpen(true);
-  };
-
   const openDeleteDialog = (component: ProductComponent) => {
     setSelectedComponent(component);
     setIsDeleteOpen(true);
-  };
-
-  const resetCreateForm = () => {
-    setCreateForm(INITIAL_FORM_DATA);
-  };
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await createComponent({
-        componentName: createForm.componentName,
-        componentUrl: createForm.componentUrl,
-        componentDesc: createForm.componentDesc,
-        componentCategory: createForm.componentCategory,
-        price: createForm.price,
-        weight: createForm.weight,
-        componentImageUrls: parseImageUrls(createForm.componentImageUrls),
-      });
-
-      toast.success("Component created successfully.");
-      setIsCreateOpen(false);
-      resetCreateForm();
-    } catch (error) {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ?? "Failed to create component.";
-      toast.error(message);
-    }
-  };
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedComponent) return;
-    try {
-      await updateComponent({
-        componentId: selectedComponent.id,
-        payload: {
-          componentName: editForm.componentName,
-          componentUrl: editForm.componentUrl,
-          componentDesc: editForm.componentDesc,
-          componentCategory: editForm.componentCategory,
-          price: editForm.price,
-          weight: editForm.weight,
-          componentImageUrls: parseImageUrls(editForm.componentImageUrls),
-          isActive: editForm.isActive,
-        },
-      });
-
-      toast.success("Component updated successfully.");
-      setIsEditOpen(false);
-      setSelectedComponent(null);
-    } catch (error) {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ?? "Failed to update component.";
-      toast.error(message);
-    }
   };
 
   const handleDelete = async () => {
@@ -290,7 +175,7 @@ export const ProductComponentPage = () => {
           </div>
           <Button
             className="w-full gap-2 sm:w-auto"
-            onClick={() => setIsCreateOpen(true)}
+            onClick={() => router.push("/dashboard/products/components/add")}
           >
             <Plus className="h-4 w-4" />
             Add Component
@@ -553,7 +438,11 @@ export const ProductComponentPage = () => {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => openEditDialog(item)}
+                              onClick={() =>
+                                router.push(
+                                  `/dashboard/products/components/${item.id}/edit`,
+                                )
+                              }
                               className="flex-1 bg-transparent"
                             >
                               <Pencil className="h-4 w-4" />
@@ -613,7 +502,11 @@ export const ProductComponentPage = () => {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => openEditDialog(item)}
+                              onClick={() =>
+                                router.push(
+                                  `/dashboard/products/components/${item.id}/edit`,
+                                )
+                              }
                               className="flex-1 bg-transparent sm:flex-none"
                             >
                               <Pencil className="h-4 w-4" />
@@ -671,68 +564,6 @@ export const ProductComponentPage = () => {
         </div>
       </div>
 
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-2xl">
-          <form onSubmit={handleCreate} className="space-y-4">
-            <DialogHeader>
-              <DialogTitle>Create Component</DialogTitle>
-              <DialogDescription>
-                Add a new component to the customization catalog.
-              </DialogDescription>
-            </DialogHeader>
-
-            <ComponentFormFields
-              formData={createForm}
-              setFormData={setCreateForm}
-            />
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCreateOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isCreating}>
-                {isCreating ? "Creating..." : "Create Component"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-2xl">
-          <form onSubmit={handleUpdate} className="space-y-4">
-            <DialogHeader>
-              <DialogTitle>Edit Component</DialogTitle>
-              <DialogDescription>
-                Update component data and image references.
-              </DialogDescription>
-            </DialogHeader>
-
-            <ComponentFormFields
-              formData={editForm}
-              setFormData={setEditForm}
-            />
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsEditOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isUpdating}>
-                {isUpdating ? "Saving..." : "Save Changes"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
       <Dialog
         open={isDeleteOpen}
         onOpenChange={(open) => {
@@ -772,138 +603,5 @@ export const ProductComponentPage = () => {
         </DialogContent>
       </Dialog>
     </section>
-  );
-};
-
-const ComponentFormFields = ({
-  formData,
-  setFormData,
-}: {
-  formData: ComponentFormData;
-  setFormData: Dispatch<SetStateAction<ComponentFormData>>;
-}) => {
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  return (
-    <div className="grid gap-4 py-1">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="componentName">Component Name *</Label>
-          <Input
-            id="componentName"
-            name="componentName"
-            value={formData.componentName}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="componentUrl">Component URL *</Label>
-          <Input
-            id="componentUrl"
-            name="componentUrl"
-            value={formData.componentUrl}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor="componentDesc">Description *</Label>
-        <textarea
-          id="componentDesc"
-          name="componentDesc"
-          value={formData.componentDesc}
-          onChange={handleInputChange}
-          className="border-input bg-background text-foreground placeholder-muted-foreground focus:ring-primary mt-1 min-h-20 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
-          required
-        />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div>
-          <Label htmlFor="componentCategory">Category *</Label>
-          <select
-            id="componentCategory"
-            value={formData.componentCategory}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                componentCategory: e.target.value as ComponentCategory,
-              }))
-            }
-            className="border-input bg-background mt-1 h-9 w-full rounded-md border px-3 text-sm"
-          >
-            {COMPONENT_CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <Label htmlFor="price">Price *</Label>
-          <Input
-            id="price"
-            name="price"
-            type="number"
-            min="0"
-            step="0.01"
-            value={formData.price}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="weight">Weight *</Label>
-          <Input
-            id="weight"
-            name="weight"
-            type="number"
-            min="0"
-            step="0.01"
-            value={formData.weight}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor="componentImageUrls">Image URLs (one per line) *</Label>
-        <textarea
-          id="componentImageUrls"
-          name="componentImageUrls"
-          value={formData.componentImageUrls}
-          onChange={handleInputChange}
-          className="border-input bg-background text-foreground placeholder-muted-foreground focus:ring-primary mt-1 min-h-20 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
-          required
-        />
-      </div>
-
-      <div className="flex items-center justify-between rounded-md border p-3">
-        <div className="space-y-0.5">
-          <Label htmlFor="isActive" className="cursor-pointer">
-            Active Status
-          </Label>
-          <p className="text-muted-foreground text-xs">
-            Enable to make this component available.
-          </p>
-        </div>
-        <Switch
-          id="isActive"
-          checked={formData.isActive}
-          onCheckedChange={(checked) =>
-            setFormData((prev) => ({ ...prev, isActive: checked }))
-          }
-        />
-      </div>
-    </div>
   );
 };
