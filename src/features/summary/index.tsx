@@ -88,7 +88,7 @@ export default function SummaryDesignPage() {
         <div className="grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-3 lg:gap-8">
           <div className="lg:col-span-2">
             <div className="bg-muted mb-6 rounded-md p-2 sm:mb-10">
-              <div className="bg-card flex h-55 items-center justify-center overflow-hidden rounded-md p-2 sm:h-80 lg:h-110">
+              <div className="bg-card flex h-55 items-center justify-center overflow-hidden rounded-md p-2 sm:h-80 lg:h-150">
                 {payload?.previewImage ? (
                   <img
                     src={payload.previewImage}

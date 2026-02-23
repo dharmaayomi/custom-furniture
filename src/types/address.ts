@@ -14,13 +14,18 @@ export type Address = {
 
   city: string;
   district: string;
+  subdistrict?: string;
   province: string;
+  provinceCode?: string;
+  cityCode?: string;
+  districtCode?: string;
+  subdistrictCode?: string;
   country: string;
 
   latitude?: number;
   longitude?: number;
 
-  postalCode: number;
+  postalCode: string;
   isDefault: boolean;
 
   deletedAt?: string | null;
