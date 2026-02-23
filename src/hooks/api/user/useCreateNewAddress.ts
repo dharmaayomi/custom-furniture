@@ -12,12 +12,17 @@ export const createAddressSchema = z.object({
   line2: z.string().optional(),
   city: z.string().min(1, "City is required"),
   district: z.string().min(1, "District is required"),
+  subdistrict: z.string().optional(),
   province: z.string().min(1, "Province is required"),
+  provinceCode: z.string().optional(),
+  cityCode: z.string().optional(),
+  districtCode: z.string().optional(),
+  subdistrictCode: z.string().optional(),
   country: z.string().min(1, "Country is required"),
   isDefault: z.boolean(),
   latitude: z.preprocess((value) => Number(value), z.number()),
   longitude: z.preprocess((value) => Number(value), z.number()),
-  postalCode: z.preprocess((value) => Number(value), z.number()),
+  postalCode: z.string().min(1, "Postal code is required"),
 });
 
 export type CreateAddressInput = z.infer<typeof createAddressSchema>;

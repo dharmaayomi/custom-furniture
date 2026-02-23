@@ -16,6 +16,13 @@ import {
 } from "@/components/ui/card";
 import { MapPin, Check, Map, LocateFixed } from "lucide-react";
 import MapComponent from "./MapComponent";
+import {
+  getDistricts,
+  getProvinces,
+  getRegencies,
+  getVillages,
+  type WilayahOption,
+} from "@/hooks/api/wilayah";
 
 export interface AddressFormData {
   label: string;
@@ -25,7 +32,12 @@ export interface AddressFormData {
   line2: string;
   city: string;
   district: string;
+  subdistrict: string;
   province: string;
+  provinceCode: string;
+  cityCode: string;
+  districtCode: string;
+  subdistrictCode: string;
   country: string;
   latitude: number;
   longitude: number;
@@ -41,7 +53,12 @@ const INITIAL_STATE: AddressFormData = {
   line2: "",
   city: "",
   district: "",
+  subdistrict: "",
   province: "",
+  provinceCode: "",
+  cityCode: "",
+  districtCode: "",
+  subdistrictCode: "",
   country: "Indonesia",
   latitude: -7.747034,
   longitude: 110.377312,
@@ -77,6 +94,14 @@ export default function AddressForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [locationNotice, setLocationNotice] = useState("");
+  const [provinces, setProvinces] = useState<WilayahOption[]>([]);
+  const [cities, setCities] = useState<WilayahOption[]>([]);
+  const [districts, setDistricts] = useState<WilayahOption[]>([]);
+  const [subdistricts, setSubdistricts] = useState<WilayahOption[]>([]);
+  const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
+  const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
+  const [isLoadingSubdistricts, setIsLoadingSubdistricts] = useState(false);
 
   useEffect(() => {
     if (!initialData) return;
@@ -90,6 +115,152 @@ export default function AddressForm({
     }));
     setBaselineData(next);
   }, [initialData]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    setIsLoadingProvinces(true);
+
+    getProvinces()
+      .then((items) => {
+        if (isCancelled) return;
+        setProvinces(items);
+      })
+      .catch((error) => {
+        if (isCancelled) return;
+        console.error("Failed to load provinces:", error);
+        setProvinces([]);
+      })
+      .finally(() => {
+        if (!isCancelled) setIsLoadingProvinces(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!formData.provinceCode || provinces.length === 0) return;
+
+    let isCancelled = false;
+    setIsLoadingCities(true);
+    setCities([]);
+    setDistricts([]);
+    setSubdistricts([]);
+
+    getRegencies(formData.provinceCode)
+      .then((items) => {
+        if (isCancelled) return;
+        setCities(items);
+      })
+      .catch((error) => {
+        if (isCancelled) return;
+        console.error("Failed to load regencies:", error);
+        setCities([]);
+      })
+      .finally(() => {
+        if (!isCancelled) setIsLoadingCities(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [formData.provinceCode, provinces.length]);
+
+  useEffect(() => {
+    if (!formData.cityCode || cities.length === 0) return;
+
+    let isCancelled = false;
+    setIsLoadingDistricts(true);
+    setDistricts([]);
+    setSubdistricts([]);
+
+    getDistricts(formData.cityCode)
+      .then((items) => {
+        if (isCancelled) return;
+        setDistricts(items);
+      })
+      .catch((error) => {
+        if (isCancelled) return;
+        console.error("Failed to load districts:", error);
+        setDistricts([]);
+      })
+      .finally(() => {
+        if (!isCancelled) setIsLoadingDistricts(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [formData.cityCode, cities.length]);
+
+  useEffect(() => {
+    if (!formData.districtCode || districts.length === 0) return;
+
+    let isCancelled = false;
+    setIsLoadingSubdistricts(true);
+    setSubdistricts([]);
+
+    getVillages(formData.districtCode)
+      .then((items) => {
+        if (isCancelled) return;
+        setSubdistricts(items);
+      })
+      .catch((error) => {
+        if (isCancelled) return;
+        console.error("Failed to load subdistricts:", error);
+        setSubdistricts([]);
+      })
+      .finally(() => {
+        if (!isCancelled) setIsLoadingSubdistricts(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [formData.districtCode, districts.length]);
+
+  useEffect(() => {
+    if (!formData.provinceCode && formData.province && provinces.length > 0) {
+      const matched = provinces.find((item) => item.name === formData.province);
+      if (matched) {
+        setFormData((prev) => ({ ...prev, provinceCode: matched.id }));
+      }
+    }
+  }, [formData.province, formData.provinceCode, provinces]);
+
+  useEffect(() => {
+    if (!formData.cityCode && formData.city && cities.length > 0) {
+      const matched = cities.find((item) => item.name === formData.city);
+      if (matched) {
+        setFormData((prev) => ({ ...prev, cityCode: matched.id }));
+      }
+    }
+  }, [formData.city, formData.cityCode, cities]);
+
+  useEffect(() => {
+    if (!formData.districtCode && formData.district && districts.length > 0) {
+      const matched = districts.find((item) => item.name === formData.district);
+      if (matched) {
+        setFormData((prev) => ({ ...prev, districtCode: matched.id }));
+      }
+    }
+  }, [formData.district, formData.districtCode, districts]);
+
+  useEffect(() => {
+    if (
+      !formData.subdistrictCode &&
+      formData.subdistrict &&
+      subdistricts.length > 0
+    ) {
+      const matched = subdistricts.find(
+        (item) => item.name === formData.subdistrict,
+      );
+      if (matched) {
+        setFormData((prev) => ({ ...prev, subdistrictCode: matched.id }));
+      }
+    }
+  }, [formData.subdistrict, formData.subdistrictCode, subdistricts]);
 
   const hasFormChanges = useMemo(
     () => JSON.stringify(formData) !== JSON.stringify(baselineData),
@@ -147,6 +318,193 @@ export default function AddressForm({
       },
     );
   };
+
+  const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const code = e.currentTarget.value;
+    const selected = provinces.find((item) => item.id === code);
+
+    setFormData((prev) => ({
+      ...prev,
+      provinceCode: code,
+      province: selected?.name ?? "",
+      cityCode: "",
+      city: "",
+      districtCode: "",
+      district: "",
+      subdistrictCode: "",
+      subdistrict: "",
+    }));
+  };
+
+  const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const code = e.currentTarget.value;
+    const selected = cities.find((item) => item.id === code);
+
+    setFormData((prev) => ({
+      ...prev,
+      cityCode: code,
+      city: selected?.name ?? "",
+      districtCode: "",
+      district: "",
+      subdistrictCode: "",
+      subdistrict: "",
+    }));
+  };
+
+  const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const code = e.currentTarget.value;
+    const selected = districts.find((item) => item.id === code);
+
+    setFormData((prev) => ({
+      ...prev,
+      districtCode: code,
+      district: selected?.name ?? "",
+      subdistrictCode: "",
+      subdistrict: "",
+    }));
+  };
+
+  const handleSubdistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const code = e.currentTarget.value;
+    const selected = subdistricts.find((item) => item.id === code);
+
+    setFormData((prev) => ({
+      ...prev,
+      subdistrictCode: code,
+      subdistrict: selected?.name ?? "",
+    }));
+  };
+
+  const renderRegionFields = () => (
+    <>
+      {/** Keep existing saved values visible when code fields are still empty. */}
+      {(() => {
+        const fallbackProvinceValue =
+          !formData.provinceCode && formData.province
+            ? `fallback:${formData.province}`
+            : "";
+        const fallbackCityValue =
+          !formData.cityCode && formData.city ? `fallback:${formData.city}` : "";
+        const fallbackDistrictValue =
+          !formData.districtCode && formData.district
+            ? `fallback:${formData.district}`
+            : "";
+        const fallbackSubdistrictValue =
+          !formData.subdistrictCode && formData.subdistrict
+            ? `fallback:${formData.subdistrict}`
+            : "";
+
+        return (
+          <>
+      <div className="space-y-2">
+        <Label htmlFor="provinceCode" className="text-sm font-medium">
+          Province *
+        </Label>
+        <select
+          id="provinceCode"
+          value={formData.provinceCode || fallbackProvinceValue}
+          onChange={handleProvinceChange}
+          required
+          disabled={isLoadingProvinces}
+          className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="">
+            {isLoadingProvinces ? "Loading provinces..." : "Select province"}
+          </option>
+          {fallbackProvinceValue ? (
+            <option value={fallbackProvinceValue}>{formData.province}</option>
+          ) : null}
+          {provinces.map((province) => (
+            <option key={province.id} value={province.id}>
+              {province.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="cityCode" className="text-sm font-medium">
+          City *
+        </Label>
+        <select
+          id="cityCode"
+          value={formData.cityCode || fallbackCityValue}
+          onChange={handleCityChange}
+          required
+          disabled={!formData.provinceCode || isLoadingCities}
+          className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="">
+            {isLoadingCities ? "Loading cities..." : "Select city"}
+          </option>
+          {fallbackCityValue ? (
+            <option value={fallbackCityValue}>{formData.city}</option>
+          ) : null}
+          {cities.map((city) => (
+            <option key={city.id} value={city.id}>
+              {city.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="districtCode" className="text-sm font-medium">
+          District *
+        </Label>
+        <select
+          id="districtCode"
+          value={formData.districtCode || fallbackDistrictValue}
+          onChange={handleDistrictChange}
+          required
+          disabled={!formData.cityCode || isLoadingDistricts}
+          className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="">
+            {isLoadingDistricts ? "Loading districts..." : "Select district"}
+          </option>
+          {fallbackDistrictValue ? (
+            <option value={fallbackDistrictValue}>{formData.district}</option>
+          ) : null}
+          {districts.map((district) => (
+            <option key={district.id} value={district.id}>
+              {district.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="subdistrictCode" className="text-sm font-medium">
+          Subdistrict
+        </Label>
+        <select
+          id="subdistrictCode"
+          value={formData.subdistrictCode || fallbackSubdistrictValue}
+          onChange={handleSubdistrictChange}
+          disabled={!formData.districtCode || isLoadingSubdistricts}
+          className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="">
+            {isLoadingSubdistricts
+              ? "Loading subdistricts..."
+              : "Select subdistrict"}
+          </option>
+          {fallbackSubdistrictValue ? (
+            <option value={fallbackSubdistrictValue}>{formData.subdistrict}</option>
+          ) : null}
+          {subdistricts.map((subdistrict) => (
+            <option key={subdistrict.id} value={subdistrict.id}>
+              {subdistrict.name}
+            </option>
+          ))}
+        </select>
+      </div>
+          </>
+        );
+      })()}
+    </>
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,50 +610,7 @@ export default function AddressForm({
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="district" className="text-sm font-medium">
-                  District *
-                </Label>
-                <Input
-                  id="district"
-                  name="district"
-                  value={formData.district}
-                  onChange={handleInputChange}
-                  placeholder="District"
-                  required
-                  className="h-9"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="city" className="text-sm font-medium">
-                  City *
-                </Label>
-                <Input
-                  id="city"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  placeholder="City"
-                  required
-                  className="h-9"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="province" className="text-sm font-medium">
-                  Province *
-                </Label>
-                <Input
-                  id="province"
-                  name="province"
-                  value={formData.province}
-                  onChange={handleInputChange}
-                  placeholder="Province"
-                  required
-                  className="h-9"
-                />
-              </div>
+              {renderRegionFields()}
 
               <div className="space-y-2">
                 <Label htmlFor="postalCode" className="text-sm font-medium">
@@ -487,53 +802,7 @@ export default function AddressForm({
               />
             </div>
 
-            {/* District */}
-            <div className="space-y-2">
-              <Label htmlFor="district" className="text-sm font-medium">
-                District *
-              </Label>
-              <Input
-                id="district"
-                name="district"
-                value={formData.district}
-                onChange={handleInputChange}
-                placeholder="District"
-                required
-                className="h-9"
-              />
-            </div>
-
-            {/* City */}
-            <div className="space-y-2">
-              <Label htmlFor="city" className="text-sm font-medium">
-                City *
-              </Label>
-              <Input
-                id="city"
-                name="city"
-                value={formData.city}
-                onChange={handleInputChange}
-                placeholder="City"
-                required
-                className="h-9"
-              />
-            </div>
-
-            {/* Province */}
-            <div className="space-y-2">
-              <Label htmlFor="province" className="text-sm font-medium">
-                Province *
-              </Label>
-              <Input
-                id="province"
-                name="province"
-                value={formData.province}
-                onChange={handleInputChange}
-                placeholder="Province"
-                required
-                className="h-9"
-              />
-            </div>
+            {renderRegionFields()}
 
             {/* Postal Code */}
             <div className="space-y-2">

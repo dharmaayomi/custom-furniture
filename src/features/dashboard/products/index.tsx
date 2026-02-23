@@ -174,7 +174,7 @@ export const ProductsPage = () => {
   const resolvedOrderBy: ProductOrderBy =
     orderBy === "asc" || orderBy === "desc" ? orderBy : "desc";
 
-  const { data, isLoading, isError, isFetching } = useGetProducts(userId, {
+  const { data, isLoading, isError, isFetching } = useGetProducts({
     page,
     perPage,
     sortBy: resolvedSortBy,
@@ -184,7 +184,7 @@ export const ProductsPage = () => {
     minPrice: minPrice ?? undefined,
     maxPrice: maxPrice ?? undefined,
     search: debouncedSearch || undefined,
-  });
+  }, !!userId);
 
   const baseProducts: ProductBase[] = data?.data ?? [];
   const { mutateAsync: deleteProduct, isPending: isDeleting } =

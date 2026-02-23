@@ -11,7 +11,12 @@ export const editAddressSchema = z.object({
   line2: z.string().optional(),
   city: z.string().optional(),
   district: z.string().optional(),
+  subdistrict: z.string().optional(),
   province: z.string().optional(),
+  provinceCode: z.string().optional(),
+  cityCode: z.string().optional(),
+  districtCode: z.string().optional(),
+  subdistrictCode: z.string().optional(),
   country: z.string().optional(),
   isDefault: z.boolean().optional(),
   latitude: z.preprocess(
@@ -32,8 +37,8 @@ export const editAddressSchema = z.object({
     (value) =>
       value === "" || value === null || value === undefined
         ? undefined
-        : Number(value),
-    z.number().optional(),
+        : String(value),
+    z.string().optional(),
   ),
 });
 

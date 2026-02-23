@@ -31,12 +31,17 @@ export default function AddressCreateForm() {
       line2: data.line2 || undefined,
       city: data.city,
       district: data.district,
+      subdistrict: data.subdistrict || undefined,
       province: data.province,
+      provinceCode: data.provinceCode || undefined,
+      cityCode: data.cityCode || undefined,
+      districtCode: data.districtCode || undefined,
+      subdistrictCode: data.subdistrictCode || undefined,
       country: data.country,
       isDefault: data.isDefault,
       latitude: data.latitude,
       longitude: data.longitude,
-      postalCode: Number(data.postalCode),
+      postalCode: data.postalCode,
     };
     await mutateAsync(payload);
   };

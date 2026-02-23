@@ -27,23 +27,59 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { toast } from "sonner";
 import { useDebounceValue } from "usehooks-ts";
 
 const MATERIAL_CATEGORIES: MaterialCategory[] = ["FLOOR", "WALL", "FURNITURE"];
 
-const MaterialPreview = ({ url, name, list }: { url?: string; name: string; list?: boolean }) => {
+const toCloudinaryThumbUrl = (url?: string) => {
+  if (!url) return undefined;
+  if (!url.includes("res.cloudinary.com") || !url.includes("/upload/")) {
+    return undefined;
+  }
+
+  return url.replace(
+    "/upload/",
+    "/upload/w_320,h_240,c_fill,q_auto,f_auto/",
+  );
+};
+
+const MaterialPreview = ({
+  candidates,
+  name,
+  list,
+}: {
+  candidates: (string | undefined)[];
+  name: string;
+  list?: boolean;
+}) => {
+  const normalizedCandidates = useMemo(
+    () => candidates.filter((item): item is string => !!item),
+    [candidates],
+  );
+  const [activeIndex, setActiveIndex] = useState(0);
   const baseClass = list
     ? "bg-muted text-muted-foreground flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs"
     : "bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center overflow-hidden text-xs";
 
-  if (!url) return <div className={baseClass}>Preview</div>;
+  const activeImage = normalizedCandidates[activeIndex];
+
+  if (!activeImage) return <div className={baseClass}>Preview</div>;
 
   return (
     <div className={baseClass}>
-      <img src={url} alt={name} className="h-full w-full object-cover" />
+      <img
+        src={activeImage}
+        alt={name}
+        className="h-full w-full object-cover"
+        onError={() => {
+          if (activeIndex < normalizedCandidates.length - 1) {
+            setActiveIndex((prev) => prev + 1);
+          }
+        }}
+      />
     </div>
   );
 };
@@ -389,7 +425,13 @@ export const ProductMaterialPage = () => {
                         key={item.id}
                         className="bg-card overflow-hidden rounded-lg border shadow-sm"
                       >
-                        <MaterialPreview url={item.materialUrl} name={item.materialName} />
+                        <MaterialPreview
+                          candidates={[
+                            toCloudinaryThumbUrl(item.materialUrl),
+                            item.materialUrl,
+                          ]}
+                          name={item.materialName}
+                        />
                         <div className="p-3">
                           <div className="mb-1 flex items-center gap-2">
                             <Palette className="text-muted-foreground h-4 w-4" />
@@ -441,7 +483,10 @@ export const ProductMaterialPage = () => {
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                           <MaterialPreview
                             list
-                            url={item.materialUrl}
+                            candidates={[
+                              toCloudinaryThumbUrl(item.materialUrl),
+                              item.materialUrl,
+                            ]}
                             name={item.materialName}
                           />
                           <div className="min-w-0 flex-1">

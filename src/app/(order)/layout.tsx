@@ -1,3 +1,4 @@
+import { HeaderPayment } from "@/features/summary/components/HeaderPayment";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -10,5 +11,10 @@ export default function PaymentLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <div>{children}</div>;
+  return (
+    <div>
+      <HeaderPayment />
+      {children}
+    </div>
+  );
 }

@@ -37,7 +37,6 @@ import useGetProducts from "@/hooks/api/product/useGetProducts";
 import useGetProductById from "@/hooks/api/product/useGetProductById";
 import useGetComponents from "@/hooks/api/product/useGetComponents";
 import useGetComponentById from "@/hooks/api/product/useGetComponentById";
-import { useUser } from "@/providers/UserProvider";
 import { SummaryOrderItem } from "@/types/summary";
 
 const ASSETS_3D = [
@@ -94,8 +93,7 @@ export const RoomPageDB = () => {
   } = useRoomStore();
   const designCode = useRoomStore((state) => state.designCode);
   const { mainModels, activeTexture, addOnModels } = present;
-  const { userId } = useUser();
-  const { data: productListResponse } = useGetProducts(userId, {
+  const { data: productListResponse } = useGetProducts({
     page: 1,
     perPage: 100,
     sortBy: "createdAt",
