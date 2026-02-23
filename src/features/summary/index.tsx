@@ -41,7 +41,7 @@ export default function SummaryDesignPage() {
   const getAddressOptionLabel = (address: Address) =>
     `${address.label} - ${address.recipientName}`;
   const addressOptions = useMemo(
-    () => sortedAddresses.map((address) => getAddressOptionLabel(address)),
+    () => sortedAddresses.map((address) => String(address.id)),
     [sortedAddresses],
   );
 
@@ -49,15 +49,13 @@ export default function SummaryDesignPage() {
     if (!sortedAddresses.length) return;
     if (selectedAddressValue) return;
     const defaultAddress = sortedAddresses.find((address) => address.isDefault);
-    setSelectedAddressValue(
-      getAddressOptionLabel(defaultAddress ?? sortedAddresses[0]),
-    );
+    setSelectedAddressValue(String((defaultAddress ?? sortedAddresses[0]).id));
   }, [sortedAddresses, selectedAddressValue]);
 
   const selectedAddress = useMemo(
     () =>
       sortedAddresses.find(
-        (address) => getAddressOptionLabel(address) === selectedAddressValue,
+        (address) => String(address.id) === selectedAddressValue,
       ) ?? (selectedAddressValue ? sortedAddresses[0] : undefined),
     [sortedAddresses, selectedAddressValue],
   );
@@ -79,7 +77,7 @@ export default function SummaryDesignPage() {
   };
 
   return (
-    <main className="min-h-screen">
+    <main className="bg-background text-foreground min-h-screen">
       <div className="mx-2 px-1 py-5 sm:mx-6 sm:px-2 sm:py-7 lg:mx-8 lg:px-4 lg:py-12">
         <h1 className="mb-5 text-2xl font-bold sm:mb-8 sm:text-3xl">
           Design Overview
@@ -111,7 +109,7 @@ export default function SummaryDesignPage() {
               {payload?.items.map((item) => (
                 <div
                   key={item.id}
-                  className="border-b border-gray-200 pb-4 last:border-b-0 sm:flex sm:items-start sm:justify-between sm:gap-6 sm:rounded-lg sm:border sm:p-4"
+                  className="border-border pb-4 last:border-b-0 max-sm:border-b sm:flex sm:items-start sm:justify-between sm:gap-6 sm:rounded-lg sm:border sm:p-4"
                 >
                   <div className="flex items-start gap-3">
                     <div className="shrink-0 self-start">
@@ -130,15 +128,15 @@ export default function SummaryDesignPage() {
                       <h3 className="mb-1 text-sm font-semibold sm:mb-2 sm:text-lg">
                         {item.name}
                       </h3>
-                      <div className="mb-2 space-y-1 text-xs text-gray-600 sm:mb-3 md:text-sm">
+                      <div className="text-muted-foreground mb-2 space-y-1 text-xs sm:mb-3 md:text-sm">
                         <p>SKU: {item.sku}</p>
                       </div>
                       <div className="mb-2 sm:mb-4">
-                        <span className="inline-block rounded bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                        <span className="inline-block rounded bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
                           In Stock
                         </span>
                       </div>
-                      <div className="hidden text-xs text-gray-700 sm:block md:text-sm">
+                      <div className="text-muted-foreground hidden text-xs sm:block md:text-sm">
                         Quantity:{" "}
                         <span className="font-semibold">{item.quantity}</span>
                       </div>
@@ -146,7 +144,7 @@ export default function SummaryDesignPage() {
                   </div>
                   <div className="mt-2 sm:hidden">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs text-gray-700">
+                      <p className="text-muted-foreground text-xs">
                         Quantity:{" "}
                         <span className="font-semibold">{item.quantity}</span>
                       </p>
@@ -154,7 +152,7 @@ export default function SummaryDesignPage() {
                         {formatPrice(item.unitPrice)}
                       </p>
                     </div>
-                    <p className="mt-1 text-right text-xs text-gray-500">
+                    <p className="text-muted-foreground mt-1 text-right text-xs">
                       {formatPrice(item.subtotal)} subtotal
                     </p>
                   </div>
@@ -162,7 +160,7 @@ export default function SummaryDesignPage() {
                     <p className="text-md font-bold md:text-xl">
                       {formatPrice(item.unitPrice)}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-muted-foreground text-sm">
                       {formatPrice(item.subtotal)} subtotal
                     </p>
                   </div>
@@ -178,16 +176,16 @@ export default function SummaryDesignPage() {
           </div>
 
           <div className="lg:col-span-1">
-            <div className="rounded-lg border border-gray-200 p-4 sm:p-6 lg:sticky lg:top-8">
+            <div className="bg-card border-border rounded-lg border p-4 sm:p-6 lg:sticky lg:top-8">
               <h2 className="mb-5 text-lg font-bold sm:mb-6 sm:text-xl">
                 Order Summary
               </h2>
 
-              <div className="mb-6 space-y-3 rounded-lg border border-gray-200 p-3">
+              <div className="border-border mb-6 space-y-3 rounded-lg border p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold">Delivery Address</p>
                   {selectedAddress?.isDefault ? (
-                    <span className="rounded bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                    <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
                       Default
                     </span>
                   ) : null}
@@ -212,11 +210,13 @@ export default function SummaryDesignPage() {
                         <ComboboxList>
                           {(item) => {
                             const address = sortedAddresses.find(
-                              (entry) => getAddressOptionLabel(entry) === item,
+                              (entry) => String(entry.id) === item,
                             );
                             return (
                               <ComboboxItem key={item} value={item}>
-                                {item}
+                                {address
+                                  ? getAddressOptionLabel(address)
+                                  : item}
                                 {address?.isDefault ? " (Default)" : ""}
                               </ComboboxItem>
                             );
@@ -226,8 +226,8 @@ export default function SummaryDesignPage() {
                     </Combobox>
 
                     {selectedAddress ? (
-                      <div className="space-y-1 text-xs text-gray-600">
-                        <p className="font-medium text-gray-800">
+                      <div className="text-muted-foreground space-y-1 text-xs">
+                        <p className="text-foreground font-medium">
                           {selectedAddress.recipientName} (
                           {selectedAddress.phoneNumber})
                         </p>
@@ -246,7 +246,7 @@ export default function SummaryDesignPage() {
                     ) : null}
                   </>
                 ) : (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-muted-foreground text-xs">
                     No address found. Add address first in dashboard.
                   </p>
                 )}
@@ -258,27 +258,27 @@ export default function SummaryDesignPage() {
                   placeholder="Promo code"
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value)}
-                  className="min-w-0 grow rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-w-0 grow rounded border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
                 />
                 <button
                   onClick={applyPromo}
-                  className="shrink-0 rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium transition hover:bg-gray-50 sm:px-4"
+                  className="border-input bg-background hover:bg-muted shrink-0 rounded border px-3 py-2 text-sm font-medium transition sm:px-4"
                 >
                   Apply
                 </button>
               </div>
 
-              <p className="mb-6 text-xs text-gray-600">
+              <p className="text-muted-foreground mb-6 text-xs">
                 Try <span className="font-semibold">SAVE10</span> for 10% off
               </p>
 
-              <div className="mb-6 flex items-center gap-2 text-gray-700">
+              <div className="text-muted-foreground mb-6 flex items-center gap-2">
                 <span className="text-sm">{totalItems} items</span>
               </div>
 
-              <div className="mb-6 space-y-3 border-b border-gray-200 pb-6">
+              <div className="border-border mb-6 space-y-3 border-b pb-6">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Subtotal</span>
+                  <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-medium">{formatPrice(subtotal)}</span>
                 </div>
 
@@ -292,7 +292,7 @@ export default function SummaryDesignPage() {
                 )}
 
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Shipping</span>
+                  <span className="text-muted-foreground">Shipping</span>
                   <span className="font-medium">
                     {shippingCost === 0 ? "Free" : formatPrice(shippingCost)}
                   </span>
@@ -306,30 +306,36 @@ export default function SummaryDesignPage() {
                 </span>
               </div>
 
-              <button className="mb-6 w-full rounded bg-black py-3 font-semibold text-white transition hover:bg-gray-900">
-                Proceed to Checkout
+              <button className="bg-primary text-primary-foreground hover:bg-primary/90 mb-6 w-full rounded py-3 font-semibold transition">
+                Add to Cart
               </button>
 
-              <div className="space-y-3 text-xs text-gray-600">
-                <p className="mb-4 text-center text-xs text-gray-500">
+              <div className="text-muted-foreground space-y-3 text-xs">
+                <p className="text-muted-foreground mb-4 text-center text-xs">
                   Taxes calculated at checkout
                 </p>
 
                 <div className="flex items-start gap-3">
-                  <Truck size={16} className="mt-0.5 shrink-0 text-gray-400" />
+                  <Truck
+                    size={16}
+                    className="text-muted-foreground/70 mt-0.5 shrink-0"
+                  />
                   <span>Free shipping on orders over Rp 150.000</span>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <RotateCcw
                     size={16}
-                    className="mt-0.5 shrink-0 text-gray-400"
+                    className="text-muted-foreground/70 mt-0.5 shrink-0"
                   />
                   <span>Free 30-day returns</span>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Shield size={16} className="mt-0.5 shrink-0 text-gray-400" />
+                  <Shield
+                    size={16}
+                    className="text-muted-foreground/70 mt-0.5 shrink-0"
+                  />
                   <span>Secure checkout</span>
                 </div>
               </div>
