@@ -33,6 +33,42 @@ import { toast } from "sonner";
 import { useDebounceValue } from "usehooks-ts";
 
 const MATERIAL_CATEGORIES: MaterialCategory[] = ["FLOOR", "WALL", "FURNITURE"];
+const normalizeCategoryLabel = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value
+      .flatMap((entry) =>
+        typeof entry === "string"
+          ? entry
+          : typeof entry === "object" && entry
+            ? String(
+                (entry as Record<string, unknown>).name ??
+                  (entry as Record<string, unknown>).label ??
+                  "",
+              )
+            : "",
+      )
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+const formatMaterialCategory = (item: ProductMaterial): string => {
+  const rawCategory =
+    (item as Record<string, unknown>).materialCategory ??
+    (item as Record<string, unknown>).materialCategories ??
+    (item as Record<string, unknown>).category;
+  const normalized = normalizeCategoryLabel(rawCategory);
+  return normalized.length ? normalized.join(", ") : "-";
+};
 
 const toCloudinaryThumbUrl = (url?: string) => {
   if (!url) return undefined;
@@ -40,10 +76,7 @@ const toCloudinaryThumbUrl = (url?: string) => {
     return undefined;
   }
 
-  return url.replace(
-    "/upload/",
-    "/upload/w_320,h_240,c_fill,q_auto,f_auto/",
-  );
+  return url.replace("/upload/", "/upload/w_320,h_240,c_fill,q_auto,f_auto/");
 };
 
 const MaterialPreview = ({
@@ -73,7 +106,7 @@ const MaterialPreview = ({
       <img
         src={activeImage}
         alt={name}
-        className="h-full w-full object-cover"
+        className="h-full w-full transform-gpu object-cover transition-all duration-300 ease-in-out hover:scale-107"
         onError={() => {
           if (activeIndex < normalizedCandidates.length - 1) {
             setActiveIndex((prev) => prev + 1);
@@ -88,9 +121,8 @@ export const ProductMaterialPage = () => {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [selectedMaterial, setSelectedMaterial] = useState<ProductMaterial | null>(
-    null,
-  );
+  const [selectedMaterial, setSelectedMaterial] =
+    useState<ProductMaterial | null>(null);
   const [search, setSearch] = useQueryState("search", { defaultValue: "" });
   const [categoryFilter, setCategoryFilter] = useQueryState("category", {
     defaultValue: "ALL",
@@ -111,9 +143,7 @@ export const ProductMaterialPage = () => {
   const [debouncedSearch] = useDebounceValue(search, 500);
 
   const resolvedCategory =
-    categoryFilter === "ALL"
-      ? undefined
-      : (categoryFilter as MaterialCategory);
+    categoryFilter === "ALL" ? undefined : (categoryFilter as MaterialCategory);
   const resolvedIsActive =
     statusFilter === "ACTIVE"
       ? true
@@ -347,7 +377,9 @@ export const ProductMaterialPage = () => {
 
             <div className="lg:col-start-1 lg:row-start-1">
               <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-muted-foreground text-sm">{totalItems} items</p>
+                <p className="text-muted-foreground text-sm">
+                  {totalItems} items
+                </p>
                 <div className="border-border bg-muted flex w-full gap-2 rounded-lg border p-1 sm:w-auto">
                   <Button
                     variant={viewMode === "grid" ? "default" : "ghost"}
@@ -440,13 +472,15 @@ export const ProductMaterialPage = () => {
                             </p>
                           </div>
                           <p className="text-muted-foreground text-xs">
-                            Category: {item.materialCategory ?? "-"}
+                            Category: {formatMaterialCategory(item)}
                           </p>
                           <p className="text-muted-foreground text-xs">
                             Price: {item.price ?? "-"}
                           </p>
                           <div className="mt-2">
-                            <Badge variant={item.isActive ? "default" : "secondary"}>
+                            <Badge
+                              variant={item.isActive ? "default" : "secondary"}
+                            >
                               {item.isActive ? "Active" : "Inactive"}
                             </Badge>
                           </div>
@@ -456,7 +490,9 @@ export const ProductMaterialPage = () => {
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                router.push(`/dashboard/products/materials/${item.id}/edit`)
+                                router.push(
+                                  `/dashboard/products/materials/${item.id}/edit`,
+                                )
                               }
                               className="flex-1 bg-transparent"
                             >
@@ -497,13 +533,17 @@ export const ProductMaterialPage = () => {
                               </p>
                             </div>
                             <p className="text-muted-foreground text-xs">
-                              Category: {item.materialCategory ?? "-"}
+                              Category: {formatMaterialCategory(item)}
                             </p>
                             <p className="text-muted-foreground text-xs">
                               Price: {item.price ?? "-"}
                             </p>
                             <div className="mt-2">
-                              <Badge variant={item.isActive ? "default" : "secondary"}>
+                              <Badge
+                                variant={
+                                  item.isActive ? "default" : "secondary"
+                                }
+                              >
                                 {item.isActive ? "Active" : "Inactive"}
                               </Badge>
                             </div>
@@ -514,7 +554,9 @@ export const ProductMaterialPage = () => {
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                router.push(`/dashboard/products/materials/${item.id}/edit`)
+                                router.push(
+                                  `/dashboard/products/materials/${item.id}/edit`,
+                                )
                               }
                               className="flex-1 bg-transparent sm:flex-none"
                             >
@@ -542,13 +584,17 @@ export const ProductMaterialPage = () => {
                 <div className="mt-4 flex items-center justify-between">
                   <p className="text-muted-foreground text-xs">
                     Page {meta?.page ?? page} of{" "}
-                    {meta ? Math.max(1, Math.ceil(meta.total / meta.perPage)) : 1}
+                    {meta
+                      ? Math.max(1, Math.ceil(meta.total / meta.perPage))
+                      : 1}
                   </p>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => void setPage(Math.max(1, (meta?.page ?? page) - 1))}
+                      onClick={() =>
+                        void setPage(Math.max(1, (meta?.page ?? page) - 1))
+                      }
                       disabled={!meta?.hasPrevious}
                     >
                       Previous

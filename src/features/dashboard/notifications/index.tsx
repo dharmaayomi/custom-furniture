@@ -82,7 +82,7 @@ export const NotificationsPage = () => {
                   <div className="min-w-0">
                     <div className="mb-1 flex items-center gap-2">
                       {!item.isRead ? (
-                        <span className="h-2 w-2 rounded-full bg-blue-500" />
+                        <span className="notification-dot h-2 w-2 rounded-full bg-blue-500" />
                       ) : null}
                       <p className="text-foreground text-sm font-semibold sm:text-base">
                         {item.title}

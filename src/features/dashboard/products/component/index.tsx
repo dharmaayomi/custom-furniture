@@ -83,7 +83,7 @@ const ComponentPreview = ({
       <img
         src={activeImage}
         alt={name}
-        className="h-full w-full object-cover"
+        className="h-full w-full transform-gpu object-cover transition-all duration-300 ease-in-out hover:scale-107"
         onError={() => {
           if (activeIndex < normalizedCandidates.length - 1) {
             setActiveIndex((prev) => prev + 1);
@@ -436,13 +436,15 @@ export const ProductComponentPage = () => {
                         key={item.id}
                         className="bg-card overflow-hidden rounded-lg border shadow-sm"
                       >
-                        <ComponentPreview
-                          candidates={[
-                            toCloudinaryThumbUrl(item.componentUrl),
-                            item.componentImageUrls?.[0],
-                          ]}
-                          name={item.componentName}
-                        />
+                        <div className="overflow-hidden">
+                          <ComponentPreview
+                            candidates={[
+                              toCloudinaryThumbUrl(item.componentUrl),
+                              item.componentImageUrls?.[0],
+                            ]}
+                            name={item.componentName}
+                          />
+                        </div>
                         <div className="p-3">
                           <div className="mb-1 flex items-center gap-2">
                             <Layers className="text-muted-foreground h-4 w-4" />

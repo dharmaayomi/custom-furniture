@@ -3,6 +3,16 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useGetMaterialById from "@/hooks/api/product/useGetMaterialById";
@@ -24,12 +34,25 @@ type MaterialFormData = {
   materialName: string;
   materialSku: string;
   materialDesc: string;
-  materialCategory: MaterialCategory | "";
+  materialCategory: MaterialCategory[];
   price: string;
   isActive: boolean;
 };
 
 const MATERIAL_CATEGORIES: MaterialCategory[] = ["FLOOR", "WALL", "FURNITURE"];
+const normalizeMaterialCategories = (
+  value: ProductMaterial["materialCategories"] | ProductMaterial["materialCategory"],
+): MaterialCategory[] => {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is MaterialCategory =>
+      MATERIAL_CATEGORIES.includes(item as MaterialCategory),
+    );
+  }
+  if (value && MATERIAL_CATEGORIES.includes(value as MaterialCategory)) {
+    return [value as MaterialCategory];
+  }
+  return [];
+};
 
 export const EditMaterialProductPage = ({
   materialId,
@@ -65,7 +88,9 @@ export const EditMaterialProductPage = ({
       materialName: material.materialName ?? "",
       materialSku: material.materialSku ?? "",
       materialDesc: material.materialDesc ?? "",
-      materialCategory: material.materialCategory ?? "",
+      materialCategory: normalizeMaterialCategories(
+        material.materialCategories ?? material.materialCategory,
+      ),
       price: String(material.price ?? ""),
       isActive: Boolean(material.isActive),
     });
@@ -102,8 +127,8 @@ export const EditMaterialProductPage = ({
       toast.error("Material image is required.");
       return;
     }
-    if (!formData.materialCategory) {
-      toast.error("Please select a material category.");
+    if (formData.materialCategory.length === 0) {
+      toast.error("Please select at least one material category.");
       return;
     }
 
@@ -114,7 +139,7 @@ export const EditMaterialProductPage = ({
           materialName: formData.materialName,
           materialSku: formData.materialSku,
           materialDesc: formData.materialDesc,
-          materialCategory: formData.materialCategory as MaterialCategory,
+          materialCategories: formData.materialCategory,
           price: formData.price,
           materialUrl: existingImage ?? undefined,
           isActive: formData.isActive,
@@ -233,33 +258,50 @@ export const EditMaterialProductPage = ({
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="materialCategory" className="text-foreground">
-                      Category
+                      Category *
                     </Label>
-                    <select
-                    id="materialCategory"
-                    value={formData.materialCategory}
-                    onChange={(e) =>
-                      setFormData((prev) =>
-                        prev
-                          ? {
+                    <Combobox
+                      multiple
+                      items={MATERIAL_CATEGORIES}
+                      value={formData.materialCategory}
+                      onValueChange={(value) =>
+                        setFormData((prev) =>
+                          prev
+                            ? {
                                 ...prev,
-                                materialCategory: e.target
-                                  .value as MaterialCategory | "",
+                                materialCategory: Array.isArray(value)
+                                  ? value
+                                  : [],
                               }
                             : prev,
                         )
                       }
-                      className="border-input bg-background mt-1 h-9 w-full rounded-md border px-3 text-sm"
                     >
-                      <option value="" disabled>
-                        Select category
-                      </option>
-                      {MATERIAL_CATEGORIES.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
+                      <ComboboxChips className="border-input bg-background mt-1 min-h-9 rounded-md border px-1.5 py-1">
+                        {formData.materialCategory.map((category) => (
+                          <ComboboxChip key={category}>{category}</ComboboxChip>
+                        ))}
+                        <ComboboxChipsInput
+                          id="materialCategory"
+                          placeholder={
+                            formData.materialCategory.length
+                              ? ""
+                              : "Select categories"
+                          }
+                          className="text-sm"
+                        />
+                      </ComboboxChips>
+                      <ComboboxContent>
+                        <ComboboxEmpty>No category found.</ComboboxEmpty>
+                        <ComboboxList>
+                          {(item) => (
+                            <ComboboxItem key={item} value={item}>
+                              {item}
+                            </ComboboxItem>
+                          )}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
                   </div>
                 </div>
 

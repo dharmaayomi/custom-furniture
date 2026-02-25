@@ -5,8 +5,9 @@ export type ProductMaterial = {
   materialName: string;
   materialUrl: string;
   materialDesc: string;
-  materialSku: string;
-  materialCategory?: MaterialCategory | null;
+  materialSku?: string | null;
+  materialCategory?: MaterialCategory | MaterialCategory[] | null;
+  materialCategories?: MaterialCategory[] | null;
   price?: number | null;
   isActive: boolean;
   createdAt?: string;
@@ -21,7 +22,7 @@ export type CreateMaterialInput = {
   materialUrl: string;
   materialSku: string;
   materialDesc: string;
-  materialCategory: MaterialCategory;
+  materialCategories: MaterialCategory[];
   price: number | string;
 };
 
@@ -32,7 +33,7 @@ export type UpdateMaterialInput = Partial<
     | "materialUrl"
     | "materialSku"
     | "materialDesc"
-    | "materialCategory"
+    | "materialCategories"
     | "price"
   >
 > & {

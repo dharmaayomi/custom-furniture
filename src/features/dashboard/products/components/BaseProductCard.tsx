@@ -20,10 +20,7 @@ const toCloudinaryThumbUrl = (url?: string) => {
     return undefined;
   }
 
-  return url.replace(
-    "/upload/",
-    "/upload/w_320,h_240,c_fill,q_auto,f_auto/",
-  );
+  return url.replace("/upload/", "/upload/w_320,h_240,c_fill,q_auto,f_auto/");
 };
 
 const ProductPreview = ({
@@ -42,7 +39,7 @@ const ProductPreview = ({
   const [activeIndex, setActiveIndex] = useState(0);
 
   const baseClass = list
-    ? "bg-muted text-muted-foreground flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs"
+    ? "bg-muted text-muted-foreground  flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs"
     : "bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center overflow-hidden text-xs";
 
   const activeImage = normalizedCandidates[activeIndex];
@@ -62,7 +59,7 @@ const ProductPreview = ({
         <img
           src={activeImage}
           alt={alt}
-          className="h-full w-full object-cover"
+          className="h-full w-full transform-gpu object-cover transition-all duration-300 ease-in-out hover:scale-107"
           onError={() => {
             if (process.env.NODE_ENV !== "production") {
               console.warn("[BaseProductCard] preview image failed", {
@@ -115,8 +112,13 @@ export const BaseProductCard = ({
 
   if (viewMode === "grid") {
     return (
-      <div className="bg-card overflow-hidden rounded-lg border shadow-sm">
-        <ProductPreview candidates={previewCandidates} alt={item.productName} />
+      <div className="bg-card overflow-hidden rounded-lg border">
+        <div className="overflow-hidden">
+          <ProductPreview
+            candidates={previewCandidates}
+            alt={item.productName}
+          />
+        </div>
         <div className="p-3">
           <div className="mb-1 flex items-center gap-2">
             <Box className="text-muted-foreground h-4 w-4" />
@@ -126,7 +128,7 @@ export const BaseProductCard = ({
           </div>
           <p className="text-muted-foreground text-xs">SKU: {item.sku}</p>
           <p className="text-muted-foreground text-xs">
-            Base Price: {formatPrice(item.basePrice)}
+            {formatPrice(item.basePrice)}
           </p>
           <div className="mt-2 flex items-center gap-2">
             <Badge variant={item.isActive ? "default" : "secondary"}>

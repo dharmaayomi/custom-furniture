@@ -163,7 +163,7 @@ const HeaderDashboard = () => {
                   <Button variant="ghost" size="icon" className="relative">
                     <Bell size={20} />
                     {unreadCount > 0 ? (
-                      <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-blue-500" />
+                      <span className="notification-dot absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-blue-500" />
                     ) : null}
                   </Button>
                 </DropdownMenuTrigger>
@@ -196,7 +196,7 @@ const HeaderDashboard = () => {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             {!item.isRead ? (
-                              <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+                              <span className="notification-dot h-2 w-2 shrink-0 rounded-full bg-blue-500" />
                             ) : null}
                             <p className="truncate text-sm font-medium">
                               {item.title}
