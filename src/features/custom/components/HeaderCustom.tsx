@@ -285,6 +285,8 @@ export const HeaderCustom = ({
 
   const isDirty =
     lastSavedHash === null ? true : lastSavedHash !== currentConfigHash;
+  const canOpenSummary =
+    roomState.mainModels.length > 0 || roomState.addOnModels.length > 0;
 
   const handleSaveClick = () => {
     if (status === "authenticated") {
@@ -372,7 +374,7 @@ export const HeaderCustom = ({
   };
 
   const handleSummaryClick = async () => {
-    if (isSummaryLoading) return;
+    if (isSummaryLoading || !canOpenSummary) return;
 
     setIsSummaryLoading(true);
     try {
@@ -435,9 +437,9 @@ export const HeaderCustom = ({
           </div>
           <button
             type="button"
-            className="bg-primary text-primary-foreground flex cursor-pointer items-center gap-2 rounded-full px-2 py-2 text-sm font-bold sm:px-4"
+            className="bg-primary text-primary-foreground disabled:bg-primary/50 disabled:text-primary-foreground/70 flex cursor-pointer items-center gap-2 rounded-full px-2 py-2 text-sm font-bold disabled:cursor-not-allowed sm:px-4"
             onClick={handleSummaryClick}
-            disabled={isSummaryLoading}
+            disabled={isSummaryLoading || !canOpenSummary}
           >
             <span className="hidden sm:inline">SUMMARY</span>
             <MoveRight />

@@ -8,6 +8,21 @@ import { SummaryOrderPayload } from "@/types/summary";
 import useGetUserAddresses from "@/hooks/api/user/useGetUserAddresses";
 import { useUser } from "@/providers/UserProvider";
 import { Address } from "@/types/address";
+import AddressForm, {
+  AddressFormData,
+} from "@/features/dashboard/address/components/AddressForm";
+import useCreateNewAddress, {
+  CreateAddressInput,
+} from "@/hooks/api/user/useCreateNewAddress";
+import { getApiErrorMessage } from "@/lib/api-error";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Combobox,
   ComboboxContent,
@@ -17,13 +32,18 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 
+const getAddressOptionLabel = (address: Address) =>
+  `${address.label} - ${address.recipientName}`;
+
 export default function SummaryDesignPage() {
   const [payload, setPayload] = useState<SummaryOrderPayload | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [discountApplied, setDiscountApplied] = useState(false);
   const [selectedAddressValue, setSelectedAddressValue] = useState("");
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const { userId } = useUser();
-  const { data: addressesData } = useGetUserAddresses(userId);
+  const { data: addressesData, refetch: refetchAddresses } =
+    useGetUserAddresses(userId);
 
   useEffect(() => {
     setPayload(loadSummaryPayload());
@@ -38,10 +58,18 @@ export default function SummaryDesignPage() {
       [...addresses].sort((a, b) => Number(b.isDefault) - Number(a.isDefault)),
     [addresses],
   );
-  const getAddressOptionLabel = (address: Address) =>
-    `${address.label} - ${address.recipientName}`;
   const addressOptions = useMemo(
     () => sortedAddresses.map((address) => String(address.id)),
+    [sortedAddresses],
+  );
+  const addressLabelById = useMemo(
+    () =>
+      Object.fromEntries(
+        sortedAddresses.map((address) => [
+          String(address.id),
+          getAddressOptionLabel(address),
+        ]),
+      ),
     [sortedAddresses],
   );
 
@@ -59,6 +87,48 @@ export default function SummaryDesignPage() {
       ) ?? (selectedAddressValue ? sortedAddresses[0] : undefined),
     [sortedAddresses, selectedAddressValue],
   );
+  const { mutateAsync: createAddress, isPending: isCreatingAddress } =
+    useCreateNewAddress(userId, {
+      onSuccess: (newAddress) => {
+        toast.success("Address created");
+        setSelectedAddressValue(String(newAddress.id));
+        setIsAddressModalOpen(false);
+      },
+      onError: (error) => {
+        toast.error(getApiErrorMessage(error, "Failed to create address."));
+      },
+    });
+
+  const handleCreateAddress = async (data: AddressFormData) => {
+    if (!userId) {
+      toast.error("Please log in to add address.");
+      return;
+    }
+
+    const payload: CreateAddressInput = {
+      label: data.label,
+      recipientName: data.recipientName,
+      phoneNumber: data.phoneNumber,
+      line1: data.line1,
+      line2: data.line2 || undefined,
+      city: data.city,
+      district: data.district,
+      subdistrict: data.subdistrict || undefined,
+      province: data.province,
+      provinceCode: data.provinceCode || undefined,
+      cityCode: data.cityCode || undefined,
+      districtCode: data.districtCode || undefined,
+      subdistrictCode: data.subdistrictCode || undefined,
+      country: data.country,
+      isDefault: data.isDefault,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      postalCode: data.postalCode,
+    };
+
+    await createAddress(payload);
+    await refetchAddresses();
+  };
 
   const subtotal = payload?.subtotal ?? 0;
   const discount =
@@ -196,6 +266,9 @@ export default function SummaryDesignPage() {
                     <Combobox
                       items={addressOptions}
                       value={selectedAddressValue}
+                      itemToStringLabel={(value) =>
+                        addressLabelById[String(value)] ?? String(value)
+                      }
                       onValueChange={(value) =>
                         setSelectedAddressValue(value ?? "")
                       }
@@ -246,9 +319,18 @@ export default function SummaryDesignPage() {
                     ) : null}
                   </>
                 ) : (
-                  <p className="text-muted-foreground text-xs">
-                    No address found. Add address first in dashboard.
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-muted-foreground text-xs">
+                      No address found. Add your first address to continue.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddressModalOpen(true)}
+                      className="text-primary text-xs font-medium underline"
+                    >
+                      Add address now
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -307,7 +389,7 @@ export default function SummaryDesignPage() {
               </div>
 
               <button className="bg-primary text-primary-foreground hover:bg-primary/90 mb-6 w-full rounded py-3 font-semibold transition">
-                Add to Cart
+                Proceed to Chekout
               </button>
 
               <div className="text-muted-foreground space-y-3 text-xs">
@@ -343,6 +425,30 @@ export default function SummaryDesignPage() {
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={isAddressModalOpen}
+        onOpenChange={(open) => {
+          if (isCreatingAddress) return;
+          setIsAddressModalOpen(open);
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Add Delivery Address</DialogTitle>
+            <DialogDescription>
+              Add your delivery address to continue checkout.
+            </DialogDescription>
+          </DialogHeader>
+          <AddressForm
+            title="Add New Address"
+            description="Fill in your delivery address details"
+            submitLabel={isCreatingAddress ? "Saving..." : "Save Address"}
+            onSubmit={handleCreateAddress}
+            layout="stacked"
+          />
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

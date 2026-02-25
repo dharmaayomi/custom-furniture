@@ -1,9 +1,8 @@
-import React from "react";
-import { LoginForm } from "./components/login-form";
-import Image from "next/image";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CircleAlert } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import { LoginForm } from "./components/login-form";
 
 type LoginPageProps = {
   reason?: string;

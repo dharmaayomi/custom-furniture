@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
@@ -25,8 +24,8 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import useForgotPassword from "@/hooks/api/auth/useForgotPassword";
-import { axiosInstance } from "@/lib/axios";
 import { getApiErrorMessage } from "@/lib/api-error";
+import { axiosInstance } from "@/lib/axios";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -225,7 +224,10 @@ export function LoginForm({
         </CardContent>
       </div>
 
-      <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
+      <Dialog
+        open={isForgotPasswordOpen}
+        onOpenChange={setIsForgotPasswordOpen}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Forgot password</DialogTitle>
