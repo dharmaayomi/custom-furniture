@@ -1,121 +1,20 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useDeleteMaterial from "@/hooks/api/product/useDeleteMaterial";
 import useGetMaterials from "@/hooks/api/product/useGetMaterials";
 import { MaterialCategory, ProductMaterial } from "@/types/materialProduct";
-import {
-  Filter,
-  Grid3x3,
-  List,
-  PackageSearch,
-  Palette,
-  Pencil,
-  Plus,
-  RotateCcw,
-  Trash2,
-} from "lucide-react";
+import { Filter, Plus, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { toast } from "sonner";
 import { useDebounceValue } from "usehooks-ts";
-
-const MATERIAL_CATEGORIES: MaterialCategory[] = ["FLOOR", "WALL", "FURNITURE"];
-const normalizeCategoryLabel = (value: unknown): string[] => {
-  if (Array.isArray(value)) {
-    return value
-      .flatMap((entry) =>
-        typeof entry === "string"
-          ? entry
-          : typeof entry === "object" && entry
-            ? String(
-                (entry as Record<string, unknown>).name ??
-                  (entry as Record<string, unknown>).label ??
-                  "",
-              )
-            : "",
-      )
-      .map((entry) => entry.trim())
-      .filter(Boolean);
-  }
-
-  if (typeof value === "string") {
-    return value
-      .split(",")
-      .map((entry) => entry.trim())
-      .filter(Boolean);
-  }
-
-  return [];
-};
-
-const formatMaterialCategory = (item: ProductMaterial): string => {
-  const rawCategory =
-    (item as Record<string, unknown>).materialCategory ??
-    (item as Record<string, unknown>).materialCategories ??
-    (item as Record<string, unknown>).category;
-  const normalized = normalizeCategoryLabel(rawCategory);
-  return normalized.length ? normalized.join(", ") : "-";
-};
-
-const toCloudinaryThumbUrl = (url?: string) => {
-  if (!url) return undefined;
-  if (!url.includes("res.cloudinary.com") || !url.includes("/upload/")) {
-    return undefined;
-  }
-
-  return url.replace("/upload/", "/upload/w_320,h_240,c_fill,q_auto,f_auto/");
-};
-
-const MaterialPreview = ({
-  candidates,
-  name,
-  list,
-}: {
-  candidates: (string | undefined)[];
-  name: string;
-  list?: boolean;
-}) => {
-  const normalizedCandidates = useMemo(
-    () => candidates.filter((item): item is string => !!item),
-    [candidates],
-  );
-  const [activeIndex, setActiveIndex] = useState(0);
-  const baseClass = list
-    ? "bg-muted text-muted-foreground flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs"
-    : "bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center overflow-hidden text-xs";
-
-  const activeImage = normalizedCandidates[activeIndex];
-
-  if (!activeImage) return <div className={baseClass}>Preview</div>;
-
-  return (
-    <div className={baseClass}>
-      <img
-        src={activeImage}
-        alt={name}
-        className="h-full w-full transform-gpu object-cover transition-all duration-300 ease-in-out hover:scale-107"
-        onError={() => {
-          if (activeIndex < normalizedCandidates.length - 1) {
-            setActiveIndex((prev) => prev + 1);
-          }
-        }}
-      />
-    </div>
-  );
-};
+import { MaterialDeleteDialog } from "./components/MaterialDeleteDialog";
+import { MaterialListContent } from "./components/MaterialListContent";
+import { MATERIAL_CATEGORIES } from "./components/materialHelpers";
 
 export const ProductMaterialPage = () => {
   const router = useRouter();
@@ -139,7 +38,7 @@ export const ProductMaterialPage = () => {
     defaultValue: "asc",
   });
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const perPage = 6;
+  const perPage = 9;
   const [debouncedSearch] = useDebounceValue(search, 500);
 
   const resolvedCategory =
@@ -376,209 +275,18 @@ export const ProductMaterialPage = () => {
             </aside>
 
             <div className="lg:col-start-1 lg:row-start-1">
-              <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-muted-foreground text-sm">
-                  {totalItems} items
-                </p>
-                <div className="border-border bg-muted flex w-full gap-2 rounded-lg border p-1 sm:w-auto">
-                  <Button
-                    variant={viewMode === "grid" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("grid")}
-                    className="flex-1 gap-2 sm:flex-none"
-                  >
-                    <Grid3x3 className="h-4 w-4" />
-                    Grid
-                  </Button>
-                  <Button
-                    variant={viewMode === "list" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("list")}
-                    className="flex-1 gap-2 sm:flex-none"
-                  >
-                    <List className="h-4 w-4" />
-                    List
-                  </Button>
-                </div>
-              </div>
-
-              {isLoading ? (
-                <div
-                  className={
-                    viewMode === "grid"
-                      ? "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-                      : "space-y-4"
-                  }
-                >
-                  {Array.from({ length: 6 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="bg-card overflow-hidden rounded-lg border shadow-sm"
-                    >
-                      <div className="bg-muted aspect-4/3 w-full animate-pulse" />
-                      <div className="space-y-2 p-3">
-                        <div className="bg-muted h-4 w-2/3 animate-pulse rounded" />
-                        <div className="bg-muted h-3 w-1/2 animate-pulse rounded" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : isError ? (
-                <div className="border-border bg-card flex w-full flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12">
-                  <PackageSearch className="text-muted-foreground/40 mb-3 h-12 w-12" />
-                  <h3 className="text-foreground mb-2 text-lg font-medium">
-                    Failed to load materials
-                  </h3>
-                  <p className="text-muted-foreground text-sm">
-                    Please try again later.
-                  </p>
-                </div>
-              ) : materials.length === 0 ? (
-                <div className="border-border bg-card flex w-full flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12">
-                  <PackageSearch className="text-muted-foreground/40 mb-3 h-12 w-12" />
-                  <h3 className="text-foreground mb-2 text-lg font-medium">
-                    No materials found
-                  </h3>
-                  <p className="text-muted-foreground text-sm">
-                    Create your first material to get started.
-                  </p>
-                </div>
-              ) : (
-                <div
-                  className={
-                    viewMode === "grid"
-                      ? "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-                      : "space-y-4"
-                  }
-                >
-                  {materials.map((item) =>
-                    viewMode === "grid" ? (
-                      <div
-                        key={item.id}
-                        className="bg-card overflow-hidden rounded-lg border shadow-sm"
-                      >
-                        <MaterialPreview
-                          candidates={[
-                            toCloudinaryThumbUrl(item.materialUrl),
-                            item.materialUrl,
-                          ]}
-                          name={item.materialName}
-                        />
-                        <div className="p-3">
-                          <div className="mb-1 flex items-center gap-2">
-                            <Palette className="text-muted-foreground h-4 w-4" />
-                            <p className="text-foreground truncate text-sm font-semibold">
-                              {item.materialName}
-                            </p>
-                          </div>
-                          <p className="text-muted-foreground text-xs">
-                            Category: {formatMaterialCategory(item)}
-                          </p>
-                          <p className="text-muted-foreground text-xs">
-                            Price: {item.price ?? "-"}
-                          </p>
-                          <div className="mt-2">
-                            <Badge
-                              variant={item.isActive ? "default" : "secondary"}
-                            >
-                              {item.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                          </div>
-                          <div className="border-border mt-3 flex gap-2 border-t pt-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                router.push(
-                                  `/dashboard/products/materials/${item.id}/edit`,
-                                )
-                              }
-                              className="flex-1 bg-transparent"
-                            >
-                              <Pencil className="h-4 w-4" />
-                              Edit
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openDeleteDialog(item)}
-                              className="text-destructive hover:bg-destructive bg-transparent hover:text-white"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div
-                        key={item.id}
-                        className="bg-card rounded-lg border p-3 shadow-sm"
-                      >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                          <MaterialPreview
-                            list
-                            candidates={[
-                              toCloudinaryThumbUrl(item.materialUrl),
-                              item.materialUrl,
-                            ]}
-                            name={item.materialName}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-1 flex items-center gap-2">
-                              <Palette className="text-muted-foreground h-4 w-4" />
-                              <p className="text-foreground truncate text-sm font-semibold">
-                                {item.materialName}
-                              </p>
-                            </div>
-                            <p className="text-muted-foreground text-xs">
-                              Category: {formatMaterialCategory(item)}
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                              Price: {item.price ?? "-"}
-                            </p>
-                            <div className="mt-2">
-                              <Badge
-                                variant={
-                                  item.isActive ? "default" : "secondary"
-                                }
-                              >
-                                {item.isActive ? "Active" : "Inactive"}
-                              </Badge>
-                            </div>
-                          </div>
-                          <div className="flex w-full gap-2 sm:w-auto sm:shrink-0">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                router.push(
-                                  `/dashboard/products/materials/${item.id}/edit`,
-                                )
-                              }
-                              className="flex-1 bg-transparent sm:flex-none"
-                            >
-                              <Pencil className="h-4 w-4" />
-                              Edit
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openDeleteDialog(item)}
-                              className="text-destructive hover:bg-destructive bg-transparent hover:text-white sm:flex-none"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ),
-                  )}
-                </div>
-              )}
+              <MaterialListContent
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+                isLoading={isLoading}
+                isError={isError}
+                materials={materials}
+                totalItems={totalItems}
+                onEdit={(id) =>
+                  router.push(`/dashboard/products/materials/${id}/edit`)
+                }
+                onDelete={openDeleteDialog}
+              />
 
               {!isLoading && !isError && totalItems > 0 ? (
                 <div className="mt-4 flex items-center justify-between">
@@ -615,44 +323,16 @@ export const ProductMaterialPage = () => {
         </div>
       </div>
 
-      <Dialog
+      <MaterialDeleteDialog
         open={isDeleteOpen}
+        material={selectedMaterial}
+        isDeleting={isDeleting}
         onOpenChange={(open) => {
           setIsDeleteOpen(open);
           if (!open) setSelectedMaterial(null);
         }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete material?</DialogTitle>
-            <DialogDescription>
-              {selectedMaterial ? (
-                <>
-                  You are about to delete{" "}
-                  <span className="text-foreground font-semibold">
-                    {selectedMaterial.materialName}
-                  </span>
-                  . This action cannot be undone.
-                </>
-              ) : (
-                "Confirm delete."
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Deleting..." : "Delete Material"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onConfirm={handleDelete}
+      />
     </section>
   );
 };

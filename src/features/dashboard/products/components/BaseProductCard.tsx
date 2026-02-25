@@ -14,6 +14,15 @@ type BaseProductCardProps = {
   onDelete: () => void;
 };
 
+const ACTIVE_BADGE_CLASS =
+  "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300";
+const INACTIVE_BADGE_CLASS =
+  "border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-300";
+const CUSTOMIZABLE_BADGE_CLASS =
+  "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800/60 dark:bg-sky-950/40 dark:text-sky-300";
+const FIXED_BADGE_CLASS =
+  "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300";
+
 const toCloudinaryThumbUrl = (url?: string) => {
   if (!url) return undefined;
   if (!url.includes("res.cloudinary.com") || !url.includes("/upload/")) {
@@ -131,10 +140,18 @@ export const BaseProductCard = ({
             {formatPrice(item.basePrice)}
           </p>
           <div className="mt-2 flex items-center gap-2">
-            <Badge variant={item.isActive ? "default" : "secondary"}>
+            <Badge
+              variant="outline"
+              className={item.isActive ? ACTIVE_BADGE_CLASS : INACTIVE_BADGE_CLASS}
+            >
               {item.isActive ? "Active" : "Inactive"}
             </Badge>
-            <Badge variant="outline">
+            <Badge
+              variant="outline"
+              className={
+                item.isCustomizable ? CUSTOMIZABLE_BADGE_CLASS : FIXED_BADGE_CLASS
+              }
+            >
               {item.isCustomizable ? "Customizable" : "Fixed"}
             </Badge>
           </div>
@@ -184,10 +201,18 @@ export const BaseProductCard = ({
             Base Price: {formatPrice(item.basePrice)}
           </p>
           <div className="mt-2 flex items-center gap-2">
-            <Badge variant={item.isActive ? "default" : "secondary"}>
+            <Badge
+              variant="outline"
+              className={item.isActive ? ACTIVE_BADGE_CLASS : INACTIVE_BADGE_CLASS}
+            >
               {item.isActive ? "Active" : "Inactive"}
             </Badge>
-            <Badge variant="outline">
+            <Badge
+              variant="outline"
+              className={
+                item.isCustomizable ? CUSTOMIZABLE_BADGE_CLASS : FIXED_BADGE_CLASS
+              }
+            >
               {item.isCustomizable ? "Customizable" : "Fixed"}
             </Badge>
           </div>
