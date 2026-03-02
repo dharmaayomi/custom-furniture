@@ -12,7 +12,7 @@ export default function DesignCardSkeleton({
 }: DesignCardSkeletonProps) {
   if (variant === "list") {
     return (
-      <Card className="p-4">
+      <div>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-3">
             <Skeleton className="h-5 w-40" />
@@ -21,7 +21,7 @@ export default function DesignCardSkeleton({
           </div>
           <Skeleton className="h-9 w-20" />
         </div>
-      </Card>
+      </div>
     );
   }
 
@@ -41,4 +41,3 @@ export default function DesignCardSkeleton({
     </Card>
   );
 }
-

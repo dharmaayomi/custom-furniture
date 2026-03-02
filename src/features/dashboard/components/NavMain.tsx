@@ -39,7 +39,7 @@ export function NavMain({
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel className="text-base">Dashboard</SidebarGroupLabel>
+      <SidebarGroupLabel className="text-sm">Dashboard</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
           const isActive =
@@ -52,7 +52,7 @@ export function NavMain({
                   asChild
                   tooltip={item.title}
                   isActive={isActive}
-                  className="text-base"
+                  className="text-md"
                 >
                   <Link href={item.url}>
                     <item.icon />
@@ -78,7 +78,7 @@ export function NavMain({
                               <SidebarMenuSubButton
                                 asChild
                                 isActive={isSubActive}
-                                className="text-sm"
+                                className="mt-1 text-sm"
                               >
                                 <Link href={subItem.url}>
                                   <span>{subItem.title}</span>

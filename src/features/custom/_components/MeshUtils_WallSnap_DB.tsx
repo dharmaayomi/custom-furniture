@@ -259,7 +259,13 @@ const getOrCreateMaterial = (
   }
 
   // Buat material baru jika belum ada
-  const texturePath = "/assets/texture/" + texName;
+  const texturePath =
+    texName.startsWith("http://") ||
+    texName.startsWith("https://") ||
+    texName.startsWith("data:") ||
+    texName.startsWith("/")
+      ? texName
+      : "/assets/texture/" + texName;
   const newTex = new BABYLON.Texture(texturePath, scene);
 
   const pbrMat = new BABYLON.PBRMaterial(cacheKey, scene);

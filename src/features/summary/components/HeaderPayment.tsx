@@ -50,7 +50,6 @@ export const HeaderPayment = () => {
               <Moon className="h-5 w-5" />
             )}
           </Button>
-          <ShoppingCart className="h-5 w-5" />
           {isLoggedIn ? (
             <Link href="/dashboard/profile" aria-label="Profile">
               <Avatar className="ring-primary/30 hover:ring-primary/50 h-8 w-8 ring-2 ring-offset-2 transition">

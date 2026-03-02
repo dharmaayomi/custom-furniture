@@ -14,5 +14,7 @@ export interface SummaryOrderPayload {
   totalItems: number;
   currency: "IDR";
   previewImage?: string;
+  designCode?: string;
+  configuration?: Record<string, unknown>;
   generatedAt: string;
 }

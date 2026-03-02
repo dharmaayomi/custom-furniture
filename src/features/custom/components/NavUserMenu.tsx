@@ -45,7 +45,7 @@ export function NavUserMenu({
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex h-12 w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm"
+          className="text-foreground hover:bg-muted data-[state=open]:bg-muted flex h-12 w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm"
         >
           <Avatar className="h-8 w-8 rounded-lg">
             <AvatarImage src={avatarSrc} alt={user.userName} />
@@ -55,7 +55,9 @@ export function NavUserMenu({
           </Avatar>
           <div className="grid flex-1 text-left text-sm leading-tight">
             <span className="truncate font-medium">{user.userName}</span>
-            <span className="truncate text-xs">{user.email}</span>
+            <span className="text-muted-foreground truncate text-xs">
+              {user.email}
+            </span>
           </div>
           <ChevronsUpDown className="ml-auto size-4" />
         </Button>
@@ -76,7 +78,9 @@ export function NavUserMenu({
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{user.userName}</span>
-              <span className="truncate text-xs">{user.email}</span>
+              <span className="text-muted-foreground truncate text-xs">
+                {user.email}
+              </span>
             </div>
           </div>
         </DropdownMenuLabel>

@@ -115,7 +115,10 @@ export const OrdersPage = () => {
     return (
       <div className="space-y-4">
         {items.map((item) => (
-          <div key={item.id} className="bg-card rounded-lg border p-4 shadow-sm">
+          <div
+            key={item.id}
+            className="bg-card rounded-lg border p-4 shadow-sm"
+          >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-foreground truncate text-sm font-semibold sm:text-base">
@@ -145,7 +148,7 @@ export const OrdersPage = () => {
 
   return (
     <section>
-      <div className="bg-muted/60 mb-8 rounded-lg px-4 py-6 sm:px-6 sm:py-8">
+      <div className="bg-accent mb-8 rounded-lg px-4 py-6 sm:px-6 sm:py-8">
         <h1 className="text-foreground text-2xl font-semibold tracking-tight md:text-3xl">
           Orders
         </h1>

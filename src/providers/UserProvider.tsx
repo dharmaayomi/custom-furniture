@@ -4,11 +4,14 @@ import { createContext, useContext, useEffect, useMemo } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useQueryClient } from "@tanstack/react-query";
 import useGetUserDisplay from "@/hooks/api/user/useGetUserDisplay";
+import { Role } from "@/types/user";
+import { normalizeRole } from "@/lib/dashboard-access";
 
 type NavUser = {
   userName: string;
   email: string;
   avatar: string;
+  role: Role | null;
 };
 
 type UserContextValue = {
@@ -54,12 +57,23 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
   const navUser = useMemo<NavUser | null>(() => {
     if (!session.data?.user) return null;
+
+    const role = normalizeRole(user?.role ?? session.data.user.role);
+
     return {
       userName: user?.userName ?? session.data.user.userName ?? "User",
       email: user?.email ?? session.data.user.email ?? "",
       avatar: user?.avatar ?? DEFAULT_AVATAR,
+      role,
     };
-  }, [session.data?.user, user?.userName, user?.email, user?.avatar]);
+  }, [
+    session.data?.user,
+    session.data?.user?.role,
+    user?.userName,
+    user?.email,
+    user?.avatar,
+    user?.role,
+  ]);
 
   const logout = () => {
     queryClient.removeQueries({

@@ -37,6 +37,7 @@ import useGetProducts from "@/hooks/api/product/useGetProducts";
 import useGetProductById from "@/hooks/api/product/useGetProductById";
 import useGetComponents from "@/hooks/api/product/useGetComponents";
 import useGetComponentById from "@/hooks/api/product/useGetComponentById";
+import useGetMaterials from "@/hooks/api/product/useGetMaterials";
 import { SummaryOrderItem } from "@/types/summary";
 
 const ASSETS_3D = [
@@ -110,6 +111,18 @@ export const RoomPageDB = () => {
     true,
   );
   const componentList = componentListResponse?.data ?? [];
+  const { data: materialListResponse } = useGetMaterials(
+    {
+      page: 1,
+      perPage: 100,
+      sortBy: "materialName",
+      orderBy: "asc",
+      isActive: true,
+      category: "FURNITURE",
+    },
+    true,
+  );
+  const materialList = materialListResponse?.data ?? [];
 
   const selectedModelId = useMemo(() => {
     const selected = present.selectedFurniture ?? mainModels[0];
@@ -339,9 +352,12 @@ export const RoomPageDB = () => {
     const texturePaths = [
       present.roomConfig.floorTexture,
       ...ASSETS_TEXTURE.map((t) => `/assets/texture/${t}`),
+      ...materialList
+        .map((material) => material.materialUrl)
+        .filter((url): url is string => Boolean(url)),
     ];
     preloadTextures(scene, texturePaths);
-  }, [scene, present.roomConfig.floorTexture]);
+  }, [scene, present.roomConfig.floorTexture, materialList]);
 
   const handleToolClick = (toolId: ToolType) => {
     if (activePanel === "sidebar" && selectedTool === toolId) {
@@ -575,6 +591,7 @@ export const RoomPageDB = () => {
         assetList3D={productAssetIds}
         assetListAddOn={componentAssetIds}
         assetListTexture={ASSETS_TEXTURE}
+        materialsFromDb={materialList}
         productsFromDb={productList}
         componentsFromDb={componentList}
         mainModels={mainModels}

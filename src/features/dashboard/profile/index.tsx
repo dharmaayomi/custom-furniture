@@ -21,6 +21,7 @@ import {
 import useGetUser from "@/hooks/api/user/useGetUser";
 import useUpdateProfile from "@/hooks/api/user/useUpdateProfile";
 import useUploadAvatarProfile from "@/hooks/api/user/useUploadPhotoProfile";
+import { getAvatarFallback } from "@/lib/avatar";
 import { useUser } from "@/providers/UserProvider";
 import { Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -113,6 +114,12 @@ export const ProfilePage = () => {
       profileForm.phoneNumber !== initialProfile.phoneNumber
     );
   }, [profileForm, initialProfile]);
+
+  const avatarFallback = getAvatarFallback({
+    firstName: user?.firstName,
+    lastName: user?.lastName,
+    name: user?.userName,
+  });
 
   const handleAvatarFileChange = (files: File[]) => {
     if (selectedFile) {
@@ -214,11 +221,11 @@ export const ProfilePage = () => {
               <div className="flex flex-col items-center">
                 <Avatar className="ring-background h-28 w-28 shadow-md ring-4">
                   <AvatarImage
-                    src={user?.avatar}
+                    src={user?.avatar || DEFAULT_AVATAR_URL}
                     alt={user?.userName ?? "User"}
                   />
-                  <AvatarFallback>
-                    {isLoading ? "..." : (user?.userName?.charAt(0) ?? "U")}
+                  <AvatarFallback className="text-3xl">
+                    {isLoading ? "..." : avatarFallback}
                   </AvatarFallback>
                 </Avatar>
 

@@ -1,14 +1,37 @@
 import { ProductMaterial } from "./materialProduct";
 
+export interface SnapshotAddress {
+  label?: string | null;
+  recipientName?: string | null;
+  phoneNumber?: string | null;
+  line1?: string | null;
+  line2?: string | null;
+  subdistrict?: string | null;
+  district?: string | null;
+  city?: string | null;
+  province?: string | null;
+  country?: string | null;
+  postalCode?: string | null;
+}
+
+export interface DesignSnapshot {
+  previewImage?: string;
+  previewUrl?: string;
+  [key: string]: unknown;
+}
+
 export interface CustomOrder {
   id: string;
+  orderNumber?: string | null;
   userId: number;
-  userDesignId: number;
-  snapShotAddress: unknown;
+  userDesignId?: number | null;
+  designSnapShot?: DesignSnapshot | null;
+  snapShotAddress?: SnapshotAddress | null;
   status: OrderStatus;
 
   subtotalPrice?: number | null;
   deliveryType: DeliveryType;
+  deliveryDistance?: number | null;
   deliveryDistancce?: number | null;
   deliveryFee?: number | null;
   trackNumber?: string | null;
@@ -19,6 +42,7 @@ export interface CustomOrder {
   items: CustomOrderItem[];
 
   addressId?: number | null;
+  notes?: string | null;
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
