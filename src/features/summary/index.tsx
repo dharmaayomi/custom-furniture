@@ -8,6 +8,23 @@ import { SummaryOrderPayload } from "@/types/summary";
 import useGetUserAddresses from "@/hooks/api/user/useGetUserAddresses";
 import { useUser } from "@/providers/UserProvider";
 import { Address } from "@/types/address";
+import useCreateCustomOrder from "@/hooks/api/order/useCreateCustomOrder";
+import AddressForm, {
+  AddressFormData,
+} from "@/features/dashboard/address/components/AddressForm";
+import useCreateNewAddress, {
+  CreateAddressInput,
+} from "@/hooks/api/user/useCreateNewAddress";
+import { getApiErrorMessage } from "@/lib/api-error";
+import { loadDesignCodeFromStorage } from "@/lib/designCode";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Combobox,
   ComboboxContent,
@@ -16,14 +33,24 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/combobox";
+import { useRouter } from "next/navigation";
+import { DeliveryType } from "@/types/customOrder";
+import { saveCheckoutSnapshot } from "@/lib/checkoutStorage";
+
+const getAddressOptionLabel = (address: Address) =>
+  `${address.label} - ${address.recipientName}`;
 
 export default function SummaryDesignPage() {
+  const router = useRouter();
   const [payload, setPayload] = useState<SummaryOrderPayload | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [discountApplied, setDiscountApplied] = useState(false);
+  const [deliveryType, setDeliveryType] = useState<DeliveryType>("DELIVERY");
   const [selectedAddressValue, setSelectedAddressValue] = useState("");
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const { userId } = useUser();
-  const { data: addressesData } = useGetUserAddresses(userId);
+  const { data: addressesData, refetch: refetchAddresses } =
+    useGetUserAddresses(userId);
 
   useEffect(() => {
     setPayload(loadSummaryPayload());
@@ -38,10 +65,18 @@ export default function SummaryDesignPage() {
       [...addresses].sort((a, b) => Number(b.isDefault) - Number(a.isDefault)),
     [addresses],
   );
-  const getAddressOptionLabel = (address: Address) =>
-    `${address.label} - ${address.recipientName}`;
   const addressOptions = useMemo(
     () => sortedAddresses.map((address) => String(address.id)),
+    [sortedAddresses],
+  );
+  const addressLabelById = useMemo(
+    () =>
+      Object.fromEntries(
+        sortedAddresses.map((address) => [
+          String(address.id),
+          getAddressOptionLabel(address),
+        ]),
+      ),
     [sortedAddresses],
   );
 
@@ -59,6 +94,50 @@ export default function SummaryDesignPage() {
       ) ?? (selectedAddressValue ? sortedAddresses[0] : undefined),
     [sortedAddresses, selectedAddressValue],
   );
+  const { mutateAsync: createAddress, isPending: isCreatingAddress } =
+    useCreateNewAddress(userId, {
+      onSuccess: (newAddress) => {
+        toast.success("Address created");
+        setSelectedAddressValue(String(newAddress.id));
+        setIsAddressModalOpen(false);
+      },
+      onError: (error) => {
+        toast.error(getApiErrorMessage(error, "Failed to create address."));
+      },
+    });
+  const { mutateAsync: createCustomOrder, isPending: isCreatingOrder } =
+    useCreateCustomOrder();
+
+  const handleCreateAddress = async (data: AddressFormData) => {
+    if (!userId) {
+      toast.error("Please log in to add address.");
+      return;
+    }
+
+    const payload: CreateAddressInput = {
+      label: data.label,
+      recipientName: data.recipientName,
+      phoneNumber: data.phoneNumber,
+      line1: data.line1,
+      line2: data.line2 || undefined,
+      city: data.city,
+      district: data.district,
+      subdistrict: data.subdistrict || undefined,
+      province: data.province,
+      provinceCode: data.provinceCode || undefined,
+      cityCode: data.cityCode || undefined,
+      districtCode: data.districtCode || undefined,
+      subdistrictCode: data.subdistrictCode || undefined,
+      country: data.country,
+      isDefault: data.isDefault,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      postalCode: data.postalCode,
+    };
+
+    await createAddress(payload);
+    await refetchAddresses();
+  };
 
   const subtotal = payload?.subtotal ?? 0;
   const discount =
@@ -73,6 +152,57 @@ export default function SummaryDesignPage() {
   const applyPromo = () => {
     if (promoCode.trim()) {
       setDiscountApplied(true);
+    }
+  };
+
+  const handleProceedCheckout = async () => {
+    if (deliveryType === "DELIVERY" && !selectedAddress) {
+      toast.error("Please select a delivery address first.");
+      return;
+    }
+
+    const fallbackDesignCode = loadDesignCodeFromStorage().trim();
+    const resolvedDesignCode =
+      payload?.designCode?.trim() || fallbackDesignCode;
+    const resolvedConfiguration = payload?.configuration;
+
+    if (!resolvedDesignCode && !resolvedConfiguration) {
+      toast.error("Missing design data. Please go back and re-open Summary.");
+      return;
+    }
+
+    try {
+      const result = await createCustomOrder({
+        ...(resolvedDesignCode
+          ? { designCode: resolvedDesignCode }
+          : { configuration: resolvedConfiguration }),
+        deliveryType,
+        ...(deliveryType === "DELIVERY" && selectedAddress
+          ? { addressId: selectedAddress.id }
+          : {}),
+      });
+
+      const orderId = String((result as any)?.id ?? "");
+      if (orderId) {
+        saveCheckoutSnapshot({
+          orderId,
+          status: (result as any)?.status ?? "PENDING_PAYMENT",
+          deliveryType,
+          subtotal: Number((result as any)?.subtotalPrice ?? subtotal),
+          deliveryFee: Number(
+            (result as any)?.deliveryFee ?? (deliveryType === "PICKUP" ? 0 : 0),
+          ),
+          grandTotal: Number((result as any)?.grandTotalPrice ?? total),
+          items: payload?.items ?? [],
+          previewImage: payload?.previewImage,
+          createdAt: (result as any)?.createdAt ?? new Date().toISOString(),
+        });
+      }
+
+      toast.success(`Order created`);
+      router.push(orderId ? `/checkout?orderId=${orderId}` : "/checkout");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to create order."));
     }
   };
 
@@ -182,73 +312,122 @@ export default function SummaryDesignPage() {
               </h2>
 
               <div className="border-border mb-6 space-y-3 rounded-lg border p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold">Delivery Address</p>
-                  {selectedAddress?.isDefault ? (
-                    <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-                      Default
-                    </span>
-                  ) : null}
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold">Fulfillment Type</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryType("DELIVERY")}
+                      className={`rounded border px-3 py-2 text-sm font-medium transition ${
+                        deliveryType === "DELIVERY"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border hover:bg-muted"
+                      }`}
+                    >
+                      Delivery
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryType("PICKUP")}
+                      className={`rounded border px-3 py-2 text-sm font-medium transition ${
+                        deliveryType === "PICKUP"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border hover:bg-muted"
+                      }`}
+                    >
+                      Pickup
+                    </button>
+                  </div>
                 </div>
 
-                {sortedAddresses.length > 0 ? (
+                {deliveryType === "DELIVERY" ? (
                   <>
-                    <Combobox
-                      items={addressOptions}
-                      value={selectedAddressValue}
-                      onValueChange={(value) =>
-                        setSelectedAddressValue(value ?? "")
-                      }
-                    >
-                      <ComboboxInput
-                        placeholder="Choose delivery address"
-                        className="w-full text-xs md:text-sm"
-                        showClear
-                      />
-                      <ComboboxContent>
-                        <ComboboxEmpty>No address found.</ComboboxEmpty>
-                        <ComboboxList>
-                          {(item) => {
-                            const address = sortedAddresses.find(
-                              (entry) => String(entry.id) === item,
-                            );
-                            return (
-                              <ComboboxItem key={item} value={item}>
-                                {address
-                                  ? getAddressOptionLabel(address)
-                                  : item}
-                                {address?.isDefault ? " (Default)" : ""}
-                              </ComboboxItem>
-                            );
-                          }}
-                        </ComboboxList>
-                      </ComboboxContent>
-                    </Combobox>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold">Delivery Address</p>
+                      {selectedAddress?.isDefault ? (
+                        <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                          Default
+                        </span>
+                      ) : null}
+                    </div>
 
-                    {selectedAddress ? (
-                      <div className="text-muted-foreground space-y-1 text-xs">
-                        <p className="text-foreground font-medium">
-                          {selectedAddress.recipientName} (
-                          {selectedAddress.phoneNumber})
-                        </p>
-                        <p>{selectedAddress.line1}</p>
-                        {selectedAddress.line2 ? (
-                          <p>{selectedAddress.line2}</p>
+                    {sortedAddresses.length > 0 ? (
+                      <>
+                        <Combobox
+                          items={addressOptions}
+                          value={selectedAddressValue}
+                          itemToStringLabel={(value) =>
+                            addressLabelById[String(value)] ?? String(value)
+                          }
+                          onValueChange={(value) =>
+                            setSelectedAddressValue(value ?? "")
+                          }
+                        >
+                          <ComboboxInput
+                            placeholder="Choose delivery address"
+                            className="w-full text-xs md:text-sm"
+                            showClear
+                          />
+                          <ComboboxContent>
+                            <ComboboxEmpty>No address found.</ComboboxEmpty>
+                            <ComboboxList>
+                              {(item) => {
+                                const address = sortedAddresses.find(
+                                  (entry) => String(entry.id) === item,
+                                );
+                                return (
+                                  <ComboboxItem key={item} value={item}>
+                                    {address
+                                      ? getAddressOptionLabel(address)
+                                      : item}
+                                    {address?.isDefault ? " (Default)" : ""}
+                                  </ComboboxItem>
+                                );
+                              }}
+                            </ComboboxList>
+                          </ComboboxContent>
+                        </Combobox>
+
+                        {selectedAddress ? (
+                          <div className="text-muted-foreground space-y-1 text-xs">
+                            <p className="text-foreground font-medium">
+                              {selectedAddress.recipientName} (
+                              {selectedAddress.phoneNumber})
+                            </p>
+                            <p>{selectedAddress.line1}</p>
+                            {selectedAddress.line2 ? (
+                              <p>{selectedAddress.line2}</p>
+                            ) : null}
+                            <p>
+                              {selectedAddress.district}, {selectedAddress.city},{" "}
+                              {selectedAddress.province}
+                            </p>
+                            <p>
+                              {selectedAddress.country}{" "}
+                              {selectedAddress.postalCode}
+                            </p>
+                          </div>
                         ) : null}
-                        <p>
-                          {selectedAddress.district}, {selectedAddress.city},{" "}
-                          {selectedAddress.province}
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-muted-foreground text-xs">
+                          No address found. Add your first address to continue.
                         </p>
-                        <p>
-                          {selectedAddress.country} {selectedAddress.postalCode}
-                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddressModalOpen(true)}
+                          className="text-primary text-xs font-medium underline"
+                        >
+                          Add address now
+                        </button>
                       </div>
-                    ) : null}
+                    )}
                   </>
                 ) : (
-                  <p className="text-muted-foreground text-xs">
-                    No address found. Add address first in dashboard.
-                  </p>
+                  <div className="rounded border border-dashed p-2 text-xs text-muted-foreground">
+                    Pickup selected. No delivery address is required.
+                  </div>
                 )}
               </div>
 
@@ -306,8 +485,12 @@ export default function SummaryDesignPage() {
                 </span>
               </div>
 
-              <button className="bg-primary text-primary-foreground hover:bg-primary/90 mb-6 w-full rounded py-3 font-semibold transition">
-                Add to Cart
+              <button
+                onClick={handleProceedCheckout}
+                disabled={isCreatingOrder}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-primary/60 mb-6 w-full rounded py-3 font-semibold transition disabled:cursor-not-allowed"
+              >
+                Proceed to Chekout
               </button>
 
               <div className="text-muted-foreground space-y-3 text-xs">
@@ -343,6 +526,30 @@ export default function SummaryDesignPage() {
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={isAddressModalOpen}
+        onOpenChange={(open) => {
+          if (isCreatingAddress) return;
+          setIsAddressModalOpen(open);
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Add Delivery Address</DialogTitle>
+            <DialogDescription>
+              Add your delivery address to continue checkout.
+            </DialogDescription>
+          </DialogHeader>
+          <AddressForm
+            title="Add New Address"
+            description="Fill in your delivery address details"
+            submitLabel={isCreatingAddress ? "Saving..." : "Save Address"}
+            onSubmit={handleCreateAddress}
+            layout="stacked"
+          />
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

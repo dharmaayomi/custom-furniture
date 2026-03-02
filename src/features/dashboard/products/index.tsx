@@ -157,7 +157,7 @@ export const ProductsPage = () => {
     productName: string;
   } | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const perPage = 6;
+  const perPage = 9;
   const { userId } = useUser();
   const SORT_BY_OPTIONS: ProductSortBy[] = [
     "createdAt",
@@ -174,17 +174,20 @@ export const ProductsPage = () => {
   const resolvedOrderBy: ProductOrderBy =
     orderBy === "asc" || orderBy === "desc" ? orderBy : "desc";
 
-  const { data, isLoading, isError, isFetching } = useGetProducts({
-    page,
-    perPage,
-    sortBy: resolvedSortBy,
-    orderBy: resolvedOrderBy,
-    dateFrom: dateFrom || undefined,
-    dateTo: dateTo || undefined,
-    minPrice: minPrice ?? undefined,
-    maxPrice: maxPrice ?? undefined,
-    search: debouncedSearch || undefined,
-  }, !!userId);
+  const { data, isLoading, isError, isFetching } = useGetProducts(
+    {
+      page,
+      perPage,
+      sortBy: resolvedSortBy,
+      orderBy: resolvedOrderBy,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      minPrice: minPrice ?? undefined,
+      maxPrice: maxPrice ?? undefined,
+      search: debouncedSearch || undefined,
+    },
+    !!userId,
+  );
 
   const baseProducts: ProductBase[] = data?.data ?? [];
   const { mutateAsync: deleteProduct, isPending: isDeleting } =

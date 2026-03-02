@@ -44,23 +44,27 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
 
   const productPayload = (data as { data?: unknown } | undefined)?.data ?? data;
   const product = productPayload as ProductBase | undefined;
+  const safeText = (value: unknown) =>
+    typeof value === "string" ? value : value == null ? "" : String(value);
+  const safeNumberText = (value: unknown) =>
+    typeof value === "number" && Number.isFinite(value) ? String(value) : "";
 
   const originalData = useMemo<ProductFormData | null>(() => {
     if (!product) return null;
 
     return {
-      productName: product.productName,
-      sku: product.sku,
-      productFileName: product.productUrl,
-      description: product.description,
-      basePrice: String(product.basePrice),
-      width: String(product.width),
-      height: String(product.height),
-      depth: String(product.depth),
-      weight: String(product.weight),
-      images: product.images ?? [],
-      isActive: product.isActive,
-      isCustomizable: product.isCustomizable,
+      productName: safeText(product.productName),
+      sku: safeText(product.sku),
+      productFileName: safeText(product.productUrl),
+      description: safeText(product.description),
+      basePrice: safeNumberText(product.basePrice),
+      width: safeNumberText(product.width),
+      height: safeNumberText(product.height),
+      depth: safeNumberText(product.depth),
+      weight: safeNumberText(product.weight),
+      images: Array.isArray(product.images) ? product.images : [],
+      isActive: Boolean(product.isActive),
+      isCustomizable: Boolean(product.isCustomizable),
     };
   }, [product]);
 

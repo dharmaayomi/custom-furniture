@@ -104,6 +104,11 @@ const useUpdateMaterial = () => {
       if (typeof cleanedPayload.materialDesc === "string") {
         cleanedPayload.materialDesc = cleanedPayload.materialDesc.trim();
       }
+      if (Array.isArray(cleanedPayload.materialCategories)) {
+        cleanedPayload.materialCategories = cleanedPayload.materialCategories
+          .map((item) => item.trim())
+          .filter(Boolean) as typeof cleanedPayload.materialCategories;
+      }
       if (typeof cleanedPayload.price !== "undefined") {
         cleanedPayload.price = Number(cleanedPayload.price);
       }

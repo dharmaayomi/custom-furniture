@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -9,24 +8,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import * as BABYLON from "@babylonjs/core";
-import { Check, ListOrdered, Menu, MoveRight, Save } from "lucide-react";
-import { useSession } from "next-auth/react";
-import { usePathname, useRouter } from "next/navigation";
-import React, { useMemo, useState } from "react";
-import { DEFAULT_ROOM_CONFIG, useRoomStore } from "@/store/useRoomStore";
-import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import useGetDesignPreviewUploadSignature from "@/hooks/api/design/useGetDesignPreviewUploadSignature";
+import useGetSavedDesignByCode from "@/hooks/api/design/useGetSavedDesignByCode";
+import useSaveDesign from "@/hooks/api/design/useSaveDesign";
 import {
   loadDesignCodeFromStorage,
   saveDesignCodeToStorage,
 } from "@/lib/designCode";
-import useSaveDesign from "@/hooks/api/design/useSaveDesign";
-import { useUser } from "@/providers/UserProvider";
-import useGetSavedDesignByCode from "@/hooks/api/design/useGetSavedDesignByCode";
-import useGetDesignPreviewUploadSignature from "@/hooks/api/design/useGetDesignPreviewUploadSignature";
-import { CAMERA_CONFIG } from "../_components/RoomConfig";
-import { SummaryOrderPayload } from "@/types/summary";
 import { saveSummaryPayload } from "@/lib/summaryStorage";
+import { useUser } from "@/providers/UserProvider";
+import { DEFAULT_ROOM_CONFIG, useRoomStore } from "@/store/useRoomStore";
+import { SummaryOrderPayload } from "@/types/summary";
+import * as BABYLON from "@babylonjs/core";
+import { Check, ListOrdered, Menu, MoveRight, Save } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { CAMERA_CONFIG } from "../_components/RoomConfig";
 
 interface HeaderCustomProps {
   onMenuClick: () => void;
@@ -40,6 +40,7 @@ interface HeaderCustomProps {
 export const HeaderCustom = ({
   onMenuClick,
   onListClick,
+  totalPrice,
   formattedPrice = "Rp.0",
   scene = null,
   summaryPayload,
@@ -75,6 +76,8 @@ export const HeaderCustom = ({
     savedDesignByCodePayload?.designName ?? ""
   ).trim();
   const activeDesignName = designName.trim() || existingDesignName;
+  const effectiveTotalPrice =
+    typeof totalPrice === "number" ? totalPrice : roomState.totalPrice;
 
   const capturePreviewFromCanvas = async (): Promise<Blob | undefined> => {
     try {
@@ -105,7 +108,9 @@ export const HeaderCustom = ({
           activeCamera.alpha = CAMERA_CONFIG.alpha;
           activeCamera.beta = CAMERA_CONFIG.beta;
           activeCamera.radius = CAMERA_CONFIG.radius;
-          activeCamera.setTarget(new BABYLON.Vector3(0, CAMERA_CONFIG.targetY, 0));
+          activeCamera.setTarget(
+            new BABYLON.Vector3(0, CAMERA_CONFIG.targetY, 0),
+          );
 
           scene.render();
           await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -181,13 +186,8 @@ export const HeaderCustom = ({
   ): Promise<string | undefined> => {
     try {
       const signaturePayload = await getPreviewUploadSignature();
-      const {
-        apiKey,
-        cloudName,
-        folder,
-        signature,
-        timestamp,
-      } = signaturePayload ?? {};
+      const { apiKey, cloudName, folder, signature, timestamp } =
+        signaturePayload ?? {};
 
       if (!apiKey || !cloudName || !folder || !signature || !timestamp) {
         return undefined;
@@ -267,7 +267,7 @@ export const HeaderCustom = ({
       };
     }),
     activeTexture: roomState.activeTexture,
-    totalPrice: { amount: roomState.totalPrice, currency: "IDR" },
+    totalPrice: { amount: effectiveTotalPrice, currency: "IDR" },
   });
 
   const currentConfigHash = useMemo(
@@ -279,12 +279,14 @@ export const HeaderCustom = ({
       roomState.activeTexture,
       roomState.mainModelTransforms,
       roomState.addOnTransforms,
-      roomState.totalPrice,
+      effectiveTotalPrice,
     ],
   );
 
   const isDirty =
     lastSavedHash === null ? true : lastSavedHash !== currentConfigHash;
+  const canOpenSummary =
+    roomState.mainModels.length > 0 || roomState.addOnModels.length > 0;
 
   const handleSaveClick = () => {
     if (status === "authenticated") {
@@ -372,7 +374,7 @@ export const HeaderCustom = ({
   };
 
   const handleSummaryClick = async () => {
-    if (isSummaryLoading) return;
+    if (isSummaryLoading || !canOpenSummary) return;
 
     setIsSummaryLoading(true);
     try {
@@ -389,6 +391,9 @@ export const HeaderCustom = ({
           currency: "IDR" as const,
           generatedAt: new Date().toISOString(),
         }),
+        designCode:
+          (designCode || loadDesignCodeFromStorage()).trim() || undefined,
+        configuration: buildDesignConfig(),
         previewImage,
       };
 
@@ -435,9 +440,9 @@ export const HeaderCustom = ({
           </div>
           <button
             type="button"
-            className="bg-primary text-primary-foreground flex cursor-pointer items-center gap-2 rounded-full px-2 py-2 text-sm font-bold sm:px-4"
+            className="bg-primary text-primary-foreground disabled:bg-primary/50 disabled:text-primary-foreground/70 flex cursor-pointer items-center gap-2 rounded-full px-2 py-2 text-sm font-bold disabled:cursor-not-allowed sm:px-4"
             onClick={handleSummaryClick}
-            disabled={isSummaryLoading}
+            disabled={isSummaryLoading || !canOpenSummary}
           >
             <span className="hidden sm:inline">SUMMARY</span>
             <MoveRight />

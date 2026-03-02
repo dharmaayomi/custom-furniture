@@ -3,6 +3,7 @@ import { formatPrice } from "@/lib/price";
 import { X } from "lucide-react";
 import { ProductBase } from "@/types/product";
 import { ProductComponent } from "@/types/componentProduct";
+import { ProductMaterial } from "@/types/materialProduct";
 import { Tool, ToolType } from "@/types/toolType";
 import { useState } from "react";
 import {
@@ -20,6 +21,7 @@ interface SidebarPanelProps {
   assetList3D: string[];
   assetListAddOn: string[];
   assetListTexture: string[];
+  materialsFromDb?: ProductMaterial[];
   productsFromDb?: ProductBase[];
   componentsFromDb?: ProductComponent[];
   mainModels: string[];
@@ -38,6 +40,7 @@ export const SidebarPanel = ({
   assetList3D,
   assetListAddOn,
   assetListTexture,
+  materialsFromDb = [],
   productsFromDb = [],
   componentsFromDb = [],
   mainModels,
@@ -51,6 +54,22 @@ export const SidebarPanel = ({
   const componentMap = new Map(
     componentsFromDb.map((component) => [component.id, component]),
   );
+  const materialMap = new Map(
+    materialsFromDb.map((material) => [material.materialUrl, material]),
+  );
+
+  const resolveTextureUrl = (value: string) => {
+    if (!value) return "";
+    if (
+      value.startsWith("http://") ||
+      value.startsWith("https://") ||
+      value.startsWith("data:") ||
+      value.startsWith("/")
+    ) {
+      return value;
+    }
+    return `/assets/texture/${value}`;
+  };
 
   const renderToolSidebar = () => {
     const tool = tools.find((t) => t.id === selectedTool);
@@ -67,7 +86,12 @@ export const SidebarPanel = ({
       itemsToShow = assetListAddOn;
       handleItemClick = onAddAdditionalModel;
     } else if (tool.id === "paint") {
-      itemsToShow = assetListTexture;
+      itemsToShow =
+        materialsFromDb.length > 0
+          ? materialsFromDb
+              .map((material) => material.materialUrl)
+              .filter((url): url is string => Boolean(url))
+          : assetListTexture;
       handleItemClick = onSelectTexture;
       isTexture = true;
     } else {
@@ -148,10 +172,22 @@ export const SidebarPanel = ({
                 {/* Render Preview (Simple Text/Image logic) */}
                 {isTexture ? (
                   // Preview Texture
-                  <div
-                    className="h-full w-full bg-cover bg-center"
-                    style={{ backgroundImage: `url(/assets/texture/${item})` }}
-                  />
+                  <div className="flex h-full w-full flex-col">
+                    <div
+                      className="bg-muted aspect-square w-full bg-cover bg-center"
+                      style={{
+                        backgroundImage: `url(${resolveTextureUrl(item)})`,
+                      }}
+                    />
+                    <div className="bg-background flex flex-1 flex-col justify-between p-2">
+                      <p className="text-foreground line-clamp-2 text-xs font-semibold">
+                        {materialMap.get(item)?.materialName || "Material"}
+                      </p>
+                      <p className="text-muted-foreground mt-1 text-[11px] font-medium">
+                        {materialMap.get(item)?.materialSku || "Texture"}
+                      </p>
+                    </div>
+                  </div>
                 ) : (
                   (() => {
                     const dbProduct = productMap.get(item);

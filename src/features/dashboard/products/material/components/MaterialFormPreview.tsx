@@ -7,7 +7,7 @@ export type MaterialPreviewFormData = {
   materialName: string;
   materialSku?: string;
   materialDesc: string;
-  materialCategory: string;
+  materialCategory: string[] | string;
   price: string;
   materialUrl?: string;
   materialImageUrls: string[];
@@ -22,6 +22,13 @@ export const MaterialFormPreview = ({
   formData,
   isCategoryTouched = true,
 }: MaterialFormPreviewProps) => {
+  const categoryList = Array.isArray(formData.materialCategory)
+    ? formData.materialCategory
+    : formData.materialCategory
+      ? [formData.materialCategory]
+      : [];
+  const categoryDisplay = categoryList.length ? categoryList.join(", ") : "-";
+
   const parsedPrice = Number(formData.price);
   const formattedPrice = Number.isFinite(parsedPrice)
     ? formatIdrAmount(parsedPrice)
@@ -30,7 +37,7 @@ export const MaterialFormPreview = ({
   const completeness = {
     materialName: !!formData.materialName,
     materialSku: !!formData.materialSku,
-    materialCategory: !!formData.materialCategory && isCategoryTouched,
+    materialCategory: categoryList.length > 0 && isCategoryTouched,
     materialDesc: !!formData.materialDesc,
     price: !!formData.price,
     image: formData.materialImageUrls.length > 0 || !!formData.materialUrl,
@@ -84,7 +91,7 @@ export const MaterialFormPreview = ({
           <div className="space-y-3 p-4">
             <div>
               <p className="text-muted-foreground text-xs">
-                Category: {formData.materialCategory || "-"}
+                Category: {categoryDisplay}
               </p>
               <p className="text-muted-foreground text-xs">
                 SKU: {formData.materialSku || "-"}

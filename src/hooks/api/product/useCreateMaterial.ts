@@ -101,7 +101,7 @@ const useCreateMaterial = (options?: CreateMaterialOptions) => {
         materialUrl,
         materialSku: payload.materialSku.trim(),
         materialDesc: payload.materialDesc.trim(),
-        materialCategory: payload.materialCategory,
+        materialCategories: payload.materialCategories,
         price: Number(payload.price),
       };
 
