@@ -8,6 +8,7 @@ const deliveryTypeSchema = z.enum(["DELIVERY", "PICKUP"]);
 export const createCustomOrderSchema = z
   .object({
     designCode: z.string().trim().optional(),
+    previewUrl: z.string().trim().url().optional(),
     deliveryType: deliveryTypeSchema,
     addressId: z.preprocess(
       (value) =>

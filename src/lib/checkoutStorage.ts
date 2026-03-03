@@ -2,7 +2,8 @@ import { DeliveryType, OrderStatus } from "@/types/customOrder";
 import { SummaryOrderItem } from "@/types/summary";
 
 export interface CheckoutOrderSnapshot {
-  orderId: string;
+  orderNumber?: string;
+  orderId?: string;
   status: OrderStatus;
   deliveryType: DeliveryType;
   subtotal: number;
@@ -10,6 +11,7 @@ export interface CheckoutOrderSnapshot {
   grandTotal: number;
   items: SummaryOrderItem[];
   previewImage?: string;
+  previewUrl?: string;
   createdAt: string;
 }
 

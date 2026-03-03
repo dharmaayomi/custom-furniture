@@ -82,7 +82,7 @@ const navSecondary: SecondaryItem[] = [
 const adminNavMain: NavMainItem[] = [
   {
     title: "Orders",
-    url: "/dashboard/orders",
+    url: "/dashboard/admin/orders",
     icon: SquareTerminal,
   },
   {

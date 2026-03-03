@@ -93,7 +93,13 @@ export const RoomPageDB = () => {
     redo,
   } = useRoomStore();
   const designCode = useRoomStore((state) => state.designCode);
-  const { mainModels, activeTexture, addOnModels } = present;
+  const {
+    mainModels,
+    activeTexture,
+    addOnModels,
+    mainModelTransforms,
+    addOnTransforms,
+  } = present;
   const { data: productListResponse } = useGetProducts({
     page: 1,
     perPage: 100,
@@ -218,15 +224,58 @@ export const RoomPageDB = () => {
     const componentMap = new Map(
       componentList.map((component) => [component.id, component]),
     );
-    const counts: Record<string, number> = {};
+    const materialByUrl = new Map(
+      materialList
+        .filter((material) => Boolean(material.materialUrl))
+        .map((material) => [material.materialUrl, material]),
+    );
+    const transformTextureByModel = new Map<string, string>();
 
-    allModels.forEach((modelId) => {
-      const extracted = extractModelNameFromId(modelId);
-      counts[extracted] = (counts[extracted] || 0) + 1;
+    mainModels.forEach((modelId, index) => {
+      const texture = mainModelTransforms[index]?.texture?.trim();
+      if (texture) transformTextureByModel.set(modelId, texture);
+    });
+    addOnModels.forEach((modelId, index) => {
+      const texture = addOnTransforms[index]?.texture?.trim();
+      if (texture) transformTextureByModel.set(modelId, texture);
+    });
+
+    type GroupedItem = {
+      modelId: string;
+      quantity: number;
+      materialId?: string;
+      materialName?: string;
+      materialSku?: string;
+      materialUrl?: string;
+    };
+    const groupedItems = new Map<string, GroupedItem>();
+
+    allModels.forEach((modelUniqueId) => {
+      const modelId = extractModelNameFromId(modelUniqueId);
+      const materialUrl = transformTextureByModel.get(modelUniqueId);
+      const material = materialUrl ? materialByUrl.get(materialUrl) : undefined;
+      const key = `${modelId}::${material?.id ?? materialUrl ?? "none"}`;
+      const existing = groupedItems.get(key);
+
+      if (existing) {
+        existing.quantity += 1;
+        return;
+      }
+
+      groupedItems.set(key, {
+        modelId,
+        quantity: 1,
+        materialId: material?.id,
+        materialName: material?.materialName,
+        materialSku: material?.materialSku ?? undefined,
+        materialUrl: material?.materialUrl ?? materialUrl,
+      });
     });
 
     const items: SummaryOrderItem[] = [];
-    Object.entries(counts).forEach(([modelId, quantity]) => {
+    groupedItems.forEach((groupedItem) => {
+      const { modelId, quantity, materialId, materialName, materialSku, materialUrl } =
+        groupedItem;
       const product = productMap.get(modelId);
       if (product) {
         items.push({
@@ -234,6 +283,10 @@ export const RoomPageDB = () => {
           name: product.productName,
           sku: product.sku || product.id,
           image: product.images?.[0],
+          materialId,
+          materialName,
+          materialSku,
+          materialUrl,
           unitPrice: product.basePrice,
           quantity,
           subtotal: product.basePrice * quantity,
@@ -248,6 +301,10 @@ export const RoomPageDB = () => {
           name: component.componentName,
           sku: component.id,
           image: component.componentImageUrls?.[0],
+          materialId,
+          materialName,
+          materialSku,
+          materialUrl,
           unitPrice: component.price,
           quantity,
           subtotal: component.price * quantity,
@@ -256,7 +313,15 @@ export const RoomPageDB = () => {
     });
 
     return items;
-  }, [mainModels, addOnModels, productList, componentList]);
+  }, [
+    mainModels,
+    addOnModels,
+    mainModelTransforms,
+    addOnTransforms,
+    productList,
+    componentList,
+    materialList,
+  ]);
 
   const summaryPayload = useMemo(
     () => ({

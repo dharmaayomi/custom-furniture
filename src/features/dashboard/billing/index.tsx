@@ -1,76 +1,140 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import useGetOrders from "@/hooks/api/order/useGetOrders";
+import { formatPrice } from "@/lib/price";
 import { ReceiptText } from "lucide-react";
-import { getStatusBadgeClass } from "@/lib/statusStyles";
+import { getStatusBadgeClass, StatusTone } from "@/lib/statusStyles";
+import { OrderStatus } from "@/types/customOrder";
+import { useRouter } from "next/navigation";
 
-type PaymentStatus = "WAITING_PAYMENT" | "PAID" | "FAILED" | "EXPIRED";
+type BillingOrderStatus = OrderStatus;
 
 type BillingItem = {
+  orderId: string;
   id: string;
   title: string;
   amount: string;
   dueDate: string;
-  status: PaymentStatus;
+  status: BillingOrderStatus;
 };
 
-const BILLINGS: BillingItem[] = [
-  {
-    id: "INV-2026-0012",
-    title: "Custom Wardrobe - Master Room",
-    amount: "Rp 4.250.000",
-    dueDate: "Feb 20, 2026",
-    status: "WAITING_PAYMENT",
-  },
-  {
-    id: "INV-2026-0011",
-    title: "Kitchen Cabinet - Island Set",
-    amount: "Rp 6.800.000",
-    dueDate: "Feb 10, 2026",
-    status: "PAID",
-  },
-  {
-    id: "INV-2026-0010",
-    title: "TV Console - Living Room",
-    amount: "Rp 2.900.000",
-    dueDate: "Feb 08, 2026",
-    status: "FAILED",
-  },
-  {
-    id: "INV-2026-0009",
-    title: "Walk-in Closet - Package A",
-    amount: "Rp 9.400.000",
-    dueDate: "Feb 05, 2026",
-    status: "EXPIRED",
-  },
-];
-
-const statusLabel: Record<PaymentStatus, string> = {
-  WAITING_PAYMENT: "Waiting Payment",
+const statusLabel: Record<BillingOrderStatus, string> = {
+  PENDING_PAYMENT: "Waiting Payment",
   PAID: "Paid",
-  FAILED: "Failed",
-  EXPIRED: "Expired",
+  PROCESSING: "In Progress",
+  SHIPPED: "Shipped",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
 };
 
-const statusTone: Record<
-  PaymentStatus,
-  "warning" | "info" | "success" | "danger" | "neutral"
-> = {
-  WAITING_PAYMENT: "warning",
+const statusTone: Record<BillingOrderStatus, StatusTone> = {
+  PENDING_PAYMENT: "warning",
   PAID: "success",
-  FAILED: "danger",
-  EXPIRED: "neutral",
+  PROCESSING: "warning",
+  SHIPPED: "info",
+  COMPLETED: "success",
+  CANCELLED: "danger",
 };
 
 export const BillingPage = () => {
-  const waitingPayment = BILLINGS.filter(
-    (item) => item.status === "WAITING_PAYMENT",
-  );
-  const otherStatus = BILLINGS.filter(
-    (item) => item.status !== "WAITING_PAYMENT",
+  const router = useRouter();
+  const {
+    data: pendingOrders = [],
+    isLoading: isLoadingPending,
+    isError: isErrorPending,
+  } = useGetOrders({ status: "PENDING_PAYMENT" });
+  const {
+    data: allOrders = [],
+    isLoading: isLoadingAll,
+    isError: isErrorAll,
+  } = useGetOrders();
+
+  const waitingPayment = [...pendingOrders]
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .map((order) => {
+      const itemCount = order.items?.length ?? 0;
+      const orderReference = order.orderNumber?.trim() || order.id;
+      return {
+        orderId: order.id,
+        id: orderReference,
+        title: `Custom furniture order (${itemCount} item${itemCount === 1 ? "" : "s"})`,
+        amount: formatPrice(Number(order.grandTotalPrice ?? 0)),
+        dueDate: new Date(order.createdAt).toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+          year: "numeric",
+        }),
+        status: order.status,
+      } satisfies BillingItem;
+    });
+
+  const otherStatus = [...allOrders]
+    .filter((order) => order.status !== "PENDING_PAYMENT")
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .map((order) => {
+      const itemCount = order.items?.length ?? 0;
+      const orderReference = order.orderNumber?.trim() || order.id;
+      return {
+        orderId: order.id,
+        id: orderReference,
+        title: `Custom furniture order (${itemCount} item${itemCount === 1 ? "" : "s"})`,
+        amount: formatPrice(Number(order.grandTotalPrice ?? 0)),
+        dueDate: new Date(order.createdAt).toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+          year: "numeric",
+        }),
+        status: order.status,
+      } satisfies BillingItem;
+    });
+
+  const isLoading = isLoadingPending || isLoadingAll;
+  const isError = isErrorPending || isErrorAll;
+
+  const renderSkeletonList = () => (
+    <div className="space-y-4">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="bg-card rounded-lg border p-4 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-2">
+              <Skeleton className="h-5 w-52" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-end">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-6 w-28 rounded-full" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 
-  const renderList = (items: BillingItem[]) => {
+  const renderList = (items: BillingItem[], mode: "pending" | "other") => {
+    if (isLoading) {
+      return renderSkeletonList();
+    }
+
+    if (isError) {
+      return (
+        <div className="border-border bg-card mx-auto flex w-full max-w-xl flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12 lg:max-w-full">
+          <p className="text-sm font-medium">Failed to load billing data</p>
+          <p className="text-muted-foreground text-sm">
+            Please refresh this page and try again.
+          </p>
+        </div>
+      );
+    }
+
     if (items.length === 0) {
       return (
         <div className="border-border bg-card mx-auto flex w-full max-w-xl flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12 lg:max-w-full">
@@ -88,17 +152,27 @@ export const BillingPage = () => {
     return (
       <div className="space-y-4">
         {items.map((item) => (
-          <div key={item.id} className="bg-card rounded-lg border p-4 shadow-sm">
+          <div
+            key={item.id}
+            className="bg-card hover:bg-muted/35 hover:border-border cursor-pointer rounded-lg border p-4 shadow-sm transition"
+            onClick={() => {
+              if (mode === "pending") {
+                router.push(`/checkout?orderId=${item.orderId}`);
+                return;
+              }
+              router.push(`/dashboard/orders/${item.orderId}`);
+            }}
+          >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-foreground truncate text-sm font-semibold sm:text-base">
                   {item.title}
                 </p>
                 <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
-                  Invoice: {item.id}
+                  Order: {item.id}
                 </p>
                 <p className="text-muted-foreground text-xs sm:text-sm">
-                  Due: {item.dueDate}
+                  Date: {item.dueDate}
                 </p>
               </div>
               <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-end">
@@ -140,12 +214,15 @@ export const BillingPage = () => {
             </TabsList>
 
             <TabsContent value="waiting-payment">
-              {renderList(waitingPayment)}
+              {renderList(waitingPayment, "pending")}
             </TabsContent>
-            <TabsContent value="other-status">{renderList(otherStatus)}</TabsContent>
+            <TabsContent value="other-status">
+              {renderList(otherStatus, "other")}
+            </TabsContent>
           </Tabs>
         </div>
       </div>
     </section>
   );
 };
+

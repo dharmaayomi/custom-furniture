@@ -382,6 +382,9 @@ export const HeaderCustom = ({
       const previewImage = previewBlob
         ? await blobToDataUrl(previewBlob).catch(() => undefined)
         : undefined;
+      const previewUrl = previewBlob
+        ? await uploadPreviewToCloudinary(previewBlob)
+        : undefined;
 
       const payload: SummaryOrderPayload = {
         ...(summaryPayload ?? {
@@ -395,6 +398,7 @@ export const HeaderCustom = ({
           (designCode || loadDesignCodeFromStorage()).trim() || undefined,
         configuration: buildDesignConfig(),
         previewImage,
+        previewUrl,
       };
 
       saveSummaryPayload(payload);
