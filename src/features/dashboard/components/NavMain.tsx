@@ -42,11 +42,22 @@ export function NavMain({
       <SidebarGroupLabel className="text-sm">Dashboard</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
+          const hasActiveSub =
+            item.items?.some(
+              (subItem) =>
+                pathname === subItem.url ||
+                pathname.startsWith(`${subItem.url}/`),
+            ) ?? false;
           const isActive =
             item.isActive ??
-            (pathname === item.url || pathname.startsWith(`${item.url}/`));
+            (!hasActiveSub &&
+              (pathname === item.url || pathname.startsWith(`${item.url}/`)));
           return (
-            <Collapsible key={item.title} asChild defaultOpen={isActive}>
+            <Collapsible
+              key={item.title}
+              asChild
+              defaultOpen={isActive || hasActiveSub}
+            >
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild

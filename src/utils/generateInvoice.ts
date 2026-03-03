@@ -169,8 +169,8 @@ export function generateInvoicePdf(order: InvoiceOrder): jsPDF {
 
   // Status pill on header
   const statusColors: Record<string, [number, number, number]> = {
-    PAID: [34, 197, 94],
-    PROCESSING: [234, 179, 8],
+    IN_PRODUCTION: [234, 179, 8],
+    READY_TO_SHIP: [59, 130, 246],
     SHIPPED: [59, 130, 246],
     COMPLETED: [34, 197, 94],
     CANCELLED: [239, 68, 68],

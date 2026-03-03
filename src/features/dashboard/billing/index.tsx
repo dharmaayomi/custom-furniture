@@ -22,8 +22,8 @@ type BillingItem = {
 
 const statusLabel: Record<BillingOrderStatus, string> = {
   PENDING_PAYMENT: "Waiting Payment",
-  PAID: "Paid",
-  PROCESSING: "In Progress",
+  IN_PRODUCTION: "In Production",
+  READY_TO_SHIP: "Ready to Ship",
   SHIPPED: "Shipped",
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
@@ -31,8 +31,8 @@ const statusLabel: Record<BillingOrderStatus, string> = {
 
 const statusTone: Record<BillingOrderStatus, StatusTone> = {
   PENDING_PAYMENT: "warning",
-  PAID: "success",
-  PROCESSING: "warning",
+  IN_PRODUCTION: "warning",
+  READY_TO_SHIP: "info",
   SHIPPED: "info",
   COMPLETED: "success",
   CANCELLED: "danger",
@@ -225,4 +225,3 @@ export const BillingPage = () => {
     </section>
   );
 };
-

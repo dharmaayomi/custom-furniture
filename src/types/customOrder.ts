@@ -50,8 +50,8 @@ export interface CustomOrder {
 
 export type OrderStatus =
   | "PENDING_PAYMENT"
-  | "PAID"
-  | "PROCESSING"
+  | "IN_PRODUCTION"
+  | "READY_TO_SHIP"
   | "SHIPPED"
   | "COMPLETED"
   | "CANCELLED";

@@ -519,8 +519,13 @@ const getDeliveryTypeLabel = (
 
 const getStatusBadgeClassName = (status: string) => {
   switch (status) {
-    case "PAID":
+    case "COMPLETED":
       return "border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300";
+    case "SHIPPED":
+    case "READY_TO_SHIP":
+      return "border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-800/50 dark:bg-blue-950/40 dark:text-blue-300";
+    case "IN_PRODUCTION":
+      return "border-orange-200 bg-orange-100 text-orange-800 dark:border-orange-800/50 dark:bg-orange-950/40 dark:text-orange-300";
     case "CANCELLED":
       return "border-rose-200 bg-rose-100 text-rose-800 dark:border-rose-800/50 dark:bg-rose-950/40 dark:text-rose-300";
     case "PENDING_PAYMENT":
@@ -531,8 +536,13 @@ const getStatusBadgeClassName = (status: string) => {
 
 const getStatusDotClass = (status: string) => {
   switch (status) {
-    case "PAID":
+    case "COMPLETED":
       return "bg-emerald-500";
+    case "SHIPPED":
+    case "READY_TO_SHIP":
+      return "bg-blue-500";
+    case "IN_PRODUCTION":
+      return "bg-orange-500";
     case "CANCELLED":
       return "bg-rose-500";
     default:

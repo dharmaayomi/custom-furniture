@@ -12,8 +12,8 @@ import { useRouter } from "next/navigation";
 
 type OrderTabStatus =
   | "PENDING_PAYMENT"
-  | "PAID"
-  | "PROCESSING"
+  | "IN_PRODUCTION"
+  | "READY_TO_SHIP"
   | "SHIPPED"
   | "COMPLETED"
   | "CANCELLED";
@@ -29,8 +29,8 @@ type OrderItem = {
 
 const statusLabel: Record<OrderTabStatus, string> = {
   PENDING_PAYMENT: "Waiting for Payment",
-  PAID: "Paid",
-  PROCESSING: "In Progress",
+  IN_PRODUCTION: "In Production",
+  READY_TO_SHIP: "Ready to Ship",
   SHIPPED: "Shipped",
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
@@ -38,8 +38,8 @@ const statusLabel: Record<OrderTabStatus, string> = {
 
 const statusTone: Record<OrderTabStatus, StatusTone> = {
   PENDING_PAYMENT: "warning",
-  PAID: "info",
-  PROCESSING: "warning",
+  IN_PRODUCTION: "warning",
+  READY_TO_SHIP: "info",
   SHIPPED: "info",
   COMPLETED: "success",
   CANCELLED: "danger",
@@ -77,8 +77,8 @@ export const OrdersPage = () => {
     (item) => item.status === "PENDING_PAYMENT",
   );
   const orderHistory = all.filter((item) => item.status !== "PENDING_PAYMENT");
-  const paid = all.filter((item) => item.status === "PAID");
-  const processing = all.filter((item) => item.status === "PROCESSING");
+  const inProduction = all.filter((item) => item.status === "IN_PRODUCTION");
+  const readyToShip = all.filter((item) => item.status === "READY_TO_SHIP");
   const shipped = all.filter((item) => item.status === "SHIPPED");
   const completed = all.filter((item) => item.status === "COMPLETED");
   const cancelled = all.filter((item) => item.status === "CANCELLED");
@@ -202,9 +202,11 @@ export const OrdersPage = () => {
           <Tabs defaultValue="all" className="w-full">
             <TabsList className="no-scrollbar mb-4 w-full overflow-x-auto sm:mb-6">
               <TabsTrigger value="all">All ({orderHistory.length})</TabsTrigger>
-              <TabsTrigger value="paid">Paid ({paid.length})</TabsTrigger>
-              <TabsTrigger value="processing">
-                In Progress ({processing.length})
+              <TabsTrigger value="in-production">
+                In Production ({inProduction.length})
+              </TabsTrigger>
+              <TabsTrigger value="ready-to-ship">
+                Ready to Ship ({readyToShip.length})
               </TabsTrigger>
               <TabsTrigger value="shipped">
                 Shipped ({shipped.length})
@@ -218,9 +220,11 @@ export const OrdersPage = () => {
             </TabsList>
 
             <TabsContent value="all">{renderList(orderHistory)}</TabsContent>
-            <TabsContent value="paid">{renderList(paid)}</TabsContent>
-            <TabsContent value="processing">
-              {renderList(processing)}
+            <TabsContent value="in-production">
+              {renderList(inProduction)}
+            </TabsContent>
+            <TabsContent value="ready-to-ship">
+              {renderList(readyToShip)}
             </TabsContent>
             <TabsContent value="shipped">{renderList(shipped)}</TabsContent>
             <TabsContent value="completed">{renderList(completed)}</TabsContent>

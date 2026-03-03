@@ -25,8 +25,8 @@ import { ProductMaterial } from "@/types/materialProduct";
 
 const statusLabel: Record<OrderStatus, string> = {
   PENDING_PAYMENT: "Waiting for Payment",
-  PAID: "Paid",
-  PROCESSING: "In Progress",
+  IN_PRODUCTION: "In Production",
+  READY_TO_SHIP: "Ready to Ship",
   SHIPPED: "Shipped",
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
@@ -34,8 +34,8 @@ const statusLabel: Record<OrderStatus, string> = {
 
 const statusTone: Record<OrderStatus, StatusTone> = {
   PENDING_PAYMENT: "warning",
-  PAID: "info",
-  PROCESSING: "warning",
+  IN_PRODUCTION: "warning",
+  READY_TO_SHIP: "info",
   SHIPPED: "info",
   COMPLETED: "success",
   CANCELLED: "danger",
