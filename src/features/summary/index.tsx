@@ -187,7 +187,24 @@ export default function SummaryDesignPage() {
     }
 
     try {
-      const result = await createCustomOrder({
+      console.log("[Summary] checkout mode:", resolvedDesignCode ? "designCode" : "configuration");
+      if (!resolvedDesignCode && resolvedConfiguration) {
+        const config = resolvedConfiguration as Record<string, unknown>;
+        const productBase = Array.isArray(config.productBase)
+          ? config.productBase
+          : [];
+        const productComponent = Array.isArray(config.productComponent)
+          ? config.productComponent
+          : [];
+        console.log("[Summary] configuration keys:", Object.keys(config));
+        console.log("[Summary] configuration productBase count:", productBase.length);
+        console.log(
+          "[Summary] configuration productComponent count:",
+          productComponent.length,
+        );
+      }
+
+      const checkoutPayload = {
         ...(resolvedDesignCode
           ? { designCode: resolvedDesignCode }
           : { configuration: resolvedConfiguration }),
@@ -196,7 +213,11 @@ export default function SummaryDesignPage() {
         ...(deliveryType === "DELIVERY" && selectedAddress
           ? { addressId: selectedAddress.id }
           : {}),
-      });
+      };
+
+      console.log("[Summary] createCustomOrder payload:", checkoutPayload);
+
+      const result = await createCustomOrder(checkoutPayload);
 
       const orderId = String((result as any)?.id ?? "");
       const orderNumber = String((result as any)?.orderNumber ?? "").trim();

@@ -1,4 +1,4 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { Tool, ToolType } from "@/types/toolType";
 import { useState } from "react";
@@ -16,8 +16,8 @@ interface SidebarPanelProps {
   onClose: () => void;
   assetList3D: string[];
   assetListTexture: string[];
-  mainModels: string[];
-  onSelectMainModel: (name: string) => void;
+  productBaseModels: string[];
+  onSelectProductBaseModel: (name: string) => void;
   onAddAdditionalModel: (name: string) => void;
   onSelectTexture: (name: string) => void;
   selectedFurniture: string | null;
@@ -31,8 +31,8 @@ export const SidebarPanel = ({
   onClose,
   assetList3D,
   assetListTexture,
-  mainModels,
-  onSelectMainModel,
+  productBaseModels,
+  onSelectProductBaseModel,
   onAddAdditionalModel,
   onSelectTexture,
   selectedFurniture,
@@ -49,7 +49,7 @@ export const SidebarPanel = ({
 
     if (tool.id === "furniture") {
       itemsToShow = assetList3D;
-      handleItemClick = onSelectMainModel;
+      handleItemClick = onSelectProductBaseModel;
     } else if (tool.id === "tambahan") {
       itemsToShow = assetList3D;
       handleItemClick = onAddAdditionalModel;
@@ -79,7 +79,7 @@ export const SidebarPanel = ({
         <div className="space-y-4">
           <p className="text-muted-foreground text-sm">Kategori: {tool.category}</p>
 
-          {tool.id === "tambahan" && mainModels.length === 0 && (
+          {tool.id === "tambahan" && productBaseModels.length === 0 && (
             <div className={getStatusAlertClass("warning")}>
               <p className={getStatusAlertTitleClass("warning")}>
                 Please select a model first
@@ -90,7 +90,7 @@ export const SidebarPanel = ({
             </div>
           )}
 
-          {tool.id === "paint" && mainModels.length === 0 && (
+          {tool.id === "paint" && productBaseModels.length === 0 && (
             <div className={getStatusAlertClass("warning")}>
               <p className={getStatusAlertTitleClass("warning")}>
                 Please select a model first
@@ -101,7 +101,7 @@ export const SidebarPanel = ({
             </div>
           )}
           {tool.id === "paint" &&
-            mainModels.length > 0 &&
+            productBaseModels.length > 0 &&
             !selectedFurniture && (
               <div className={getStatusAlertClass("warning")}>
                 <p className={getStatusAlertTitleClass("warning")}>
@@ -117,8 +117,8 @@ export const SidebarPanel = ({
               <div
                 key={idx}
                 onClick={() => {
-                  if (tool.id === "tambahan" && mainModels.length === 0) {
-                    return; // Prevent click if main model doesn't exist
+                  if (tool.id === "tambahan" && productBaseModels.length === 0) {
+                    return; // Prevent click if product base doesn't exist
                   }
                   if (tool.id === "paint" && !selectedFurniture) {
                     return; // Prevent texture when no selection
@@ -126,7 +126,7 @@ export const SidebarPanel = ({
                   handleItemClick(item);
                 }}
                 className={`bg-muted border-border hover:border-ring relative aspect-square cursor-pointer overflow-hidden rounded-lg border-2 transition-all ${
-                  (tool.id === "tambahan" && mainModels.length === 0) ||
+                  (tool.id === "tambahan" && productBaseModels.length === 0) ||
                   (tool.id === "paint" && !selectedFurniture)
                     ? "pointer-events-none cursor-not-allowed opacity-50"
                     : ""
@@ -239,3 +239,5 @@ export const SidebarPanel = ({
     </div>
   );
 };
+
+

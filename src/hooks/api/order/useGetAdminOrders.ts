@@ -1,4 +1,5 @@
 import useAxios from "@/hooks/useAxios";
+import { normalizeCustomOrderList } from "@/lib/order-normalize";
 import { PageableResponse } from "@/types/pagination";
 import { CustomOrder, OrderStatus } from "@/types/customOrder";
 import { useQuery } from "@tanstack/react-query";
@@ -9,8 +10,8 @@ type AdminOrderSortBy =
   | "status"
   | "deliveryType"
   | "grandTotalPrice"
-  | "totalAmountPaid"
-  | "remainingAmount"
+  | "totalPaid"
+  | "remaining"
   | "createdAt"
   | "updatedAt";
 
@@ -45,11 +46,19 @@ const normalizeAdminOrdersResponse = (
   const raw = payload as any;
 
   if (Array.isArray(raw?.data) && raw?.meta) {
-    return raw as GetAdminOrdersResponse;
+    const normalized = raw as GetAdminOrdersResponse;
+    return {
+      ...normalized,
+      data: normalizeCustomOrderList(normalized.data),
+    };
   }
 
   if (Array.isArray(raw?.data?.data) && raw?.data?.meta) {
-    return raw.data as GetAdminOrdersResponse;
+    const normalized = raw.data as GetAdminOrdersResponse;
+    return {
+      ...normalized,
+      data: normalizeCustomOrderList(normalized.data),
+    };
   }
 
   return emptyResponse;

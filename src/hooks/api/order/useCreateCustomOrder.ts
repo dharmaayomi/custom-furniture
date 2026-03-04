@@ -1,4 +1,5 @@
 import useAxios from "@/hooks/useAxios";
+import { normalizeCustomOrder } from "@/lib/order-normalize";
 import { CustomOrder } from "@/types/customOrder";
 import { useMutation } from "@tanstack/react-query";
 import z from "zod";
@@ -52,7 +53,7 @@ const useCreateCustomOrder = () => {
         "/order/create-custom-order",
         validated,
       );
-      return data;
+      return normalizeCustomOrder(data);
     },
   });
 };

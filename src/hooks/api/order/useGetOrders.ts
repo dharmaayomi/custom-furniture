@@ -1,4 +1,5 @@
 import useAxios from "@/hooks/useAxios";
+import { normalizeCustomOrderList } from "@/lib/order-normalize";
 import { CustomOrder } from "@/types/customOrder";
 import { useQuery } from "@tanstack/react-query";
 import { OrderStatus } from "@/types/customOrder";
@@ -17,7 +18,8 @@ const useGetOrders = (options?: UseGetOrdersOptions) => {
       const { data } = await axiosInstance.get("/order", {
         params: status ? { status } : undefined,
       });
-      return ((data as { data?: CustomOrder[] })?.data ?? data) as CustomOrder[];
+      const orders = ((data as { data?: CustomOrder[] })?.data ?? data) as CustomOrder[];
+      return normalizeCustomOrderList(orders);
     },
   });
 };

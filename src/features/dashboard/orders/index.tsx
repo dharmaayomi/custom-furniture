@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 
 type OrderTabStatus =
   | "PENDING_PAYMENT"
+  | "AWAITING_PRODUCTION"
   | "IN_PRODUCTION"
   | "READY_TO_SHIP"
   | "SHIPPED"
@@ -29,6 +30,7 @@ type OrderItem = {
 
 const statusLabel: Record<OrderTabStatus, string> = {
   PENDING_PAYMENT: "Waiting for Payment",
+  AWAITING_PRODUCTION: "Awaiting Production",
   IN_PRODUCTION: "In Production",
   READY_TO_SHIP: "Ready to Ship",
   SHIPPED: "Shipped",
@@ -38,6 +40,7 @@ const statusLabel: Record<OrderTabStatus, string> = {
 
 const statusTone: Record<OrderTabStatus, StatusTone> = {
   PENDING_PAYMENT: "warning",
+  AWAITING_PRODUCTION: "warning",
   IN_PRODUCTION: "warning",
   READY_TO_SHIP: "info",
   SHIPPED: "info",
@@ -77,7 +80,10 @@ export const OrdersPage = () => {
     (item) => item.status === "PENDING_PAYMENT",
   );
   const orderHistory = all.filter((item) => item.status !== "PENDING_PAYMENT");
-  const inProduction = all.filter((item) => item.status === "IN_PRODUCTION");
+  const productionQueue = all.filter(
+    (item) =>
+      item.status === "AWAITING_PRODUCTION" || item.status === "IN_PRODUCTION",
+  );
   const readyToShip = all.filter((item) => item.status === "READY_TO_SHIP");
   const shipped = all.filter((item) => item.status === "SHIPPED");
   const completed = all.filter((item) => item.status === "COMPLETED");
@@ -203,7 +209,7 @@ export const OrdersPage = () => {
             <TabsList className="no-scrollbar mb-4 w-full overflow-x-auto sm:mb-6">
               <TabsTrigger value="all">All ({orderHistory.length})</TabsTrigger>
               <TabsTrigger value="in-production">
-                In Production ({inProduction.length})
+                In Production ({productionQueue.length})
               </TabsTrigger>
               <TabsTrigger value="ready-to-ship">
                 Ready to Ship ({readyToShip.length})
@@ -221,7 +227,7 @@ export const OrdersPage = () => {
 
             <TabsContent value="all">{renderList(orderHistory)}</TabsContent>
             <TabsContent value="in-production">
-              {renderList(inProduction)}
+              {renderList(productionQueue)}
             </TabsContent>
             <TabsContent value="ready-to-ship">
               {renderList(readyToShip)}

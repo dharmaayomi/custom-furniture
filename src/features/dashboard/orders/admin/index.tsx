@@ -13,6 +13,7 @@ import { parseAsInteger, useQueryState } from "nuqs";
 
 const statusLabel: Record<OrderStatus, string> = {
   PENDING_PAYMENT: "Waiting Payment",
+  AWAITING_PRODUCTION: "Awaiting Production",
   IN_PRODUCTION: "In Production",
   READY_TO_SHIP: "Ready to Ship",
   SHIPPED: "Shipped",
@@ -25,6 +26,7 @@ const statusTone: Record<
   "warning" | "info" | "success" | "danger"
 > = {
   PENDING_PAYMENT: "warning",
+  AWAITING_PRODUCTION: "warning",
   IN_PRODUCTION: "info",
   READY_TO_SHIP: "info",
   SHIPPED: "info",
@@ -54,7 +56,9 @@ export const AdminOrdersPage = () => {
     (order) => order.status === "PENDING_PAYMENT",
   ).length;
   const inProductionCount = sortedOrders.filter(
-    (order) => order.status === "IN_PRODUCTION",
+    (order) =>
+      order.status === "AWAITING_PRODUCTION" ||
+      order.status === "IN_PRODUCTION",
   ).length;
   const readyToShipCount = sortedOrders.filter(
     (order) => order.status === "READY_TO_SHIP",
@@ -158,10 +162,10 @@ export const AdminOrdersPage = () => {
                   <Button
                     size="sm"
                     onClick={() =>
-                      router.push(`/dashboard/admin/orders/${order.id}/process`)
+                      router.push(`/dashboard/admin/orders/${order.id}`)
                     }
                   >
-                    Process Order
+                    View Detail
                   </Button>
                 </CardContent>
               </Card>

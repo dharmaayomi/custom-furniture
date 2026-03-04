@@ -77,17 +77,21 @@ export const RoomPage = () => {
 
   const {
     present,
-    setMainModel,
+    setProductBaseModel,
     setActiveTexture,
     setMeshTexture,
-    addAddOnModel,
+    addProductComponentModel,
     setDesignCode,
     reset: resetRoomState,
     undo,
     redo,
   } = useRoomStore();
   const designCode = useRoomStore((state) => state.designCode);
-  const { mainModels, activeTexture, addOnModels } = present;
+  const {
+    productBaseModels: productBaseModels,
+    activeTexture,
+    productComponentModels: productComponentModels,
+  } = present;
   const tools: Tool[] = [
     {
       id: "furniture",
@@ -335,9 +339,9 @@ export const RoomPage = () => {
       <ListProductPanel
         isOpen={activePanel === "productList"}
         onClose={closePanel}
-        mainModels={mainModels}
-        addOnModels={addOnModels}
-        totalPrice={calculateTotalPrice(mainModels, addOnModels, activeTexture)}
+        productBaseModels={productBaseModels}
+        productComponentModels={productComponentModels}
+        totalPrice={calculateTotalPrice(productBaseModels, productComponentModels, activeTexture)}
       />
       <ProductInfoPanel
         isOpen={activePanel === "productInfo"}
@@ -355,12 +359,12 @@ export const RoomPage = () => {
               onListClick={handleOpenProductList}
               scene={scene}
               totalPrice={calculateTotalPrice(
-                mainModels,
-                addOnModels,
+                productBaseModels,
+                productComponentModels,
                 activeTexture,
               )}
               formattedPrice={formatPrice(
-                calculateTotalPrice(mainModels, addOnModels, activeTexture),
+                calculateTotalPrice(productBaseModels, productComponentModels, activeTexture),
               )}
             />
           </div>
@@ -369,9 +373,9 @@ export const RoomPage = () => {
         {/* Room Canvas */}
         <div className="relative h-screen flex-1">
           <RoomCanvasThree
-            mainModels={mainModels}
+            productBaseModels={productBaseModels}
             activeTexture={activeTexture}
-            addOnModels={addOnModels}
+            productComponentModels={productComponentModels}
             onSceneReady={setScene}
           />
         </div>
@@ -408,10 +412,10 @@ export const RoomPage = () => {
         onClose={closeSidebar}
         assetList3D={ASSETS_3D}
         assetListTexture={ASSETS_TEXTURE}
-        mainModels={mainModels}
+        productBaseModels={productBaseModels}
         selectedFurniture={present.selectedFurniture}
-        onSelectMainModel={(model) => setMainModel(model)}
-        onAddAdditionalModel={addAddOnModel}
+        onSelectProductBaseModel={(model) => setProductBaseModel(model)}
+        onAddAdditionalModel={addProductComponentModel}
         onSelectTexture={(tex) => {
           // Apply texture only to the selected mesh
           if (!present.selectedFurniture) return;
@@ -421,3 +425,5 @@ export const RoomPage = () => {
     </div>
   );
 };
+
+

@@ -54,8 +54,8 @@ export interface CustomOrder {
 
   addressId?: number | null;
   notes?: string | null;
-  totalAmountPaid?: number | null;
-  remainingAmount?: number | null;
+  totalPaid?: number | null;
+  remaining?: number | null;
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -63,6 +63,7 @@ export interface CustomOrder {
 
 export type OrderStatus =
   | "PENDING_PAYMENT"
+  | "AWAITING_PRODUCTION"
   | "IN_PRODUCTION"
   | "READY_TO_SHIP"
   | "SHIPPED"

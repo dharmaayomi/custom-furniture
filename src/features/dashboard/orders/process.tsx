@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ImageUpload } from "@/features/dashboard/products/components/ImageUpload";
+import useGetAdminOrder from "@/hooks/api/order/useGetAdminOrder";
 import { UploadedProductImage } from "@/types/product";
 import { toast } from "sonner";
 
@@ -24,10 +25,13 @@ type ProgressLogEntry = {
 };
 
 export const ProcessOrderPage = ({ orderId }: ProcessOrderPageProps) => {
+  const { data: order, isLoading: isOrderLoading, isError: isOrderError } =
+    useGetAdminOrder(orderId);
   const [imageItems, setImageItems] = useState<UploadedProductImage[]>([]);
   const [progressPercentage, setProgressPercentage] = useState<string>("");
   const [logs, setLogs] = useState<ProgressLogEntry[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const displayOrderRef = order?.orderNumber?.trim() || orderId;
 
   useEffect(() => {
     return () => {
@@ -114,8 +118,13 @@ export const ProcessOrderPage = ({ orderId }: ProcessOrderPageProps) => {
       <Card className="border py-3">
         <CardHeader>
           <CardTitle className="text-xl font-semibold">
-            Process Order #{orderId}
+            Process Order #{displayOrderRef}
           </CardTitle>
+          <p className="text-muted-foreground text-sm">
+            {isOrderLoading && "Loading order details..."}
+            {!isOrderLoading && isOrderError && "Failed to load order details."}
+            {!isOrderLoading && !isOrderError && order && `Status: ${order.status}`}
+          </p>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>

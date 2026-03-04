@@ -25,30 +25,34 @@ export const ProductInfoPanel = ({
   componentsFromDb,
 }: ProductInfoPanelProps) => {
   const { present } = useRoomStore();
-  const { selectedFurniture, mainModels, addOnModels } = present;
+  const {
+    selectedFurniture,
+    productBaseModels: productBaseModels,
+    productComponentModels: productComponentModels,
+  } = present;
 
   let selectedModelName = "";
   let selectedSource: "product" | "component" | null = null;
 
   if (selectedFurniture) {
-    const mainMatch = mainModels.find(
+    const mainMatch = productBaseModels.find(
       (id) => id === selectedFurniture || id.includes(selectedFurniture),
     );
     if (mainMatch) {
       selectedModelName = extractModelNameFromId(mainMatch);
       selectedSource = "product";
     } else {
-      const addOnMatch = addOnModels.find(
+      const productComponentMatch = productComponentModels.find(
         (id) => id === selectedFurniture || id.includes(selectedFurniture),
       );
-      if (addOnMatch) {
-        selectedModelName = extractModelNameFromId(addOnMatch);
+      if (productComponentMatch) {
+        selectedModelName = extractModelNameFromId(productComponentMatch);
         selectedSource = "component";
       }
     }
-  } else if (mainModels.length > 0) {
-    // If nothing is selected, default to first main model
-    selectedModelName = extractModelNameFromId(mainModels[0]);
+  } else if (productBaseModels.length > 0) {
+    // If nothing is selected, default to first product base
+    selectedModelName = extractModelNameFromId(productBaseModels[0]);
     selectedSource = "product";
   }
 
@@ -160,3 +164,6 @@ export const ProductInfoPanel = ({
     </>
   );
 };
+
+
+

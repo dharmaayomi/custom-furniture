@@ -63,18 +63,18 @@ export const extractModelNameFromId = (uniqueId: string): string => {
 };
 
 export const calculateTotalPrice = (
-  mainModels: string[],
-  addOnModels: string[],
+  productBaseModels: string[],
+  productComponentModels: string[],
   activeTexture: string,
 ): number => {
   let total = 0;
 
-  mainModels.forEach((model) => {
+  productBaseModels.forEach((model) => {
     const modelName = extractModelNameFromId(model);
     total += getAssetPrice(modelName);
   });
 
-  addOnModels.forEach((model) => {
+  productComponentModels.forEach((model) => {
     const modelName = extractModelNameFromId(model);
     total += getAssetPrice(modelName);
   });
@@ -84,3 +84,4 @@ export const calculateTotalPrice = (
   }
   return total;
 };
+

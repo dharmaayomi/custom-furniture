@@ -22,6 +22,7 @@ type BillingItem = {
 
 const statusLabel: Record<BillingOrderStatus, string> = {
   PENDING_PAYMENT: "Waiting Payment",
+  AWAITING_PRODUCTION: "Awaiting Production",
   IN_PRODUCTION: "In Production",
   READY_TO_SHIP: "Ready to Ship",
   SHIPPED: "Shipped",
@@ -31,6 +32,7 @@ const statusLabel: Record<BillingOrderStatus, string> = {
 
 const statusTone: Record<BillingOrderStatus, StatusTone> = {
   PENDING_PAYMENT: "warning",
+  AWAITING_PRODUCTION: "warning",
   IN_PRODUCTION: "warning",
   READY_TO_SHIP: "info",
   SHIPPED: "info",

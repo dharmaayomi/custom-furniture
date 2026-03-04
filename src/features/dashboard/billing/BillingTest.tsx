@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 
 const statusLabel: Record<OrderStatus, string> = {
   PENDING_PAYMENT: "Waiting Payment",
+  AWAITING_PRODUCTION: "Awaiting Production",
   IN_PRODUCTION: "In Production",
   READY_TO_SHIP: "Ready to Ship",
   SHIPPED: "Shipped",
@@ -24,6 +25,7 @@ const statusTone: Record<
   "warning" | "info" | "success" | "danger"
 > = {
   PENDING_PAYMENT: "warning",
+  AWAITING_PRODUCTION: "warning",
   IN_PRODUCTION: "warning",
   READY_TO_SHIP: "info",
   SHIPPED: "info",
@@ -118,4 +120,3 @@ export const BillingTest = () => {
     </section>
   );
 };
-

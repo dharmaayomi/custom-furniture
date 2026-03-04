@@ -31,6 +31,7 @@ const phaseOrder: PaymentPhase[] = ["DP", "PROGRESS_1", "PROGRESS_2", "FINAL"];
 
 const statusLabel: Record<OrderStatus, string> = {
   PENDING_PAYMENT: "Waiting Payment",
+  AWAITING_PRODUCTION: "Awaiting Production",
   IN_PRODUCTION: "In Production",
   READY_TO_SHIP: "Ready to Ship",
   SHIPPED: "Shipped",
@@ -43,6 +44,7 @@ const statusTone: Record<
   "warning" | "info" | "success" | "danger"
 > = {
   PENDING_PAYMENT: "warning",
+  AWAITING_PRODUCTION: "warning",
   IN_PRODUCTION: "warning",
   READY_TO_SHIP: "info",
   SHIPPED: "info",
@@ -52,6 +54,7 @@ const statusTone: Record<
 
 const inferPhaseFromStatus = (status: OrderStatus): PaymentPhase => {
   if (status === "PENDING_PAYMENT") return "DP";
+  if (status === "AWAITING_PRODUCTION") return "PROGRESS_1";
   if (status === "IN_PRODUCTION") return "PROGRESS_1";
   if (status === "READY_TO_SHIP") return "PROGRESS_2";
   return "FINAL";
@@ -187,4 +190,3 @@ export const BillingTestDetail = ({ orderId }: BillingTestDetailProps) => {
     </section>
   );
 };
-

@@ -45,8 +45,8 @@ export const ShareDesign = ({
     return {
       units: { distance: "m", rotation: "rad" },
       room: roomState.roomConfig,
-      mainModels: roomState.mainModels.map((id, index) => {
-        const transform = roomState.mainModelTransforms[index];
+      productBase: roomState.productBaseModels.map((id, index) => {
+        const transform = roomState.productBaseTransforms[index];
         return {
           id,
           position_m: transform
@@ -59,8 +59,8 @@ export const ShareDesign = ({
           texture: transform?.texture ?? null,
         };
       }),
-      addOnModels: roomState.addOnModels.map((id, index) => {
-        const transform = roomState.addOnTransforms[index];
+      productComponent: roomState.productComponentModels.map((id, index) => {
+        const transform = roomState.productComponentTransforms[index];
         return {
           id,
           position_m: transform
@@ -357,3 +357,6 @@ export const ShareDesign = ({
     </>
   );
 };
+
+
+

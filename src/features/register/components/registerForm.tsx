@@ -138,6 +138,7 @@ export function RegisterForm({
                       {...field}
                       id="email"
                       type="email"
+                      autoComplete="email"
                       aria-invalid={fieldState.invalid}
                       placeholder="m@example.com"
                     />
