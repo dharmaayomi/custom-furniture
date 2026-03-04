@@ -18,8 +18,8 @@ import { CONFIG, FLOOR_Y } from "./RoomConfig";
 const getBaseModelName = (modelName: string) =>
   modelName.replace(/\.glb$/i, "");
 
-// ===========load main model ===========
-export const loadMainModel = async (
+// ===========load product base ===========
+export const loadProductBaseModel = async (
   modelName: string,
   activeTexture: string,
   scene: BABYLON.Scene,
@@ -77,7 +77,7 @@ export const loadMainModel = async (
     const boundsInfo = rootMesh.getHierarchyBoundingVectors(true);
     const box = getMeshAABB(rootMesh);
 
-    console.log("\n=== MAIN MODEL ===");
+    console.log("\n=== product base ===");
     console.log("Model:", modelName);
     console.log("Unique Name:", rootMesh.name);
     // console.log("Scale Factor:", scaleFactor.toFixed(2));
@@ -136,8 +136,8 @@ export const loadMainModel = async (
       // Force final update
       rootMesh.computeWorldMatrix(true);
     } else {
-      // CASE 2: NEW MODEL (Use same smart snap logic as add-on)
-      console.log("✨ New Main Model: Smart Snap placement...");
+      // CASE 2: NEW MODEL (Use same smart snap logic as product component)
+      console.log("✨ New Product Base: Smart Snap placement...");
 
       const allFurniture = getAllFurniture(scene, rootMesh);
       let finalPosition: {
@@ -368,11 +368,11 @@ export const loadMainModel = async (
         },
       };
 
-      const mainIndex = present.mainModels.findIndex(
+      const productBaseIndex = present.productBaseModels.findIndex(
         (id) => id === rootMesh.name,
       );
-      if (mainIndex !== -1) {
-        updateTransformSilent(mainIndex, initialTransform, true);
+      if (productBaseIndex !== -1) {
+        updateTransformSilent(productBaseIndex, initialTransform, true);
       }
     }
 
@@ -387,7 +387,7 @@ export const loadMainModel = async (
 
     return rootMesh;
   } catch (error) {
-    console.error("Error loading main model:", error);
+    console.error("Error loading product base:", error);
     return null;
   }
 };
@@ -411,7 +411,7 @@ export const loadAdditionalModel = async (
     if (!uniqueId) {
       const baseName = getBaseModelName(modelName);
       const { present } = useRoomStore.getState();
-      const count = present.addOnModels.filter((id) => {
+      const count = present.productComponentModels.filter((id) => {
         const extracted = id.split("_");
         if (
           extracted.length >= 2 &&
@@ -718,7 +718,7 @@ export const loadAdditionalModel = async (
         rootMesh.computeWorldMatrix(true);
 
         const { updateTransformSilent, present } = useRoomStore.getState();
-        const addOnIndex = present.addOnModels.findIndex(
+        const productComponentIndex = present.productComponentModels.findIndex(
           (id) => id === rootMesh.name,
         );
 
@@ -737,8 +737,8 @@ export const loadAdditionalModel = async (
           },
         };
 
-        if (addOnIndex !== -1) {
-          updateTransformSilent(addOnIndex, initialTransform, false);
+        if (productComponentIndex !== -1) {
+          updateTransformSilent(productComponentIndex, initialTransform, false);
         }
 
         addDragBehavior(rootMesh, scene);
@@ -803,3 +803,7 @@ export const updateAllTextures = (
     }
   });
 };
+
+
+
+

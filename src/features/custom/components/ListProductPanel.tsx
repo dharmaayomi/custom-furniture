@@ -12,8 +12,8 @@ import { X } from "lucide-react";
 interface ListProductPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  mainModels: string[];
-  addOnModels: string[];
+  productBaseModels: string[];
+  productComponentModels: string[];
   totalPrice: number;
 }
 
@@ -57,13 +57,13 @@ const getProductName = (
 export const ListProductPanel = ({
   isOpen,
   onClose,
-  mainModels,
-  addOnModels,
+  productBaseModels,
+  productComponentModels,
   totalPrice,
 }: ListProductPanelProps) => {
   const products: Product[] = [];
 
-  const allModels = [...mainModels, ...addOnModels];
+  const allModels = [...productBaseModels, ...productComponentModels];
 
   // Count models with their quantities
   const modelCounts: Record<string, number> = {};
@@ -167,3 +167,4 @@ export const ListProductPanel = ({
     </div>
   );
 };
+

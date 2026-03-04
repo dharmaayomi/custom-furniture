@@ -168,3 +168,4 @@ export const setupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
   walls.push(ceiling);
   return { walls, floorVinyl, ceiling, floorBase };
 };
+

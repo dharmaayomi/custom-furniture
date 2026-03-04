@@ -10,8 +10,17 @@ export interface SnapshotAddress {
   district?: string | null;
   city?: string | null;
   province?: string | null;
+  provinceCode?: string | null;
+  cityCode?: string | null;
+  districtCode?: string | null;
+  subdistrictCode?: string | null;
+  komerceSubdistrictId?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   country?: string | null;
   postalCode?: string | null;
+  type?: string | null;
+  note?: string | null;
 }
 
 export interface DesignSnapshot {
@@ -26,8 +35,10 @@ export interface CustomOrder {
   userId: number;
   userDesignId?: number | null;
   designSnapShot?: DesignSnapshot | null;
+  previewUrl?: string | null;
   snapShotAddress?: SnapshotAddress | null;
   status: OrderStatus;
+  currentPaymentPhase?: PaymentPhase | null;
 
   subtotalPrice?: number | null;
   deliveryType: DeliveryType;
@@ -43,6 +54,8 @@ export interface CustomOrder {
 
   addressId?: number | null;
   notes?: string | null;
+  totalPaid?: number | null;
+  remaining?: number | null;
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -50,13 +63,25 @@ export interface CustomOrder {
 
 export type OrderStatus =
   | "PENDING_PAYMENT"
-  | "PAID"
-  | "PROCESSING"
+  | "AWAITING_PRODUCTION"
+  | "IN_PRODUCTION"
+  | "READY_TO_SHIP"
   | "SHIPPED"
   | "COMPLETED"
   | "CANCELLED";
 
 export type DeliveryType = "DELIVERY" | "PICKUP";
+
+export type PaymentPhase = "DP" | "PROGRESS_1" | "PROGRESS_2" | "FINAL";
+
+export type PaymentStatus =
+  | "WAITING_FOR_PAYMENT"
+  | "PAID"
+  | "CHALLENGE"
+  | "DENIED"
+  | "EXPIRED"
+  | "CANCELLED"
+  | "FAILED";
 
 export interface CustomOrderItem {
   id: string;

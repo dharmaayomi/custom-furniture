@@ -94,6 +94,7 @@ export const ReqDeleteAccountSection = () => {
             <FieldLabel>Email</FieldLabel>
             <Input
               type="email"
+              autoComplete="email"
               placeholder="you@example.com"
               value={deleteEmail}
               onChange={(e) => setDeleteEmail(e.target.value)}

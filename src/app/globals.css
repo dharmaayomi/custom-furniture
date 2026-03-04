@@ -387,4 +387,14 @@
     background-color: hsl(var(--muted-foreground) / 0.4);
     border-radius: 9999px;
   }
+
+  .pending-payment-hover:hover {
+    border-color: color-mix(in oklch, var(--chart-2) 55%, var(--border));
+    background-color: color-mix(in oklch, var(--chart-2) 14%, transparent);
+  }
+
+  .dark .pending-payment-hover:hover {
+    border-color: color-mix(in oklch, var(--chart-2) 45%, var(--border));
+    background-color: color-mix(in oklch, var(--chart-2) 18%, transparent);
+  }
 }

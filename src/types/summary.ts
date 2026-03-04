@@ -3,6 +3,10 @@ export interface SummaryOrderItem {
   name: string;
   sku: string;
   image?: string;
+  materialId?: string;
+  materialName?: string;
+  materialSku?: string;
+  materialUrl?: string;
   unitPrice: number;
   quantity: number;
   subtotal: number;
@@ -14,6 +18,7 @@ export interface SummaryOrderPayload {
   totalItems: number;
   currency: "IDR";
   previewImage?: string;
+  previewUrl?: string;
   designCode?: string;
   configuration?: Record<string, unknown>;
   generatedAt: string;

@@ -1,4 +1,5 @@
 import useAxios from "@/hooks/useAxios";
+import { normalizeCustomOrder } from "@/lib/order-normalize";
 import { CustomOrder } from "@/types/customOrder";
 import { useQuery } from "@tanstack/react-query";
 
@@ -8,7 +9,8 @@ const useGetOrder = (orderId?: string) => {
     queryKey: ["order", orderId],
     queryFn: async () => {
       const { data } = await axiosInstance.get(`/order/${orderId}`);
-      return ((data as { data?: CustomOrder })?.data ?? data) as CustomOrder;
+      const order = ((data as { data?: CustomOrder })?.data ?? data) as CustomOrder;
+      return normalizeCustomOrder(order);
     },
     enabled: !!orderId,
   });

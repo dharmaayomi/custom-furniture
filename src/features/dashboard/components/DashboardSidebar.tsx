@@ -16,21 +16,31 @@ import { NavMain } from "./NavMain";
 import { NavProfiles } from "./NavProfiles";
 import { NavSecondary } from "./NavSecondary";
 import { useUser } from "@/providers/UserProvider";
-import { useNotificationStore } from "@/store/useNotificationStore";
 import Link from "next/link";
 import { normalizeRole } from "@/lib/dashboard-access";
 import { useSession } from "next-auth/react";
 import { getDashboardNavDataByRole } from "./dashboard-nav";
+import useGetUnreadCount from "@/hooks/api/notification/useGetUnreadCount";
+import useGetNotifications from "@/hooks/api/notification/useGetNotifications";
 
 export function DashboardSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const { navUser } = useUser();
   const { data: session } = useSession();
-  const notifications = useNotificationStore((state) => state.notifications);
-  const unreadNotificationCount = notifications.filter(
-    (item) => !item.isRead,
-  ).length;
+  const { data: unreadData } = useGetUnreadCount();
+  const { data: notificationsData } = useGetNotifications({
+    page: 1,
+    perPage: 20,
+    sortBy: "createdAt",
+    orderBy: "desc",
+  });
+  const unreadCountFromItems =
+    notificationsData?.data?.filter((item) => !item.isRead).length ?? 0;
+  const unreadNotificationCount = Math.max(
+    unreadData?.unreadCount ?? 0,
+    unreadCountFromItems,
+  );
   const role = normalizeRole(navUser?.role ?? session?.user?.role ?? null);
 
   const navData = React.useMemo(() => getDashboardNavDataByRole(role), [role]);

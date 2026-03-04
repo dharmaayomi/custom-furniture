@@ -148,6 +148,7 @@ export function LoginForm({
                       {...field}
                       id="email"
                       type="email"
+                      autoComplete="username"
                       aria-invalid={fieldState.invalid}
                       placeholder="m@example.com"
                     />
@@ -240,6 +241,7 @@ export function LoginForm({
             <FieldLabel>Email</FieldLabel>
             <Input
               type="email"
+              autoComplete="email"
               placeholder="you@example.com"
               value={resetEmail}
               onChange={(e) => setResetEmail(e.target.value)}

@@ -1,103 +1,130 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import useGetOrders from "@/hooks/api/order/useGetOrders";
+import { formatPrice } from "@/lib/price";
 import { PackageSearch } from "lucide-react";
-import { getStatusBadgeClass } from "@/lib/statusStyles";
+import { getStatusBadgeClass, StatusTone } from "@/lib/statusStyles";
+import { OrderStatus } from "@/types/customOrder";
+import { useRouter } from "next/navigation";
 
-type OrderStatus =
-  | "WAITING_FOR_PAYMENT"
-  | "IN_PROGRESS"
+type OrderTabStatus =
+  | "PENDING_PAYMENT"
+  | "AWAITING_PRODUCTION"
+  | "IN_PRODUCTION"
   | "READY_TO_SHIP"
-  | "IN_DELIVERY"
+  | "SHIPPED"
   | "COMPLETED"
   | "CANCELLED";
 
 type OrderItem = {
+  orderId: string;
   id: string;
   title: string;
   amount: string;
   orderDate: string;
-  status: OrderStatus;
+  status: OrderTabStatus;
 };
 
-const ORDERS: OrderItem[] = [
-  {
-    id: "ORD-2026-1032",
-    title: "Custom Wardrobe - Master Room",
-    amount: "Rp 4.250.000",
-    orderDate: "Feb 14, 2026",
-    status: "WAITING_FOR_PAYMENT",
-  },
-  {
-    id: "ORD-2026-1031",
-    title: "Office Desk - Double Drawer",
-    amount: "Rp 3.100.000",
-    orderDate: "Feb 13, 2026",
-    status: "IN_PROGRESS",
-  },
-  {
-    id: "ORD-2026-1030",
-    title: "Kitchen Cabinet - Island Set",
-    amount: "Rp 6.800.000",
-    orderDate: "Feb 10, 2026",
-    status: "READY_TO_SHIP",
-  },
-  {
-    id: "ORD-2026-1028",
-    title: "Shoe Cabinet - Entrance",
-    amount: "Rp 1.850.000",
-    orderDate: "Feb 05, 2026",
-    status: "IN_DELIVERY",
-  },
-  {
-    id: "ORD-2026-1027",
-    title: "Bed Frame - Queen Size",
-    amount: "Rp 5.600.000",
-    orderDate: "Feb 02, 2026",
-    status: "COMPLETED",
-  },
-  {
-    id: "ORD-2026-1029",
-    title: "TV Console - Living Room",
-    amount: "Rp 2.900.000",
-    orderDate: "Feb 06, 2026",
-    status: "CANCELLED",
-  },
-];
-
-const statusLabel: Record<OrderStatus, string> = {
-  WAITING_FOR_PAYMENT: "Waiting for Payment",
-  IN_PROGRESS: "In Progress",
+const statusLabel: Record<OrderTabStatus, string> = {
+  PENDING_PAYMENT: "Waiting for Payment",
+  AWAITING_PRODUCTION: "Awaiting Production",
+  IN_PRODUCTION: "In Production",
   READY_TO_SHIP: "Ready to Ship",
-  IN_DELIVERY: "In Delivery",
+  SHIPPED: "Shipped",
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
 };
 
-const statusTone: Record<
-  OrderStatus,
-  "warning" | "info" | "success" | "danger" | "neutral"
-> = {
-  WAITING_FOR_PAYMENT: "warning",
-  IN_PROGRESS: "warning",
+const statusTone: Record<OrderTabStatus, StatusTone> = {
+  PENDING_PAYMENT: "warning",
+  AWAITING_PRODUCTION: "warning",
+  IN_PRODUCTION: "warning",
   READY_TO_SHIP: "info",
-  IN_DELIVERY: "info",
+  SHIPPED: "info",
   COMPLETED: "success",
   CANCELLED: "danger",
 };
 
 export const OrdersPage = () => {
-  const all = ORDERS;
-  const waitingForPayment = ORDERS.filter(
-    (item) => item.status === "WAITING_FOR_PAYMENT",
+  const router = useRouter();
+  const { data: orders = [], isLoading, isError } = useGetOrders();
+
+  const toUiStatus = (status: OrderStatus): OrderTabStatus => status;
+
+  const all = [...orders]
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .map((order) => {
+      const itemCount = order.items?.length ?? 0;
+      const orderReference = order.orderNumber?.trim() || order.id;
+      return {
+        orderId: order.id,
+        id: orderReference,
+        title: `Custom furniture order (${itemCount} item${itemCount === 1 ? "" : "s"})`,
+        amount: formatPrice(Number(order.grandTotalPrice ?? 0)),
+        orderDate: new Date(order.createdAt).toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+          year: "numeric",
+        }),
+        status: toUiStatus(order.status),
+      } satisfies OrderItem;
+    });
+
+  const pendingPayment = all.filter(
+    (item) => item.status === "PENDING_PAYMENT",
   );
-  const inProgress = ORDERS.filter((item) => item.status === "IN_PROGRESS");
-  const readyToShip = ORDERS.filter((item) => item.status === "READY_TO_SHIP");
-  const inDelivery = ORDERS.filter((item) => item.status === "IN_DELIVERY");
-  const completed = ORDERS.filter((item) => item.status === "COMPLETED");
-  const cancelled = ORDERS.filter((item) => item.status === "CANCELLED");
+  const orderHistory = all.filter((item) => item.status !== "PENDING_PAYMENT");
+  const productionQueue = all.filter(
+    (item) =>
+      item.status === "AWAITING_PRODUCTION" || item.status === "IN_PRODUCTION",
+  );
+  const readyToShip = all.filter((item) => item.status === "READY_TO_SHIP");
+  const shipped = all.filter((item) => item.status === "SHIPPED");
+  const completed = all.filter((item) => item.status === "COMPLETED");
+  const cancelled = all.filter((item) => item.status === "CANCELLED");
+
+  const renderSkeletonList = () => (
+    <div className="space-y-4">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="bg-card rounded-lg border p-4 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-2">
+              <Skeleton className="h-5 w-52" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-end">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-6 w-28 rounded-full" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   const renderList = (items: OrderItem[]) => {
+    if (isLoading) {
+      return renderSkeletonList();
+    }
+
+    if (isError) {
+      return (
+        <div className="border-border bg-card mx-auto flex w-full max-w-xl flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12 lg:max-w-full">
+          <p className="text-sm font-medium">Failed to load orders</p>
+          <p className="text-muted-foreground text-sm">
+            Please refresh this page and try again.
+          </p>
+        </div>
+      );
+    }
+
     if (items.length === 0) {
       return (
         <div className="border-border bg-card mx-auto flex w-full max-w-xl flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12 lg:max-w-full">
@@ -117,7 +144,10 @@ export const OrdersPage = () => {
         {items.map((item) => (
           <div
             key={item.id}
-            className="bg-card rounded-lg border p-4 shadow-sm"
+            className="bg-card hover:bg-muted/35 hover:border-border cursor-pointer rounded-lg border p-4 shadow-sm transition"
+            onClick={() => {
+              router.push(`/dashboard/orders/${item.orderId}`);
+            }}
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -158,21 +188,34 @@ export const OrdersPage = () => {
       </div>
 
       <div className="bg-muted/50 rounded-md p-3 sm:p-4">
+        {pendingPayment.length > 0 ? (
+          <div className="bg-card mb-4 flex flex-col items-start justify-between gap-3 rounded-lg border p-4 sm:flex-row sm:items-center">
+            <div>
+              <p className="text-sm font-semibold">Pending Payments</p>
+              <p className="text-muted-foreground text-sm">
+                {pendingPayment.length} order
+                {pendingPayment.length === 1 ? "" : "s"} waiting for payment
+                are now managed in Billing.
+              </p>
+            </div>
+            <Button onClick={() => router.push("/dashboard/billing")}>
+              Go to Billing
+            </Button>
+          </div>
+        ) : null}
+
         <div className="mx-auto px-1 py-3 sm:px-4 sm:py-4 lg:px-2 lg:py-2">
           <Tabs defaultValue="all" className="w-full">
             <TabsList className="no-scrollbar mb-4 w-full overflow-x-auto sm:mb-6">
-              <TabsTrigger value="all">All ({all.length})</TabsTrigger>
-              <TabsTrigger value="waiting-for-payment">
-                Waiting for Payment ({waitingForPayment.length})
-              </TabsTrigger>
-              <TabsTrigger value="in-progress">
-                In Progress ({inProgress.length})
+              <TabsTrigger value="all">All ({orderHistory.length})</TabsTrigger>
+              <TabsTrigger value="in-production">
+                In Production ({productionQueue.length})
               </TabsTrigger>
               <TabsTrigger value="ready-to-ship">
                 Ready to Ship ({readyToShip.length})
               </TabsTrigger>
-              <TabsTrigger value="in-delivery">
-                In Delivery ({inDelivery.length})
+              <TabsTrigger value="shipped">
+                Shipped ({shipped.length})
               </TabsTrigger>
               <TabsTrigger value="completed">
                 Completed ({completed.length})
@@ -182,19 +225,14 @@ export const OrdersPage = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="all">{renderList(all)}</TabsContent>
-            <TabsContent value="waiting-for-payment">
-              {renderList(waitingForPayment)}
-            </TabsContent>
-            <TabsContent value="in-progress">
-              {renderList(inProgress)}
+            <TabsContent value="all">{renderList(orderHistory)}</TabsContent>
+            <TabsContent value="in-production">
+              {renderList(productionQueue)}
             </TabsContent>
             <TabsContent value="ready-to-ship">
               {renderList(readyToShip)}
             </TabsContent>
-            <TabsContent value="in-delivery">
-              {renderList(inDelivery)}
-            </TabsContent>
+            <TabsContent value="shipped">{renderList(shipped)}</TabsContent>
             <TabsContent value="completed">{renderList(completed)}</TabsContent>
             <TabsContent value="cancelled">{renderList(cancelled)}</TabsContent>
           </Tabs>

@@ -1,4 +1,5 @@
 import useAxios from "@/hooks/useAxios";
+import { normalizeCustomOrder } from "@/lib/order-normalize";
 import { CustomOrder } from "@/types/customOrder";
 import { useMutation } from "@tanstack/react-query";
 import z from "zod";
@@ -8,6 +9,7 @@ const deliveryTypeSchema = z.enum(["DELIVERY", "PICKUP"]);
 export const createCustomOrderSchema = z
   .object({
     designCode: z.string().trim().optional(),
+    previewUrl: z.string().trim().url().optional(),
     deliveryType: deliveryTypeSchema,
     addressId: z.preprocess(
       (value) =>
@@ -51,7 +53,7 @@ const useCreateCustomOrder = () => {
         "/order/create-custom-order",
         validated,
       );
-      return data;
+      return normalizeCustomOrder(data);
     },
   });
 };

@@ -14,16 +14,16 @@ import {
 import {
   DbModelUrlResolver,
   loadAdditionalModel,
-  loadMainModel,
+  loadProductBaseModel,
   updateAllTextures,
 } from "./ModelLoader_WallSnap_DB";
 import { setupRoom } from "./RoomSetup";
 import { createScene } from "./SceneSetup";
 
 interface RoomCanvasProps {
-  mainModels: string[];
+  productBaseModels: string[];
   activeTexture: string;
-  addOnModels: string[];
+  productComponentModels: string[];
   resolveModelUrl?: DbModelUrlResolver;
   onSceneReady?: (scene: BABYLON.Scene) => void;
 }
@@ -41,9 +41,9 @@ const getAdditionalMeshes = (
 };
 
 export const RoomCanvasThreeDB = ({
-  mainModels,
+  productBaseModels,
   activeTexture,
-  addOnModels,
+  productComponentModels,
   resolveModelUrl,
   onSceneReady,
 }: RoomCanvasProps) => {
@@ -277,28 +277,27 @@ export const RoomCanvasThreeDB = ({
     });
   }, [debouncedRoomConfig]);
 
-  // --- 2. SYNC MAIN MODELS ---
+  // --- 2. SYNC product baseS ---
   useEffect(() => {
     if (!sceneRef.current) return;
     const scene = sceneRef.current;
 
-    const syncMainModels = async () => {
+    const syncProductBaseModels = async () => {
       mainMeshesRef.current = mainMeshesRef.current.filter((mesh) => {
-        if (!mainModels.includes(mesh.name)) {
+        if (!productBaseModels.includes(mesh.name)) {
           mesh.dispose();
           return false;
         }
         return true;
       });
 
-      for (let i = 0; i < mainModels.length; i++) {
-        const uniqueId = mainModels[i];
+      for (let i = 0; i < productBaseModels.length; i++) {
+        const uniqueId = productBaseModels[i];
         const existingMesh = scene.getMeshByName(uniqueId);
         if (!existingMesh) {
           const modelName = extractModelNameFromId(uniqueId);
-          const savedTransform =
-            presentRef.current.mainModelTransforms[i];
-          await loadMainModel(
+          const savedTransform = presentRef.current.productBaseTransforms[i];
+          await loadProductBaseModel(
             modelName,
             activeTexture,
             scene,
@@ -309,15 +308,15 @@ export const RoomCanvasThreeDB = ({
         }
       }
 
-      mainMeshesRef.current = mainModels
+      mainMeshesRef.current = productBaseModels
         .map((id) => scene.getMeshByName(id) as BABYLON.AbstractMesh)
         .filter(Boolean);
     };
 
-    syncMainModels();
-  }, [mainModels, resolveModelUrl]);
+    syncProductBaseModels();
+  }, [productBaseModels, resolveModelUrl]);
 
-  // --- 3. SYNC ADD-ON MODELS (FIX UNTUK UNDO/REDO) ---
+  // --- 3. SYNC product component MODELS (FIX UNTUK UNDO/REDO) ---
   useEffect(() => {
     if (!sceneRef.current) return;
     const scene = sceneRef.current;
@@ -326,15 +325,15 @@ export const RoomCanvasThreeDB = ({
       const currentMeshes = getAdditionalMeshes(scene, mainMeshesRef.current);
 
       currentMeshes.forEach((mesh) => {
-        if (!addOnModels.includes(mesh.name)) {
+        if (!productComponentModels.includes(mesh.name)) {
           mesh.dispose();
         }
       });
 
       // Load Mesh baru atau Sync Mesh yang hilang
       // Kita iterasi berdasarkan index di additionalModels untuk mencocokkan dengan transforms
-      for (let i = 0; i < addOnModels.length; i++) {
-        const uniqueId = addOnModels[i];
+      for (let i = 0; i < productComponentModels.length; i++) {
+        const uniqueId = productComponentModels[i];
 
         // Cek apakah mesh sudah ada di scene
         const existingMesh = scene.getMeshByName(uniqueId);
@@ -345,7 +344,7 @@ export const RoomCanvasThreeDB = ({
 
           // AMBIL TRANSFORM DARI STORE BERDASARKAN INDEX
           // Pastikan additionalTransforms di store sinkron dengan additionalModels array
-          const savedTransform = presentRef.current.addOnTransforms[i];
+          const savedTransform = presentRef.current.productComponentTransforms[i];
 
           await loadAdditionalModel(
             modelName,
@@ -359,7 +358,7 @@ export const RoomCanvasThreeDB = ({
       }
     };
     syncModels();
-  }, [addOnModels, resolveModelUrl]); // Trigger saat jumlah berubah
+  }, [productComponentModels, resolveModelUrl]); // Trigger saat jumlah berubah
 
   // --- 4. UPDATE TEXTURE ---
   useEffect(() => {
@@ -368,15 +367,15 @@ export const RoomCanvasThreeDB = ({
 
     // Build per-mesh texture map from transforms (persisted on transforms)
     const meshTextureMap: Record<string, string> = {};
-    present.mainModelTransforms.forEach((t) => {
+    present.productBaseTransforms.forEach((t) => {
       if (t && t.texture !== undefined) {
         meshTextureMap[t.modelName] = t.texture as string;
       }
     });
 
-    present.addOnTransforms.forEach((t, idx) => {
+    present.productComponentTransforms.forEach((t, idx) => {
       if (t && t.texture !== undefined) {
-        const key = present.addOnModels[idx] || t.modelName;
+        const key = present.productComponentModels[idx] || t.modelName;
         meshTextureMap[key] = t.texture as string;
       }
     });
@@ -387,10 +386,10 @@ export const RoomCanvasThreeDB = ({
       meshTextureMap,
     );
   }, [
-    present.mainModelTransforms,
-    present.addOnTransforms,
-    present.addOnModels,
-    present.mainModels,
+    present.productBaseTransforms,
+    present.productComponentTransforms,
+    present.productComponentModels,
+    present.productBaseModels,
   ]);
 
   //  --- 5. RESTORE POSITIONS SAAT UNDO/REDO ---
@@ -399,8 +398,8 @@ export const RoomCanvasThreeDB = ({
       return;
     }
 
-    // Restore main model transforms
-    present.mainModelTransforms.forEach((transform) => {
+    // Restore product base transforms
+    present.productBaseTransforms.forEach((transform) => {
       const mesh = sceneRef.current!.getMeshByName(transform.modelName);
       if (mesh) {
         if (mesh.rotationQuaternion) {
@@ -415,9 +414,9 @@ export const RoomCanvasThreeDB = ({
       }
     });
 
-    // Restore add-on transforms
-    present.addOnTransforms.forEach((transform, index) => {
-      const id = present.addOnModels[index] || transform.modelName;
+    // Restore product component transforms
+    present.productComponentTransforms.forEach((transform, index) => {
+      const id = present.productComponentModels[index] || transform.modelName;
       const mesh = sceneRef.current!.getMeshByName(id);
       if (mesh) {
         if (mesh.rotationQuaternion) {
@@ -434,9 +433,13 @@ export const RoomCanvasThreeDB = ({
     if (hlRef.current) {
       hlRef.current.removeAllMeshes();
     }
-  }, [present.mainModelTransforms, present.addOnTransforms, present.addOnModels]);
+  }, [present.productBaseTransforms, present.productComponentTransforms, present.productComponentModels]);
 
   return (
     <canvas ref={canvasRef} className="h-full w-full touch-none outline-none" />
   );
 };
+
+
+
+

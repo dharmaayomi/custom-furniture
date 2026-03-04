@@ -30,10 +30,10 @@ export interface WallSnapPosition {
 export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
   const {
     roomConfig,
-    mainModelTransforms,
-    addOnTransforms,
-    mainModels,
-    addOnModels,
+    productBaseTransforms: productBaseTransforms,
+    productComponentTransforms: productComponentTransforms,
+    productBaseModels: productBaseModels,
+    productComponentModels: productComponentModels,
   } = useRoomStore.getState().present;
   CONFIG.rw = roomConfig.width;
   CONFIG.rd = roomConfig.depth;
@@ -47,20 +47,20 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
       const rd = CONFIG.rd;
 
       let savedTransform: FurnitureTransform | undefined;
-      let isMainModel = false;
+      let isProductBase = false;
       let storeIndex = -1;
 
-      const mainIndex = mainModels.findIndex((id) => id === mesh.name);
-      if (mainIndex !== -1) {
-        savedTransform = mainModelTransforms[mainIndex];
-        isMainModel = true;
-        storeIndex = mainIndex;
+      const productBaseIndex = productBaseModels.findIndex((id) => id === mesh.name);
+      if (productBaseIndex !== -1) {
+        savedTransform = productBaseTransforms[productBaseIndex];
+        isProductBase = true;
+        storeIndex = productBaseIndex;
       } else {
-        const addOnIndex = addOnModels.findIndex((id) => id === mesh.name);
-        if (addOnIndex !== -1) {
-          savedTransform = addOnTransforms[addOnIndex];
-          isMainModel = false;
-          storeIndex = addOnIndex;
+        const productComponentIndex = productComponentModels.findIndex((id) => id === mesh.name);
+        if (productComponentIndex !== -1) {
+          savedTransform = productComponentTransforms[productComponentIndex];
+          isProductBase = false;
+          storeIndex = productComponentIndex;
         }
       }
 
@@ -145,7 +145,7 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
         };
 
         if (storeIndex !== -1) {
-          updateTransformSilent(storeIndex, updatedTransform, isMainModel);
+          updateTransformSilent(storeIndex, updatedTransform, isProductBase);
         }
       } else {
         // Fallback: jika tidak ada saved transform, gunakan logic lama
@@ -1080,14 +1080,17 @@ export const addDragBehavior = (
         },
       };
 
-      const { mainModels, addOnModels } = useRoomStore.getState().present;
-      const mainIndex = mainModels.findIndex((id) => id === mesh.name);
-      if (mainIndex !== -1) {
-        saveTransformToHistory(mainIndex, transform, true);
+      const {
+        productBaseModels: productBaseModels,
+        productComponentModels: productComponentModels,
+      } = useRoomStore.getState().present;
+      const productBaseIndex = productBaseModels.findIndex((id) => id === mesh.name);
+      if (productBaseIndex !== -1) {
+        saveTransformToHistory(productBaseIndex, transform, true);
       } else {
-        const addOnIndex = addOnModels.findIndex((id) => id === mesh.name);
-        if (addOnIndex !== -1) {
-          saveTransformToHistory(addOnIndex, transform, false);
+        const productComponentIndex = productComponentModels.findIndex((id) => id === mesh.name);
+        if (productComponentIndex !== -1) {
+          saveTransformToHistory(productComponentIndex, transform, false);
         }
       }
     }
@@ -1185,3 +1188,5 @@ export const setupAutoHideWalls = (
     });
   });
 };
+
+

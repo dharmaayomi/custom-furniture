@@ -12,18 +12,18 @@ import { create } from "zustand";
 
 // Helper untuk hitung total harga saat ini
 const calculateTotal = (
-  mainModels: string[],
-  addOnModels: string[],
+  productBaseModels: string[],
+  productComponentModels: string[],
   activeTexture: string,
 ) => {
   let total = 0;
 
-  mainModels.forEach((model) => {
+  productBaseModels.forEach((model) => {
     const modelName = extractModelNameFromId(model);
     total += ASSET_PRICES[modelName] || 0;
   });
 
-  addOnModels.forEach((model) => {
+  productComponentModels.forEach((model) => {
     const modelName = extractModelNameFromId(model);
     total += ASSET_PRICES[modelName] || 0;
   });
@@ -62,12 +62,12 @@ export interface FurnitureTransform {
 
 // --- 2. UPDATE INTERFACE ---
 interface RoomData {
-  mainModels: string[];
-  addOnModels: string[];
+  productBaseModels: string[];
+  productComponentModels: string[];
   activeTexture: string;
   totalPrice: number; // Tambahkan field ini
-  mainModelTransforms: FurnitureTransform[]; // Posisi & rotasi main models
-  addOnTransforms: FurnitureTransform[];
+  productBaseTransforms: FurnitureTransform[]; // Posisi & rotasi product bases
+  productComponentTransforms: FurnitureTransform[];
   roomConfig: RoomConfig;
   showHuman: boolean;
   selectedFurniture: string | null; // Track selected furniture mesh name
@@ -81,10 +81,10 @@ interface RoomStore {
   setDesignCode: (code: string) => void;
   loadRoomState: (data: Partial<RoomData>) => void;
 
-  setMainModel: (model: string) => void;
+  setProductBaseModel: (model: string) => void;
   setActiveTexture: (texture: string) => void;
   setMeshTexture: (meshName: string, texture: string) => void;
-  addAddOnModel: (model: string) => void;
+  addProductComponentModel: (model: string) => void;
   setSelectedFurniture: (meshName: string | null) => void;
   duplicateSelectedFurniture: () => void;
   deleteSelectedFurniture: () => void;
@@ -96,20 +96,20 @@ interface RoomStore {
   reset: () => void;
   shadowGenerator: BABYLON.ShadowGenerator | null;
   setShadowGenerator: (generator: BABYLON.ShadowGenerator | null) => void;
-  updateMainModelTransform: (
+  updateProductBaseTransform: (
     index: number,
     transform: FurnitureTransform,
   ) => void;
-  updateAddOnTransform: (index: number, transform: FurnitureTransform) => void;
+  updateProductComponentTransform: (index: number, transform: FurnitureTransform) => void;
   saveTransformToHistory: (
     index: number,
     transform: FurnitureTransform,
-    isMainModel: boolean,
+    isProductBase: boolean,
   ) => void;
   updateTransformSilent: (
     index: number,
     transform: FurnitureTransform,
-    isMainModel: boolean,
+    isProductBase: boolean,
   ) => void;
   captureCurrentState: () => void;
   toggleHuman: () => void;
@@ -126,12 +126,12 @@ export const DEFAULT_ROOM_CONFIG: RoomConfig = {
 };
 
 const INITIAL_STATE: RoomData = {
-  mainModels: [],
-  addOnModels: [],
+  productBaseModels: [],
+  productComponentModels: [],
   activeTexture: INITIAL_TEXTURE,
   totalPrice: calculateTotal([], [], INITIAL_TEXTURE),
-  mainModelTransforms: [],
-  addOnTransforms: [],
+  productBaseTransforms: [],
+  productComponentTransforms: [],
   roomConfig: DEFAULT_ROOM_CONFIG,
   showHuman: false,
   selectedFurniture: null,
@@ -188,19 +188,27 @@ const normalizeTransform = (
 };
 
 const normalizeRoomState = (data: Partial<RoomData>): RoomData => {
-  const rawMainModels = (data as any).mainModels ?? [];
-  const rawAddOnModels = (data as any).addOnModels ?? [];
+  const rawProductBaseModels =
+    (data as any).productBase ??
+    (data as any).productBases ??
+    (data as any).productBaseModels ??
+    [];
+  const rawproductComponentModels =
+    (data as any).productComponent ??
+    (data as any).productComponents ??
+    (data as any).productComponentModels ??
+    [];
 
-  let mainModels: string[] = [];
-  let addOnModels: string[] = [];
-  let mainModelTransforms: FurnitureTransform[] = [];
-  let addOnTransforms: FurnitureTransform[] = [];
+  let productBaseModels: string[] = [];
+  let productComponentModels: string[] = [];
+  let productBaseTransforms: FurnitureTransform[] = [];
+  let productComponentTransforms: FurnitureTransform[] = [];
 
-  if (rawMainModels.length > 0 && typeof rawMainModels[0] === "object") {
-    rawMainModels.forEach((item: any) => {
+  if (rawProductBaseModels.length > 0 && typeof rawProductBaseModels[0] === "object") {
+    rawProductBaseModels.forEach((item: any) => {
       const id = item?.id || item?.modelName || "";
       if (!id) return;
-      mainModels.push(id);
+      productBaseModels.push(id);
       const t = normalizeTransform(
         {
           modelName: id,
@@ -211,20 +219,28 @@ const normalizeRoomState = (data: Partial<RoomData>): RoomData => {
         } as any,
         id,
       );
-      if (t) mainModelTransforms.push(t);
+      if (t) productBaseTransforms.push(t);
     });
   } else {
-    mainModels = rawMainModels as string[];
-    mainModelTransforms = (data.mainModelTransforms ?? [])
-      .map((t, idx) => normalizeTransform(t, mainModels[idx]))
-      .filter((t): t is FurnitureTransform => Boolean(t));
+    productBaseModels = rawProductBaseModels as string[];
+    productBaseTransforms = (
+      (data as any).productBaseTransforms ??
+      data.productBaseTransforms ??
+      []
+    )
+      .map((t: Partial<FurnitureTransform>, idx: number) =>
+        normalizeTransform(t, productBaseModels[idx]),
+      )
+      .filter((t: FurnitureTransform | undefined): t is FurnitureTransform =>
+        Boolean(t),
+      );
   }
 
-  if (rawAddOnModels.length > 0 && typeof rawAddOnModels[0] === "object") {
-    rawAddOnModels.forEach((item: any) => {
+  if (rawproductComponentModels.length > 0 && typeof rawproductComponentModels[0] === "object") {
+    rawproductComponentModels.forEach((item: any) => {
       const id = item?.id || item?.modelName || "";
       if (!id) return;
-      addOnModels.push(id);
+      productComponentModels.push(id);
       const t = normalizeTransform(
         {
           modelName: id,
@@ -235,13 +251,21 @@ const normalizeRoomState = (data: Partial<RoomData>): RoomData => {
         } as any,
         id,
       );
-      if (t) addOnTransforms.push(t);
+      if (t) productComponentTransforms.push(t);
     });
   } else {
-    addOnModels = rawAddOnModels as string[];
-    addOnTransforms = (data.addOnTransforms ?? [])
-      .map((t, idx) => normalizeTransform(t, addOnModels[idx]))
-      .filter((t): t is FurnitureTransform => Boolean(t));
+    productComponentModels = rawproductComponentModels as string[];
+    productComponentTransforms = (
+      (data as any).productComponentTransforms ??
+      data.productComponentTransforms ??
+      []
+    )
+      .map((t: Partial<FurnitureTransform>, idx: number) =>
+        normalizeTransform(t, productComponentModels[idx]),
+      )
+      .filter((t: FurnitureTransform | undefined): t is FurnitureTransform =>
+        Boolean(t),
+      );
   }
 
   const activeTexture = data.activeTexture ?? INITIAL_TEXTURE;
@@ -251,18 +275,18 @@ const normalizeRoomState = (data: Partial<RoomData>): RoomData => {
       : data.totalPrice;
   const totalPrice =
     totalPriceValue ??
-    calculateTotal(mainModels, addOnModels, activeTexture);
+    calculateTotal(productBaseModels, productComponentModels, activeTexture);
 
   const roomConfig = (data as any).roomConfig ?? (data as any).room ?? {};
 
   return {
     ...INITIAL_STATE,
     ...data,
-    mainModels,
-    addOnModels,
+    productBaseModels,
+    productComponentModels,
     activeTexture,
-    mainModelTransforms,
-    addOnTransforms,
+    productBaseTransforms,
+    productComponentTransforms,
     roomConfig: { ...DEFAULT_ROOM_CONFIG, ...roomConfig },
     totalPrice,
     showHuman: data.showHuman ?? false,
@@ -285,14 +309,14 @@ export const useRoomStore = create<RoomStore>((set) => ({
 
   // --- 3. ACTIONS DENGAN KALKULASI HARGA OTOMATIS ---
 
-  setMainModel: (model) =>
+  setProductBaseModel: (model) =>
     set((state) => {
       const currentPresent = state.present;
-      const existing = [...currentPresent.mainModels, ...currentPresent.addOnModels];
+      const existing = [...currentPresent.productBaseModels, ...currentPresent.productComponentModels];
       const uniqueId = getNextIndexedId(model, existing);
-      const newMainModels = [...currentPresent.mainModels, uniqueId];
-      const newMainTransforms = [
-        ...currentPresent.mainModelTransforms,
+      const newProductBaseModels = [...currentPresent.productBaseModels, uniqueId];
+      const newProductBaseTransforms = [
+        ...currentPresent.productBaseTransforms,
         {
           modelName: uniqueId,
           position: { x: 0, y: 0, z: 0 },
@@ -301,15 +325,15 @@ export const useRoomStore = create<RoomStore>((set) => ({
       ];
 
       const newPrice = calculateTotal(
-        newMainModels,
-        currentPresent.addOnModels,
+        newProductBaseModels,
+        currentPresent.productComponentModels,
         currentPresent.activeTexture,
       );
 
       const newPresent = {
         ...currentPresent,
-        mainModels: newMainModels,
-        mainModelTransforms: newMainTransforms,
+        productBaseModels: newProductBaseModels,
+        productBaseTransforms: newProductBaseTransforms,
         totalPrice: newPrice,
       };
 
@@ -332,8 +356,8 @@ export const useRoomStore = create<RoomStore>((set) => ({
       }
 
       const newPrice = calculateTotal(
-        state.present.mainModels,
-        state.present.addOnModels,
+        state.present.productBaseModels,
+        state.present.productComponentModels,
         texture,
       );
 
@@ -355,20 +379,20 @@ export const useRoomStore = create<RoomStore>((set) => ({
       // Persist texture on the corresponding FurnitureTransform so it survives undo/redo
       const extracted = meshName; // meshName is expected to be the unique id used in transforms
 
-      // Determine whether the meshName corresponds to a main model transform
-      const mainIdx = state.present.mainModelTransforms.findIndex(
+      // Determine whether the meshName corresponds to a product base transform
+      const mainIdx = state.present.productBaseTransforms.findIndex(
         (t) => t.modelName === extracted,
       );
       const fallbackMainIdx =
         mainIdx === -1
-          ? state.present.mainModels.findIndex((id) => id === extracted)
+          ? state.present.productBaseModels.findIndex((id) => id === extracted)
           : mainIdx;
 
       if (fallbackMainIdx !== -1) {
-        const currentTransforms = [...state.present.mainModelTransforms];
+        const currentTransforms = [...state.present.productBaseTransforms];
         const current =
           currentTransforms[fallbackMainIdx] || {
-            modelName: state.present.mainModels[fallbackMainIdx],
+            modelName: state.present.productBaseModels[fallbackMainIdx],
             position: { x: 0, y: 0, z: 0 },
             rotation: 0,
           };
@@ -389,7 +413,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
 
         const newPresent = {
           ...state.present,
-          mainModelTransforms: currentTransforms,
+          productBaseTransforms: currentTransforms,
         };
 
         return {
@@ -399,17 +423,17 @@ export const useRoomStore = create<RoomStore>((set) => ({
         };
       }
 
-      // Otherwise try to find a matching add-on model by exact unique id
-      const idx = state.present.addOnModels.findIndex((id) => id === extracted);
+      // Otherwise try to find a matching product component by exact unique id
+      const idx = state.present.productComponentModels.findIndex((id) => id === extracted);
 
       if (idx === -1) {
         // Fallback: no matching transform found, no-op
         return state;
       }
 
-      const currentTransforms = [...state.present.addOnTransforms];
+      const currentTransforms = [...state.present.productComponentTransforms];
       const current = currentTransforms[idx] || {
-        modelName: state.present.addOnModels[idx],
+        modelName: state.present.productComponentModels[idx],
         position: { x: 0, y: 0, z: 0 },
         rotation: 0,
       };
@@ -430,7 +454,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
 
       const newPresent = {
         ...state.present,
-        addOnTransforms: currentTransforms,
+        productComponentTransforms: currentTransforms,
       };
 
       return {
@@ -457,26 +481,26 @@ export const useRoomStore = create<RoomStore>((set) => ({
       if (!selected) return state;
 
       const allModels = [
-        ...state.present.mainModels,
-        ...state.present.addOnModels,
+        ...state.present.productBaseModels,
+        ...state.present.productComponentModels,
       ];
       const extractedSelected = extractModelNameFromId(selected);
 
-      const mainIndex = state.present.mainModels.findIndex(
+      const productBaseIndex = state.present.productBaseModels.findIndex(
         (id) => id === selected || extractModelNameFromId(id) === extractedSelected,
       );
-      const addOnIndex = state.present.addOnModels.findIndex(
+      const productComponentIndex = state.present.productComponentModels.findIndex(
         (id) => id === selected || extractModelNameFromId(id) === extractedSelected,
       );
 
-      if (mainIndex !== -1) {
+      if (productBaseIndex !== -1) {
         const modelNameToDuplicate = extractModelNameFromId(
-          state.present.mainModels[mainIndex],
+          state.present.productBaseModels[productBaseIndex],
         );
         const uniqueId = getNextIndexedId(modelNameToDuplicate, allModels);
-        const newMainModels = [...state.present.mainModels, uniqueId];
-        const newMainTransforms = [
-          ...state.present.mainModelTransforms,
+        const newProductBaseModels = [...state.present.productBaseModels, uniqueId];
+        const newProductBaseTransforms = [
+          ...state.present.productBaseTransforms,
           {
             modelName: uniqueId,
             position: { x: 0, y: 0, z: 0 },
@@ -485,8 +509,8 @@ export const useRoomStore = create<RoomStore>((set) => ({
         ];
 
         const newPrice = calculateTotal(
-          newMainModels,
-          state.present.addOnModels,
+          newProductBaseModels,
+          state.present.productComponentModels,
           state.present.activeTexture,
         );
 
@@ -494,8 +518,8 @@ export const useRoomStore = create<RoomStore>((set) => ({
           past: [...state.past, state.present],
           present: {
             ...state.present,
-            mainModels: newMainModels,
-            mainModelTransforms: newMainTransforms,
+            productBaseModels: newProductBaseModels,
+            productBaseTransforms: newProductBaseTransforms,
             totalPrice: newPrice,
             selectedFurniture: null,
           },
@@ -503,14 +527,14 @@ export const useRoomStore = create<RoomStore>((set) => ({
         };
       }
 
-      if (addOnIndex !== -1) {
+      if (productComponentIndex !== -1) {
         const modelNameToDuplicate = extractModelNameFromId(
-          state.present.addOnModels[addOnIndex],
+          state.present.productComponentModels[productComponentIndex],
         );
         const uniqueId = getNextIndexedId(modelNameToDuplicate, allModels);
-        const newModels = [...state.present.addOnModels, uniqueId];
+        const newModels = [...state.present.productComponentModels, uniqueId];
         const newTransforms = [
-          ...state.present.addOnTransforms,
+          ...state.present.productComponentTransforms,
           {
             modelName: uniqueId,
             position: { x: 0, y: 0, z: 0 },
@@ -519,7 +543,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
         ];
 
         const newPrice = calculateTotal(
-          state.present.mainModels,
+          state.present.productBaseModels,
           newModels,
           state.present.activeTexture,
         );
@@ -528,8 +552,8 @@ export const useRoomStore = create<RoomStore>((set) => ({
           past: [...state.past, state.present],
           present: {
             ...state.present,
-            addOnModels: newModels,
-            addOnTransforms: newTransforms,
+            productComponentModels: newModels,
+            productComponentTransforms: newTransforms,
             totalPrice: newPrice,
             selectedFurniture: null,
           },
@@ -547,20 +571,20 @@ export const useRoomStore = create<RoomStore>((set) => ({
 
       const extractedSelected = extractModelNameFromId(selected);
 
-      const mainIndex = state.present.mainModels.findIndex(
+      const productBaseIndex = state.present.productBaseModels.findIndex(
         (id) => id === selected || extractModelNameFromId(id) === extractedSelected,
       );
-      if (mainIndex !== -1) {
-        const newMainModels = state.present.mainModels.filter(
-          (_, idx) => idx !== mainIndex,
+      if (productBaseIndex !== -1) {
+        const newProductBaseModels = state.present.productBaseModels.filter(
+          (_, idx) => idx !== productBaseIndex,
         );
-        const newMainTransforms = state.present.mainModelTransforms.filter(
-          (_, idx) => idx !== mainIndex,
+        const newProductBaseTransforms = state.present.productBaseTransforms.filter(
+          (_, idx) => idx !== productBaseIndex,
         );
 
         const newPrice = calculateTotal(
-          newMainModels,
-          state.present.addOnModels,
+          newProductBaseModels,
+          state.present.productComponentModels,
           state.present.activeTexture,
         );
 
@@ -568,8 +592,8 @@ export const useRoomStore = create<RoomStore>((set) => ({
           past: [...state.past, state.present],
           present: {
             ...state.present,
-            mainModels: newMainModels,
-            mainModelTransforms: newMainTransforms,
+            productBaseModels: newProductBaseModels,
+            productBaseTransforms: newProductBaseTransforms,
             totalPrice: newPrice,
             selectedFurniture: null,
           },
@@ -577,21 +601,21 @@ export const useRoomStore = create<RoomStore>((set) => ({
         };
       }
 
-      const modelIndex = state.present.addOnModels.findIndex(
+      const modelIndex = state.present.productComponentModels.findIndex(
         (id) => id === selected || extractModelNameFromId(id) === extractedSelected,
       );
 
       if (modelIndex === -1) return state;
 
-      const newModels = state.present.addOnModels.filter(
+      const newModels = state.present.productComponentModels.filter(
         (_, idx) => idx !== modelIndex,
       );
-      const newTransforms = state.present.addOnTransforms.filter(
+      const newTransforms = state.present.productComponentTransforms.filter(
         (_, idx) => idx !== modelIndex,
       );
 
       const newPrice = calculateTotal(
-        state.present.mainModels,
+        state.present.productBaseModels,
         newModels,
         state.present.activeTexture,
       );
@@ -600,8 +624,8 @@ export const useRoomStore = create<RoomStore>((set) => ({
         past: [...state.past, state.present],
         present: {
           ...state.present,
-          addOnModels: newModels,
-          addOnTransforms: newTransforms,
+          productComponentModels: newModels,
+          productComponentTransforms: newTransforms,
           totalPrice: newPrice,
           selectedFurniture: null,
         },
@@ -609,18 +633,18 @@ export const useRoomStore = create<RoomStore>((set) => ({
       };
     }),
 
-  addAddOnModel: (model) =>
+  addProductComponentModel: (model) =>
     set((state) => {
       const currentPresent = state.present;
       const existing = [
-        ...currentPresent.mainModels,
-        ...currentPresent.addOnModels,
+        ...currentPresent.productBaseModels,
+        ...currentPresent.productComponentModels,
       ];
       const uniqueId = getNextIndexedId(model, existing);
-      const newModels = [...currentPresent.addOnModels, uniqueId];
+      const newModels = [...currentPresent.productComponentModels, uniqueId];
 
       const newTransforms = [
-        ...currentPresent.addOnTransforms,
+        ...currentPresent.productComponentTransforms,
         {
           modelName: uniqueId,
           position: { x: 0, y: 0, z: 0 },
@@ -629,16 +653,16 @@ export const useRoomStore = create<RoomStore>((set) => ({
       ];
 
       const newPrice = calculateTotal(
-        currentPresent.mainModels,
+        currentPresent.productBaseModels,
         newModels,
         currentPresent.activeTexture,
       );
 
       const newPresent = {
         ...currentPresent,
-        addOnModels: newModels,
+        productComponentModels: newModels,
         totalPrice: newPrice,
-        addOnTransforms: newTransforms,
+        productComponentTransforms: newTransforms,
       };
 
       return {
@@ -661,27 +685,27 @@ export const useRoomStore = create<RoomStore>((set) => ({
       };
     }),
 
-  updateMainModelTransform: (index, transform) =>
+  updateProductBaseTransform: (index, transform) =>
     set((state) => {
-      const newTransforms = [...state.present.mainModelTransforms];
+      const newTransforms = [...state.present.productBaseTransforms];
       newTransforms[index] = transform;
       return {
         present: {
           ...state.present,
-          mainModelTransforms: newTransforms,
+          productBaseTransforms: newTransforms,
         },
       };
     }),
 
-  updateAddOnTransform: (index, transform) =>
+  updateProductComponentTransform: (index, transform) =>
     set((state) => {
-      const newTransforms = [...state.present.addOnTransforms];
+      const newTransforms = [...state.present.productComponentTransforms];
       newTransforms[index] = transform;
 
       return {
         present: {
           ...state.present,
-          addOnTransforms: newTransforms,
+          productComponentTransforms: newTransforms,
         },
       };
     }),
@@ -689,38 +713,38 @@ export const useRoomStore = create<RoomStore>((set) => ({
   saveTransformToHistory: (
     index: number,
     transform: FurnitureTransform,
-    isMainModel: boolean,
+    isProductBase: boolean,
   ) =>
     set((state) => {
       let newPresent: RoomData;
 
-      if (isMainModel) {
-        const existing = state.present.mainModelTransforms[index];
+      if (isProductBase) {
+        const existing = state.present.productBaseTransforms[index];
         const merged = {
           ...existing,
           ...transform,
           texture:
             transform.texture === undefined ? existing?.texture : transform.texture,
         };
-        const newTransforms = [...state.present.mainModelTransforms];
+        const newTransforms = [...state.present.productBaseTransforms];
         newTransforms[index] = merged;
         newPresent = {
           ...state.present,
-          mainModelTransforms: newTransforms,
+          productBaseTransforms: newTransforms,
         };
       } else {
-        const existing = state.present.addOnTransforms[index];
+        const existing = state.present.productComponentTransforms[index];
         const merged = {
           ...existing,
           ...transform,
           texture:
             transform.texture === undefined ? existing?.texture : transform.texture,
         };
-        const newTransforms = [...state.present.addOnTransforms];
+        const newTransforms = [...state.present.productComponentTransforms];
         newTransforms[index] = merged;
         newPresent = {
           ...state.present,
-          addOnTransforms: newTransforms,
+          productComponentTransforms: newTransforms,
         };
       }
 
@@ -740,23 +764,23 @@ export const useRoomStore = create<RoomStore>((set) => ({
       };
     }),
 
-  updateTransformSilent: (index, transform, isMainModel) =>
+  updateTransformSilent: (index, transform, isProductBase) =>
     set((state) => {
       let newPresent;
 
-      if (isMainModel) {
-        const newTransforms = [...state.present.mainModelTransforms];
+      if (isProductBase) {
+        const newTransforms = [...state.present.productBaseTransforms];
         newTransforms[index] = transform;
         newPresent = {
           ...state.present,
-          mainModelTransforms: newTransforms,
+          productBaseTransforms: newTransforms,
         };
       } else {
-        const newTransforms = [...state.present.addOnTransforms];
+        const newTransforms = [...state.present.productComponentTransforms];
         newTransforms[index] = transform;
         newPresent = {
           ...state.present,
-          addOnTransforms: newTransforms,
+          productComponentTransforms: newTransforms,
         };
       }
       // Return state tanpa mengubah 'past'
@@ -806,3 +830,4 @@ export const useRoomStore = create<RoomStore>((set) => ({
 
   reset: () => set({ past: [], present: INITIAL_STATE, future: [] }),
 }));
+

@@ -1,30 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Truck, RotateCcw, Shield } from "lucide-react";
-import { formatPrice } from "@/lib/price";
-import { loadSummaryPayload } from "@/lib/summaryStorage";
-import { SummaryOrderPayload } from "@/types/summary";
-import useGetUserAddresses from "@/hooks/api/user/useGetUserAddresses";
-import { useUser } from "@/providers/UserProvider";
-import { Address } from "@/types/address";
-import useCreateCustomOrder from "@/hooks/api/order/useCreateCustomOrder";
-import AddressForm, {
-  AddressFormData,
-} from "@/features/dashboard/address/components/AddressForm";
-import useCreateNewAddress, {
-  CreateAddressInput,
-} from "@/hooks/api/user/useCreateNewAddress";
-import { getApiErrorMessage } from "@/lib/api-error";
-import { loadDesignCodeFromStorage } from "@/lib/designCode";
-import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Combobox,
   ComboboxContent,
@@ -33,9 +11,48 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/combobox";
-import { useRouter } from "next/navigation";
-import { DeliveryType } from "@/types/customOrder";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import AddressForm, {
+  AddressFormData,
+} from "@/features/dashboard/address/components/AddressForm";
+import useCreateCustomOrder from "@/hooks/api/order/useCreateCustomOrder";
+import useCreateNewAddress, {
+  CreateAddressInput,
+} from "@/hooks/api/user/useCreateNewAddress";
+import useGetUserAddresses from "@/hooks/api/user/useGetUserAddresses";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { saveCheckoutSnapshot } from "@/lib/checkoutStorage";
+import { loadDesignCodeFromStorage } from "@/lib/designCode";
+import { formatPrice } from "@/lib/price";
+import { loadSummaryPayload } from "@/lib/summaryStorage";
+import { useUser } from "@/providers/UserProvider";
+import { Address } from "@/types/address";
+import { DeliveryType } from "@/types/customOrder";
+import { SummaryOrderPayload } from "@/types/summary";
+import {
+  Box,
+  CheckCircle2,
+  ChevronRight,
+  CreditCard,
+  MapPin,
+  Package,
+  Plus,
+  RotateCcw,
+  Shield,
+  Store,
+  Tag,
+  Truck,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 const getAddressOptionLabel = (address: Address) =>
   `${address.label} - ${address.recipientName}`;
@@ -94,6 +111,7 @@ export default function SummaryDesignPage() {
       ) ?? (selectedAddressValue ? sortedAddresses[0] : undefined),
     [sortedAddresses, selectedAddressValue],
   );
+
   const { mutateAsync: createAddress, isPending: isCreatingAddress } =
     useCreateNewAddress(userId, {
       onSuccess: (newAddress) => {
@@ -113,7 +131,6 @@ export default function SummaryDesignPage() {
       toast.error("Please log in to add address.");
       return;
     }
-
     const payload: CreateAddressInput = {
       label: data.label,
       recipientName: data.recipientName,
@@ -134,7 +151,6 @@ export default function SummaryDesignPage() {
       longitude: data.longitude,
       postalCode: data.postalCode,
     };
-
     await createAddress(payload);
     await refetchAddresses();
   };
@@ -160,7 +176,6 @@ export default function SummaryDesignPage() {
       toast.error("Please select a delivery address first.");
       return;
     }
-
     const fallbackDesignCode = loadDesignCodeFromStorage().trim();
     const resolvedDesignCode =
       payload?.designCode?.trim() || fallbackDesignCode;
@@ -172,19 +187,44 @@ export default function SummaryDesignPage() {
     }
 
     try {
-      const result = await createCustomOrder({
+      console.log("[Summary] checkout mode:", resolvedDesignCode ? "designCode" : "configuration");
+      if (!resolvedDesignCode && resolvedConfiguration) {
+        const config = resolvedConfiguration as Record<string, unknown>;
+        const productBase = Array.isArray(config.productBase)
+          ? config.productBase
+          : [];
+        const productComponent = Array.isArray(config.productComponent)
+          ? config.productComponent
+          : [];
+        console.log("[Summary] configuration keys:", Object.keys(config));
+        console.log("[Summary] configuration productBase count:", productBase.length);
+        console.log(
+          "[Summary] configuration productComponent count:",
+          productComponent.length,
+        );
+      }
+
+      const checkoutPayload = {
         ...(resolvedDesignCode
           ? { designCode: resolvedDesignCode }
           : { configuration: resolvedConfiguration }),
+        ...(payload?.previewUrl ? { previewUrl: payload.previewUrl } : {}),
         deliveryType,
         ...(deliveryType === "DELIVERY" && selectedAddress
           ? { addressId: selectedAddress.id }
           : {}),
-      });
+      };
+
+      console.log("[Summary] createCustomOrder payload:", checkoutPayload);
+
+      const result = await createCustomOrder(checkoutPayload);
 
       const orderId = String((result as any)?.id ?? "");
+      const orderNumber = String((result as any)?.orderNumber ?? "").trim();
+
       if (orderId) {
         saveCheckoutSnapshot({
+          orderNumber: orderNumber || undefined,
           orderId,
           status: (result as any)?.status ?? "PENDING_PAYMENT",
           deliveryType,
@@ -195,11 +235,12 @@ export default function SummaryDesignPage() {
           grandTotal: Number((result as any)?.grandTotalPrice ?? total),
           items: payload?.items ?? [],
           previewImage: payload?.previewImage,
+          previewUrl: payload?.previewUrl,
           createdAt: (result as any)?.createdAt ?? new Date().toISOString(),
         });
       }
 
-      toast.success(`Order created`);
+      toast.success("Order created");
       router.push(orderId ? `/checkout?orderId=${orderId}` : "/checkout");
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Failed to create order."));
@@ -208,325 +249,419 @@ export default function SummaryDesignPage() {
 
   return (
     <main className="bg-background text-foreground min-h-screen">
-      <div className="mx-2 px-1 py-5 sm:mx-6 sm:px-2 sm:py-7 lg:mx-8 lg:px-4 lg:py-12">
-        <h1 className="mb-5 text-2xl font-bold sm:mb-8 sm:text-3xl">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
+        {/* Breadcrumb */}
+        <div className="text-muted-foreground mb-5 flex items-center gap-2 text-sm">
+          <span>Design</span>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="text-foreground font-medium">Design Overview</span>
+        </div>
+
+        <h1 className="mb-7 text-2xl font-bold tracking-tight sm:text-3xl">
           Design Overview
         </h1>
 
-        <div className="grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-3 lg:gap-8">
-          <div className="lg:col-span-2">
-            <div className="bg-muted mb-6 rounded-md p-2 sm:mb-10">
-              <div className="bg-card flex h-55 items-center justify-center overflow-hidden rounded-md p-2 sm:h-80 lg:h-150">
-                {payload?.previewImage ? (
-                  <img
-                    src={payload.previewImage}
-                    alt="Room preview"
-                    className="h-full w-full rounded-md object-cover"
-                  />
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    Preview image not available
-                  </p>
-                )}
-              </div>
-            </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
+          {/* ── LEFT COLUMN ─────────────────────────────── */}
+          <div className="space-y-5 lg:col-span-2">
+            {/* Preview card */}
+            <Card className="ring-border/60 overflow-hidden border-0 shadow-sm ring-1">
+              <CardContent className="p-3 sm:p-4">
+                <div className="bg-muted overflow-hidden rounded-xl">
+                  <div className="flex h-56 items-center justify-center sm:h-80 lg:h-105">
+                    {payload?.previewImage ? (
+                      <img
+                        src={payload.previewImage}
+                        alt="Room preview"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-muted-foreground flex flex-col items-center gap-2">
+                        <Box className="h-10 w-10 opacity-30" />
+                        <p className="text-sm">Preview not available</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="mb-3 text-sm font-semibold sm:text-base">
-              Product List
-            </div>
-
-            <div className="space-y-6">
-              {payload?.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="border-border pb-4 last:border-b-0 max-sm:border-b sm:flex sm:items-start sm:justify-between sm:gap-6 sm:rounded-lg sm:border sm:p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="shrink-0 self-start">
-                      <div className="bg-muted h-24 w-24 overflow-hidden rounded sm:h-32 sm:w-32">
+            {/* Product list card */}
+            <Card className="ring-border/60 border-0 shadow-sm ring-1">
+              <CardHeader className="pt-4 pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  <div className="bg-primary/10 flex h-7 w-7 items-center justify-center rounded-lg">
+                    <Package className="text-primary h-3.5 w-3.5" />
+                  </div>
+                  Product List
+                  <span className="bg-muted text-muted-foreground ml-auto rounded-full px-2.5 py-0.5 text-xs font-medium">
+                    {totalItems} item{totalItems !== 1 ? "s" : ""}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 px-5 pb-5">
+                {payload?.items.length ? (
+                  payload.items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="ring-border/50 hover:bg-muted/20 flex items-start gap-3 rounded-xl p-4 ring-1 transition-colors"
+                    >
+                      {/* Thumbnail */}
+                      <div className="ring-border/40 h-20 w-20 shrink-0 overflow-hidden rounded-xl ring-1 sm:h-24 sm:w-24">
                         {item.image ? (
                           <img
                             src={item.image}
                             alt={item.name}
-                            className="h-full w-full rounded object-cover object-center"
+                            className="h-full w-full object-cover object-center"
                           />
+                        ) : (
+                          <div className="bg-muted text-muted-foreground flex h-full w-full items-center justify-center">
+                            <Box className="h-5 w-5" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Details */}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="mb-0.5 text-sm font-semibold sm:text-base">
+                          {item.name}
+                        </h3>
+                        <p className="text-muted-foreground mb-2 text-xs">
+                          SKU: {item.sku}
+                        </p>
+                        {item.materialName ? (
+                          <p className="text-muted-foreground mb-2 text-xs">
+                            Material:{" "}
+                            <span className="text-foreground font-medium">
+                              {item.materialName}
+                            </span>
+                            {item.materialSku ? ` (${item.materialSku})` : ""}
+                          </p>
                         ) : null}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                            <CheckCircle2 className="h-3 w-3" />
+                            In Stock
+                          </span>
+                          <span className="text-muted-foreground text-xs">
+                            Qty:{" "}
+                            <span className="text-foreground font-semibold">
+                              {item.quantity}
+                            </span>
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="min-w-0 flex-1">
-                      <h3 className="mb-1 text-sm font-semibold sm:mb-2 sm:text-lg">
-                        {item.name}
-                      </h3>
-                      <div className="text-muted-foreground mb-2 space-y-1 text-xs sm:mb-3 md:text-sm">
-                        <p>SKU: {item.sku}</p>
-                      </div>
-                      <div className="mb-2 sm:mb-4">
-                        <span className="inline-block rounded bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-                          In Stock
-                        </span>
-                      </div>
-                      <div className="text-muted-foreground hidden text-xs sm:block md:text-sm">
-                        Quantity:{" "}
-                        <span className="font-semibold">{item.quantity}</span>
+                      {/* Price */}
+                      <div className="shrink-0 text-right">
+                        <p className="text-sm font-bold sm:text-base">
+                          {formatPrice(item.unitPrice)}
+                        </p>
+                        <p className="text-muted-foreground mt-0.5 text-xs">
+                          {formatPrice(item.subtotal)} subtotal
+                        </p>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm">
+                    No products in this summary.
                   </div>
-                  <div className="mt-2 sm:hidden">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-muted-foreground text-xs">
-                        Quantity:{" "}
-                        <span className="font-semibold">{item.quantity}</span>
-                      </p>
-                      <p className="text-sm font-bold">
-                        {formatPrice(item.unitPrice)}
-                      </p>
-                    </div>
-                    <p className="text-muted-foreground mt-1 text-right text-xs">
-                      {formatPrice(item.subtotal)} subtotal
-                    </p>
-                  </div>
-                  <div className="hidden shrink-0 text-right sm:block">
-                    <p className="text-md font-bold md:text-xl">
-                      {formatPrice(item.unitPrice)}
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      {formatPrice(item.subtotal)} subtotal
-                    </p>
-                  </div>
-                </div>
-              ))}
-
-              {!payload?.items.length ? (
-                <div className="text-muted-foreground rounded-lg border border-dashed p-6 text-sm">
-                  No products in this summary.
-                </div>
-              ) : null}
-            </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
+          {/* ── RIGHT COLUMN – sticky sidebar ───────────── */}
           <div className="lg:col-span-1">
-            <div className="bg-card border-border rounded-lg border p-4 sm:p-6 lg:sticky lg:top-8">
-              <h2 className="mb-5 text-lg font-bold sm:mb-6 sm:text-xl">
-                Order Summary
-              </h2>
-
-              <div className="border-border mb-6 space-y-3 rounded-lg border p-3">
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold">Fulfillment Type</p>
-                  <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-4 lg:sticky lg:top-22">
+              {/* Fulfillment + Address */}
+              <Card className="ring-border/60 border-0 shadow-sm ring-1">
+                <CardHeader className="pt-4 pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                    <div className="bg-primary/10 flex h-7 w-7 items-center justify-center rounded-lg">
+                      <Truck className="text-primary h-3.5 w-3.5" />
+                    </div>
+                    Fulfillment
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 px-5 pb-5">
+                  {/* Toggle */}
+                  <div className="bg-muted/50 grid grid-cols-2 gap-1 rounded-xl p-1">
                     <button
                       type="button"
                       onClick={() => setDeliveryType("DELIVERY")}
-                      className={`rounded border px-3 py-2 text-sm font-medium transition ${
+                      className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-all ${
                         deliveryType === "DELIVERY"
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border hover:bg-muted"
+                          ? "bg-background text-foreground ring-border/60 shadow-sm ring-1"
+                          : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
+                      <Truck className="h-3.5 w-3.5" />
                       Delivery
                     </button>
                     <button
                       type="button"
                       onClick={() => setDeliveryType("PICKUP")}
-                      className={`rounded border px-3 py-2 text-sm font-medium transition ${
+                      className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-all ${
                         deliveryType === "PICKUP"
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border hover:bg-muted"
+                          ? "bg-background text-foreground ring-border/60 shadow-sm ring-1"
+                          : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
+                      <Store className="h-3.5 w-3.5" />
                       Pickup
                     </button>
                   </div>
-                </div>
 
-                {deliveryType === "DELIVERY" ? (
-                  <>
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold">Delivery Address</p>
-                      {selectedAddress?.isDefault ? (
-                        <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-                          Default
-                        </span>
-                      ) : null}
-                    </div>
-
-                    {sortedAddresses.length > 0 ? (
-                      <>
-                        <Combobox
-                          items={addressOptions}
-                          value={selectedAddressValue}
-                          itemToStringLabel={(value) =>
-                            addressLabelById[String(value)] ?? String(value)
-                          }
-                          onValueChange={(value) =>
-                            setSelectedAddressValue(value ?? "")
-                          }
-                        >
-                          <ComboboxInput
-                            placeholder="Choose delivery address"
-                            className="w-full text-xs md:text-sm"
-                            showClear
-                          />
-                          <ComboboxContent>
-                            <ComboboxEmpty>No address found.</ComboboxEmpty>
-                            <ComboboxList>
-                              {(item) => {
-                                const address = sortedAddresses.find(
-                                  (entry) => String(entry.id) === item,
-                                );
-                                return (
-                                  <ComboboxItem key={item} value={item}>
-                                    {address
-                                      ? getAddressOptionLabel(address)
-                                      : item}
-                                    {address?.isDefault ? " (Default)" : ""}
-                                  </ComboboxItem>
-                                );
-                              }}
-                            </ComboboxList>
-                          </ComboboxContent>
-                        </Combobox>
-
-                        {selectedAddress ? (
-                          <div className="text-muted-foreground space-y-1 text-xs">
-                            <p className="text-foreground font-medium">
-                              {selectedAddress.recipientName} (
-                              {selectedAddress.phoneNumber})
-                            </p>
-                            <p>{selectedAddress.line1}</p>
-                            {selectedAddress.line2 ? (
-                              <p>{selectedAddress.line2}</p>
-                            ) : null}
-                            <p>
-                              {selectedAddress.district}, {selectedAddress.city},{" "}
-                              {selectedAddress.province}
-                            </p>
-                            <p>
-                              {selectedAddress.country}{" "}
-                              {selectedAddress.postalCode}
-                            </p>
-                          </div>
-                        ) : null}
-                      </>
-                    ) : (
-                      <div className="space-y-2">
-                        <p className="text-muted-foreground text-xs">
-                          No address found. Add your first address to continue.
+                  {/* Address section */}
+                  {deliveryType === "DELIVERY" ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
+                          <MapPin className="h-3 w-3" />
+                          Delivery Address
                         </p>
-                        <button
-                          type="button"
-                          onClick={() => setIsAddressModalOpen(true)}
-                          className="text-primary text-xs font-medium underline"
-                        >
-                          Add address now
-                        </button>
+                        {selectedAddress?.isDefault && (
+                          <Badge
+                            variant="outline"
+                            className="border-emerald-200 bg-emerald-100 px-1.5 py-0 text-[10px] text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+                          >
+                            Default
+                          </Badge>
+                        )}
+                      </div>
+
+                      {sortedAddresses.length > 0 ? (
+                        <>
+                          <Combobox
+                            items={addressOptions}
+                            value={selectedAddressValue}
+                            itemToStringLabel={(value) =>
+                              addressLabelById[String(value)] ?? String(value)
+                            }
+                            onValueChange={(value) =>
+                              setSelectedAddressValue(value ?? "")
+                            }
+                          >
+                            <ComboboxInput
+                              placeholder="Choose delivery address"
+                              className="w-full text-xs md:text-sm"
+                              showClear
+                            />
+                            <ComboboxContent>
+                              <ComboboxEmpty>No address found.</ComboboxEmpty>
+                              <ComboboxList>
+                                {(item) => {
+                                  const address = sortedAddresses.find(
+                                    (entry) => String(entry.id) === item,
+                                  );
+                                  return (
+                                    <ComboboxItem key={item} value={item}>
+                                      {address
+                                        ? getAddressOptionLabel(address)
+                                        : item}
+                                      {address?.isDefault ? " (Default)" : ""}
+                                    </ComboboxItem>
+                                  );
+                                }}
+                              </ComboboxList>
+                            </ComboboxContent>
+                          </Combobox>
+
+                          {selectedAddress && (
+                            <div className="bg-muted/40 space-y-0.5 rounded-xl p-3 text-xs">
+                              <p className="text-foreground font-semibold">
+                                {selectedAddress.recipientName}{" "}
+                                <span className="text-muted-foreground font-normal">
+                                  ({selectedAddress.phoneNumber})
+                                </span>
+                              </p>
+                              <p className="text-muted-foreground">
+                                {selectedAddress.line1}
+                                {selectedAddress.line2
+                                  ? `, ${selectedAddress.line2}`
+                                  : ""}
+                              </p>
+                              <p className="text-muted-foreground">
+                                {selectedAddress.district},{" "}
+                                {selectedAddress.city},{" "}
+                                {selectedAddress.province}
+                              </p>
+                              <p className="text-muted-foreground">
+                                {selectedAddress.country}{" "}
+                                {selectedAddress.postalCode}
+                              </p>
+                            </div>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => setIsAddressModalOpen(true)}
+                            className="text-primary flex items-center gap-1 text-xs font-medium hover:underline"
+                          >
+                            <Plus className="h-3 w-3" />
+                            Add new address
+                          </button>
+                        </>
+                      ) : (
+                        <div className="rounded-xl border border-dashed p-4 text-center">
+                          <MapPin className="text-muted-foreground/40 mx-auto mb-2 h-6 w-6" />
+                          <p className="text-muted-foreground mb-2 text-xs">
+                            No address found.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setIsAddressModalOpen(true)}
+                            className="text-primary text-xs font-semibold hover:underline"
+                          >
+                            Add your first address
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-muted/40 text-muted-foreground flex items-start gap-2.5 rounded-xl p-3 text-xs">
+                      <Store className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>
+                        Pickup selected — no delivery address required.
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Order Summary */}
+              <Card className="ring-border/60 border-0 shadow-sm ring-1">
+                <CardHeader className="pt-4 pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                    <div className="bg-primary/10 flex h-7 w-7 items-center justify-center rounded-lg">
+                      <CreditCard className="text-primary h-3.5 w-3.5" />
+                    </div>
+                    Order Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 px-5 pb-5">
+                  {/* Promo code */}
+                  <div className="space-y-1.5">
+                    <p className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
+                      <Tag className="h-3 w-3" />
+                      Promo Code
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder='e.g. "SAVE10"'
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                        className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-w-0 grow rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+                      />
+                      <button
+                        onClick={applyPromo}
+                        className="border-input bg-background hover:bg-muted shrink-0 rounded-lg border px-3 py-2 text-sm font-medium transition"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                    {discountApplied && discount > 0 && (
+                      <p className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Code applied — 10% off!
+                      </p>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Line items */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Items ({totalItems})
+                      </span>
+                      <span className="font-medium">
+                        {formatPrice(subtotal)}
+                      </span>
+                    </div>
+                    {discount > 0 && (
+                      <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-400">
+                        <span>Discount (10%)</span>
+                        <span className="font-medium">
+                          −{formatPrice(discount)}
+                        </span>
                       </div>
                     )}
-                  </>
-                ) : (
-                  <div className="rounded border border-dashed p-2 text-xs text-muted-foreground">
-                    Pickup selected. No delivery address is required.
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Shipping</span>
+                      <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                        {shippingCost === 0
+                          ? "Free"
+                          : formatPrice(shippingCost)}
+                      </span>
+                    </div>
                   </div>
-                )}
-              </div>
 
-              <div className="mb-6 flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Promo code"
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value)}
-                  className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-w-0 grow rounded border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
-                />
-                <button
-                  onClick={applyPromo}
-                  className="border-input bg-background hover:bg-muted shrink-0 rounded border px-3 py-2 text-sm font-medium transition sm:px-4"
-                >
-                  Apply
-                </button>
-              </div>
-
-              <p className="text-muted-foreground mb-6 text-xs">
-                Try <span className="font-semibold">SAVE10</span> for 10% off
-              </p>
-
-              <div className="text-muted-foreground mb-6 flex items-center gap-2">
-                <span className="text-sm">{totalItems} items</span>
-              </div>
-
-              <div className="border-border mb-6 space-y-3 border-b pb-6">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-medium">{formatPrice(subtotal)}</span>
-                </div>
-
-                {discount > 0 && (
-                  <div className="flex justify-between text-sm text-green-600">
-                    <span>Discount (10%)</span>
-                    <span className="font-medium">
-                      -{formatPrice(discount)}
+                  {/* Grand total */}
+                  <div className="bg-muted/40 flex items-center justify-between rounded-xl px-4 py-3">
+                    <span className="text-sm font-semibold">Total</span>
+                    <span className="text-xl font-bold tracking-tight">
+                      {formatPrice(total)}
                     </span>
                   </div>
-                )}
 
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Shipping</span>
-                  <span className="font-medium">
-                    {shippingCost === 0 ? "Free" : formatPrice(shippingCost)}
-                  </span>
-                </div>
-              </div>
+                  {/* CTA */}
+                  <Button
+                    className="w-full gap-2 font-semibold"
+                    size="lg"
+                    onClick={handleProceedCheckout}
+                    disabled={isCreatingOrder}
+                  >
+                    {isCreatingOrder ? (
+                      <>
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        Creating Order…
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="h-4 w-4" />
+                        Proceed to Checkout
+                      </>
+                    )}
+                  </Button>
 
-              <div className="mb-6 flex items-center justify-between">
-                <span className="text-lg font-semibold">Total</span>
-                <span className="text-lg font-bold md:text-2xl">
-                  {formatPrice(total)}
-                </span>
-              </div>
+                  <p className="text-muted-foreground text-center text-xs">
+                    Taxes calculated at checkout
+                  </p>
 
-              <button
-                onClick={handleProceedCheckout}
-                disabled={isCreatingOrder}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-primary/60 mb-6 w-full rounded py-3 font-semibold transition disabled:cursor-not-allowed"
-              >
-                Proceed to Chekout
-              </button>
-
-              <div className="text-muted-foreground space-y-3 text-xs">
-                <p className="text-muted-foreground mb-4 text-center text-xs">
-                  Taxes calculated at checkout
-                </p>
-
-                <div className="flex items-start gap-3">
-                  <Truck
-                    size={16}
-                    className="text-muted-foreground/70 mt-0.5 shrink-0"
-                  />
-                  <span>Free shipping on orders over Rp 150.000</span>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <RotateCcw
-                    size={16}
-                    className="text-muted-foreground/70 mt-0.5 shrink-0"
-                  />
-                  <span>Free 30-day returns</span>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Shield
-                    size={16}
-                    className="text-muted-foreground/70 mt-0.5 shrink-0"
-                  />
-                  <span>Secure checkout</span>
-                </div>
-              </div>
+                  {/* Trust badges */}
+                  <div className="space-y-2 pt-1">
+                    <div className="text-muted-foreground flex items-center gap-2.5 text-xs">
+                      <div className="bg-muted flex h-6 w-6 shrink-0 items-center justify-center rounded-lg">
+                        <Truck className="h-3.5 w-3.5" />
+                      </div>
+                      <span>Free shipping on orders over Rp 150.000</span>
+                    </div>
+                    <div className="text-muted-foreground flex items-center gap-2.5 text-xs">
+                      <div className="bg-muted flex h-6 w-6 shrink-0 items-center justify-center rounded-lg">
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </div>
+                      <span>Free 30-day returns</span>
+                    </div>
+                    <div className="text-muted-foreground flex items-center gap-2.5 text-xs">
+                      <div className="bg-muted flex h-6 w-6 shrink-0 items-center justify-center rounded-lg">
+                        <Shield className="h-3.5 w-3.5" />
+                      </div>
+                      <span>Secure checkout</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Address Dialog */}
       <Dialog
         open={isAddressModalOpen}
         onOpenChange={(open) => {

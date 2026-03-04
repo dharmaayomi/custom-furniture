@@ -1,3 +1,4 @@
+import { RevenuePage } from "@/features/revenue";
 import { auth } from "@/lib/auth";
 import { normalizeRole } from "@/lib/dashboard-access";
 import { redirect } from "next/navigation";
@@ -13,7 +14,11 @@ const Revenue = async () => {
     redirect("/dashboard");
   }
 
-  return <div>Revenue</div>;
+  return (
+    <div>
+      <RevenuePage />
+    </div>
+  );
 };
 
 export default Revenue;

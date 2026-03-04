@@ -12,8 +12,8 @@ import { X } from "lucide-react";
 interface ListProductPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  mainModels: string[];
-  addOnModels: string[];
+  productBaseModels: string[];
+  productComponentModels: string[];
   productsFromDb: ProductBase[];
   componentsFromDb: ProductComponent[];
 }
@@ -21,14 +21,14 @@ interface ListProductPanelProps {
 export const ListProductPanel = ({
   isOpen,
   onClose,
-  mainModels,
-  addOnModels,
+  productBaseModels,
+  productComponentModels,
   productsFromDb,
   componentsFromDb,
 }: ListProductPanelProps) => {
   const products: (Product & { image?: string })[] = [];
 
-  const allModels = [...mainModels, ...addOnModels];
+  const allModels = [...productBaseModels, ...productComponentModels];
   const productMap = new Map(productsFromDb.map((product) => [product.id, product]));
   const componentMap = new Map(
     componentsFromDb.map((component) => [component.id, component]),
@@ -164,3 +164,4 @@ export const ListProductPanel = ({
     </div>
   );
 };
+

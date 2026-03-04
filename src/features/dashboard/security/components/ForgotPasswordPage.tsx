@@ -82,6 +82,7 @@ export const ForgotPasswordSection = () => {
             <FieldLabel>Email</FieldLabel>
             <Input
               type="email"
+              autoComplete="email"
               placeholder="you@example.com"
               value={resetEmail}
               onChange={(e) => setResetEmail(e.target.value)}

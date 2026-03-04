@@ -83,17 +83,23 @@ export const RoomPageDB = () => {
 
   const {
     present,
-    setMainModel,
+    setProductBaseModel,
     setActiveTexture,
     setMeshTexture,
-    addAddOnModel,
+    addProductComponentModel,
     setDesignCode,
     reset: resetRoomState,
     undo,
     redo,
   } = useRoomStore();
   const designCode = useRoomStore((state) => state.designCode);
-  const { mainModels, activeTexture, addOnModels } = present;
+  const {
+    productBaseModels: productBaseModels,
+    activeTexture,
+    productComponentModels: productComponentModels,
+    productBaseTransforms: productBaseTransforms,
+    productComponentTransforms: productComponentTransforms,
+  } = present;
   const { data: productListResponse } = useGetProducts({
     page: 1,
     perPage: 100,
@@ -125,11 +131,11 @@ export const RoomPageDB = () => {
   const materialList = materialListResponse?.data ?? [];
 
   const selectedModelId = useMemo(() => {
-    const selected = present.selectedFurniture ?? mainModels[0];
+    const selected = present.selectedFurniture ?? productBaseModels[0];
     if (!selected) return undefined;
     const extracted = extractModelNameFromId(selected);
     return extracted;
-  }, [present.selectedFurniture, mainModels]);
+  }, [present.selectedFurniture, productBaseModels]);
 
   const selectedProductId = useMemo(
     () =>
@@ -196,7 +202,7 @@ export const RoomPageDB = () => {
   }, [componentList]);
 
   const totalPriceFromDb = useMemo(() => {
-    const allModels = [...mainModels, ...addOnModels];
+    const allModels = [...productBaseModels, ...productComponentModels];
     const productMap = new Map(
       productList.map((product) => [product.id, product.basePrice]),
     );
@@ -208,25 +214,68 @@ export const RoomPageDB = () => {
       const extracted = extractModelNameFromId(modelId);
       return sum + (productMap.get(extracted) ?? componentMap.get(extracted) ?? 0);
     }, 0);
-  }, [mainModels, addOnModels, productList, componentList]);
+  }, [productBaseModels, productComponentModels, productList, componentList]);
 
   const summaryItems = useMemo<SummaryOrderItem[]>(() => {
-    const allModels = [...mainModels, ...addOnModels];
+    const allModels = [...productBaseModels, ...productComponentModels];
     const productMap = new Map(
       productList.map((product) => [product.id, product]),
     );
     const componentMap = new Map(
       componentList.map((component) => [component.id, component]),
     );
-    const counts: Record<string, number> = {};
+    const materialByUrl = new Map(
+      materialList
+        .filter((material) => Boolean(material.materialUrl))
+        .map((material) => [material.materialUrl, material]),
+    );
+    const transformTextureByModel = new Map<string, string>();
 
-    allModels.forEach((modelId) => {
-      const extracted = extractModelNameFromId(modelId);
-      counts[extracted] = (counts[extracted] || 0) + 1;
+    productBaseModels.forEach((modelId, index) => {
+      const texture = productBaseTransforms[index]?.texture?.trim();
+      if (texture) transformTextureByModel.set(modelId, texture);
+    });
+    productComponentModels.forEach((modelId, index) => {
+      const texture = productComponentTransforms[index]?.texture?.trim();
+      if (texture) transformTextureByModel.set(modelId, texture);
+    });
+
+    type GroupedItem = {
+      modelId: string;
+      quantity: number;
+      materialId?: string;
+      materialName?: string;
+      materialSku?: string;
+      materialUrl?: string;
+    };
+    const groupedItems = new Map<string, GroupedItem>();
+
+    allModels.forEach((modelUniqueId) => {
+      const modelId = extractModelNameFromId(modelUniqueId);
+      const materialUrl = transformTextureByModel.get(modelUniqueId);
+      const material = materialUrl ? materialByUrl.get(materialUrl) : undefined;
+      const key = `${modelId}::${material?.id ?? materialUrl ?? "none"}`;
+      const existing = groupedItems.get(key);
+
+      if (existing) {
+        existing.quantity += 1;
+        return;
+      }
+
+      groupedItems.set(key, {
+        modelId,
+        quantity: 1,
+        materialId: material?.id,
+        materialName: material?.materialName,
+        materialSku: material?.materialSku ?? undefined,
+        materialUrl: material?.materialUrl ?? materialUrl,
+      });
     });
 
     const items: SummaryOrderItem[] = [];
-    Object.entries(counts).forEach(([modelId, quantity]) => {
+    groupedItems.forEach((groupedItem) => {
+      const { modelId, quantity, materialId, materialName, materialSku, materialUrl } =
+        groupedItem;
       const product = productMap.get(modelId);
       if (product) {
         items.push({
@@ -234,6 +283,10 @@ export const RoomPageDB = () => {
           name: product.productName,
           sku: product.sku || product.id,
           image: product.images?.[0],
+          materialId,
+          materialName,
+          materialSku,
+          materialUrl,
           unitPrice: product.basePrice,
           quantity,
           subtotal: product.basePrice * quantity,
@@ -248,6 +301,10 @@ export const RoomPageDB = () => {
           name: component.componentName,
           sku: component.id,
           image: component.componentImageUrls?.[0],
+          materialId,
+          materialName,
+          materialSku,
+          materialUrl,
           unitPrice: component.price,
           quantity,
           subtotal: component.price * quantity,
@@ -256,7 +313,15 @@ export const RoomPageDB = () => {
     });
 
     return items;
-  }, [mainModels, addOnModels, productList, componentList]);
+  }, [
+    productBaseModels,
+    productComponentModels,
+    productBaseTransforms,
+    productComponentTransforms,
+    productList,
+    componentList,
+    materialList,
+  ]);
 
   const summaryPayload = useMemo(
     () => ({
@@ -518,8 +583,8 @@ export const RoomPageDB = () => {
       <ListProductPanel
         isOpen={activePanel === "productList"}
         onClose={closePanel}
-        mainModels={mainModels}
-        addOnModels={addOnModels}
+        productBaseModels={productBaseModels}
+        productComponentModels={productComponentModels}
         productsFromDb={productList}
         componentsFromDb={componentList}
       />
@@ -550,9 +615,9 @@ export const RoomPageDB = () => {
         {/* Room Canvas */}
         <div className="relative h-screen flex-1">
           <RoomCanvasThreeDB
-            mainModels={mainModels}
+            productBaseModels={productBaseModels}
             activeTexture={activeTexture}
-            addOnModels={addOnModels}
+            productComponentModels={productComponentModels}
             resolveModelUrl={resolveProductModelUrl}
             onSceneReady={setScene}
           />
@@ -589,15 +654,15 @@ export const RoomPageDB = () => {
         tools={tools}
         onClose={closeSidebar}
         assetList3D={productAssetIds}
-        assetListAddOn={componentAssetIds}
+        assetListproductComponent={componentAssetIds}
         assetListTexture={ASSETS_TEXTURE}
         materialsFromDb={materialList}
         productsFromDb={productList}
         componentsFromDb={componentList}
-        mainModels={mainModels}
+        productBaseModels={productBaseModels}
         selectedFurniture={present.selectedFurniture}
-        onSelectMainModel={(model) => setMainModel(model)}
-        onAddAdditionalModel={addAddOnModel}
+        onSelectProductBaseModel={(model) => setProductBaseModel(model)}
+        onAddAdditionalModel={addProductComponentModel}
         onSelectTexture={(tex) => {
           // Apply texture only to the selected mesh
           if (!present.selectedFurniture) return;
@@ -607,3 +672,5 @@ export const RoomPageDB = () => {
     </div>
   );
 };
+
+

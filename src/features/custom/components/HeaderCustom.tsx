@@ -238,8 +238,8 @@ export const HeaderCustom = ({
   const buildDesignConfig = () => ({
     units: { distance: "m", rotation: "rad" },
     room: roomState.roomConfig,
-    mainModels: roomState.mainModels.map((id, index) => {
-      const transform = roomState.mainModelTransforms[index];
+    productBase: roomState.productBaseModels.map((id, index) => {
+      const transform = roomState.productBaseTransforms[index];
       return {
         id,
         position_m: transform
@@ -252,8 +252,8 @@ export const HeaderCustom = ({
         texture: transform?.texture ?? null,
       };
     }),
-    addOnModels: roomState.addOnModels.map((id, index) => {
-      const transform = roomState.addOnTransforms[index];
+    productComponent: roomState.productComponentModels.map((id, index) => {
+      const transform = roomState.productComponentTransforms[index];
       return {
         id,
         position_m: transform
@@ -274,11 +274,11 @@ export const HeaderCustom = ({
     () => JSON.stringify(buildDesignConfig()),
     [
       roomState.roomConfig,
-      roomState.mainModels,
-      roomState.addOnModels,
+      roomState.productBaseModels,
+      roomState.productComponentModels,
       roomState.activeTexture,
-      roomState.mainModelTransforms,
-      roomState.addOnTransforms,
+      roomState.productBaseTransforms,
+      roomState.productComponentTransforms,
       effectiveTotalPrice,
     ],
   );
@@ -286,7 +286,7 @@ export const HeaderCustom = ({
   const isDirty =
     lastSavedHash === null ? true : lastSavedHash !== currentConfigHash;
   const canOpenSummary =
-    roomState.mainModels.length > 0 || roomState.addOnModels.length > 0;
+    roomState.productBaseModels.length > 0 || roomState.productComponentModels.length > 0;
 
   const handleSaveClick = () => {
     if (status === "authenticated") {
@@ -298,11 +298,11 @@ export const HeaderCustom = ({
         roomState.roomConfig.floorTexture === DEFAULT_ROOM_CONFIG.floorTexture;
 
       const isEmptyDesign =
-        roomState.mainModels.length === 0 &&
-        roomState.addOnModels.length === 0 &&
+        roomState.productBaseModels.length === 0 &&
+        roomState.productComponentModels.length === 0 &&
         roomState.activeTexture === "" &&
-        roomState.mainModelTransforms.length === 0 &&
-        roomState.addOnTransforms.length === 0 &&
+        roomState.productBaseTransforms.length === 0 &&
+        roomState.productComponentTransforms.length === 0 &&
         isDefaultRoomConfig;
 
       if (isEmptyDesign) {
@@ -382,6 +382,9 @@ export const HeaderCustom = ({
       const previewImage = previewBlob
         ? await blobToDataUrl(previewBlob).catch(() => undefined)
         : undefined;
+      const previewUrl = previewBlob
+        ? await uploadPreviewToCloudinary(previewBlob)
+        : undefined;
 
       const payload: SummaryOrderPayload = {
         ...(summaryPayload ?? {
@@ -395,6 +398,7 @@ export const HeaderCustom = ({
           (designCode || loadDesignCodeFromStorage()).trim() || undefined,
         configuration: buildDesignConfig(),
         previewImage,
+        previewUrl,
       };
 
       saveSummaryPayload(payload);
@@ -512,3 +516,6 @@ export const HeaderCustom = ({
     </>
   );
 };
+
+
+
