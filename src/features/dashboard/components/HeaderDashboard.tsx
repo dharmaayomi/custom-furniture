@@ -24,7 +24,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { Bell, CheckCheck, Moon, Sun } from "lucide-react";
 import { useUser } from "@/providers/UserProvider";
 import { NavUser } from "./NavUser";
-import { useNotificationStore } from "@/store/useNotificationStore";
+import useGetNotifications from "@/hooks/api/notification/useGetNotifications";
+import useMarkAllAsRead from "@/hooks/api/notification/useMarkAllAsRead";
+import useMarkAsRead from "@/hooks/api/notification/useMarkAsRead";
 import { useTheme } from "next-themes";
 
 const LABEL_MAP: Record<string, string> = {
@@ -82,10 +84,19 @@ const HeaderDashboard = () => {
     return true;
   });
   const { navUser } = useUser();
-  const notifications = useNotificationStore((state) => state.notifications);
-  const markAsRead = useNotificationStore((state) => state.markAsRead);
-  const markAllAsRead = useNotificationStore((state) => state.markAllAsRead);
-  const unreadCount = notifications.filter((item) => !item.isRead).length;
+  const { data, isLoading: isLoadingNotifications } = useGetNotifications({
+    page: 1,
+    perPage: 4,
+    sortBy: "createdAt",
+    orderBy: "desc",
+  });
+  const { mutate: markAsRead } = useMarkAsRead();
+  const { mutate: markAllAsRead, isPending: isMarkingAllAsRead } =
+    useMarkAllAsRead();
+
+  const notifications = data?.data ?? [];
+  const unreadCountFromItems = notifications.filter((item) => !item.isRead).length;
+  const unreadCount = Math.max(data?.unreadCount ?? 0, unreadCountFromItems);
   const previewNotifications = notifications.slice(0, 4);
 
   const crumbs = filteredSegments.map((segment, index) => {
@@ -163,7 +174,7 @@ const HeaderDashboard = () => {
                   <Button variant="ghost" size="icon" className="relative">
                     <Bell size={20} />
                     {unreadCount > 0 ? (
-                      <span className="notification-dot absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-blue-500" />
+                      <span className="notification-dot bg-chart-2 absolute top-1.5 right-1.5 h-2 w-2 rounded-full" />
                     ) : null}
                   </Button>
                 </DropdownMenuTrigger>
@@ -174,16 +185,20 @@ const HeaderDashboard = () => {
                       variant="ghost"
                       size="sm"
                       className="h-7 px-2 text-xs"
-                      disabled={unreadCount === 0}
+                      disabled={unreadCount === 0 || isMarkingAllAsRead}
                       onClick={() => markAllAsRead()}
                     >
                       <CheckCheck className="h-3.5 w-3.5" />
-                      Mark all
+                      {isMarkingAllAsRead ? "Marking..." : "Mark all"}
                     </Button>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
 
-                  {previewNotifications.length === 0 ? (
+                  {isLoadingNotifications ? (
+                    <div className="text-muted-foreground px-2 py-4 text-center text-sm">
+                      Loading notifications...
+                    </div>
+                  ) : previewNotifications.length === 0 ? (
                     <div className="text-muted-foreground px-2 py-4 text-center text-sm">
                       No notifications
                     </div>
@@ -196,7 +211,7 @@ const HeaderDashboard = () => {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             {!item.isRead ? (
-                              <span className="notification-dot h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+                              <span className="notification-dot bg-chart-2 h-2 w-2 shrink-0 rounded-full" />
                             ) : null}
                             <p className="truncate text-sm font-medium">
                               {item.title}

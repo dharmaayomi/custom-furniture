@@ -4,7 +4,7 @@ import z from "zod";
 
 const createSnapPaymentSchema = z.object({
   orderId: z.string().trim().min(1, "orderId is required"),
-  phase: z.enum(["DP", "FULL"]).optional(),
+  phase: z.enum(["DP", "PROGRESS_1", "PROGRESS_2", "FINAL"]).optional(),
 });
 
 export type CreateSnapPaymentInput = z.infer<typeof createSnapPaymentSchema>;

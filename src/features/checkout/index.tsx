@@ -699,19 +699,20 @@ export const CheckoutPage = () => {
   const grandTotal = Number(
     order?.grandTotalPrice ?? snapshot?.grandTotal ?? 0,
   );
-  const isPayable = status === "PENDING_PAYMENT" && Boolean(orderId);
+  const isPayable =
+    Boolean(orderId) && status !== "CANCELLED" && status !== "COMPLETED";
 
   const handlePayNow = async () => {
     if (!orderId) {
       toast.error("Order not found.");
       return;
     }
-    if (status !== "PENDING_PAYMENT") {
-      toast.info("This order is not in waiting-for-payment status.");
+    if (!isPayable) {
+      toast.info("This order can no longer receive payment.");
       return;
     }
     try {
-      const payment = await createSnapPayment({ orderId, phase: "DP" });
+      const payment = await createSnapPayment({ orderId });
       const paymentUrl = payment?.paymentUrl?.trim();
       if (!paymentUrl) {
         toast.error("Payment URL is missing.");
@@ -741,9 +742,7 @@ export const CheckoutPage = () => {
         {/* ── LEFT COLUMN ─────────────────────────────────────── */}
         <section className="space-y-5 lg:col-span-2">
           {/* Order Header Card */}
-          <Card className="ring-border/60 overflow-hidden border-0 shadow-sm ring-1">
-            {/* Accent bar on top */}
-
+          <Card className="ring-border/60 overflow-hidden border-0 py-3 shadow-sm ring-1">
             {previewImage ? (
               <div className="relative h-52 w-full overflow-hidden sm:h-72">
                 <img
@@ -1095,7 +1094,7 @@ export const CheckoutPage = () => {
                 )}
               </Button>
 
-              {!isPayable && status !== "PENDING_PAYMENT" && (
+              {!isPayable && (
                 <p className="text-muted-foreground text-center text-xs">
                   This order is no longer payable.
                 </p>

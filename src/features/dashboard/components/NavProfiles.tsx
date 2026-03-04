@@ -59,7 +59,7 @@ export function NavProfiles({
                 <span>{item.name}</span>
                 {item.url === "/dashboard/notifications" &&
                 unreadNotificationCount > 0 ? (
-                  <span className="notification-dot ml-auto h-2 w-2 rounded-full bg-blue-500" />
+                  <span className="notification-dot bg-chart-2 ml-auto h-2 w-2 rounded-full" />
                 ) : null}
               </Link>
             </SidebarMenuButton>

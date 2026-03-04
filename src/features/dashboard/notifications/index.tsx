@@ -2,25 +2,25 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useNotificationStore } from "@/store/useNotificationStore";
+import useGetNotifications from "@/hooks/api/notification/useGetNotifications";
+import useMarkAllAsRead from "@/hooks/api/notification/useMarkAllAsRead";
+import useMarkAsRead from "@/hooks/api/notification/useMarkAsRead";
 import { Bell, CheckCheck } from "lucide-react";
-import { useMemo } from "react";
-
-const typeLabel: Record<"order" | "promo" | "checkout", string> = {
-  order: "Order",
-  promo: "Promo",
-  checkout: "Checkout",
-};
 
 export const NotificationsPage = () => {
-  const notifications = useNotificationStore((state) => state.notifications);
-  const markAsRead = useNotificationStore((state) => state.markAsRead);
-  const markAllAsRead = useNotificationStore((state) => state.markAllAsRead);
+  const { data, isLoading, isError } = useGetNotifications({
+    page: 1,
+    perPage: 20,
+    sortBy: "createdAt",
+    orderBy: "desc",
+  });
+  const { mutate: markAsRead, isPending: isMarkingAsRead } = useMarkAsRead();
+  const { mutate: markAllAsRead, isPending: isMarkingAllAsRead } =
+    useMarkAllAsRead();
 
-  const unreadCount = useMemo(
-    () => notifications.filter((item) => !item.isRead).length,
-    [notifications],
-  );
+  const notifications = data?.data ?? [];
+  const unreadCountFromItems = notifications.filter((item) => !item.isRead).length;
+  const unreadCount = Math.max(data?.unreadCount ?? 0, unreadCountFromItems);
 
   const handleMarkAsRead = (id: number) => {
     markAsRead(id);
@@ -49,11 +49,11 @@ export const NotificationsPage = () => {
             <Button
               variant="outline"
               onClick={handleMarkAllAsRead}
-              disabled={unreadCount === 0}
+              disabled={unreadCount === 0 || isMarkingAllAsRead}
               className="gap-2"
             >
               <CheckCheck className="h-4 w-4" />
-              Mark all as read
+              {isMarkingAllAsRead ? "Marking..." : "Mark all as read"}
             </Button>
           </div>
         </div>
@@ -61,43 +61,61 @@ export const NotificationsPage = () => {
 
       <div className="from-muted/60 to-background rounded-lg bg-linear-to-b px-4 py-6 sm:px-6 sm:py-8">
         <div className="space-y-3">
-          {notifications.length === 0 ? (
+          {isLoading ? (
+            <div className="bg-card rounded-lg border px-4 py-10 text-center shadow-sm">
+              <p className="text-muted-foreground text-sm">
+                Loading notifications...
+              </p>
+            </div>
+          ) : null}
+
+          {isError ? (
+            <div className="bg-card rounded-lg border px-4 py-10 text-center shadow-sm">
+              <p className="text-muted-foreground text-sm">
+                Failed to load notifications.
+              </p>
+            </div>
+          ) : null}
+
+          {!isLoading && !isError && notifications.length === 0 ? (
             <div className="bg-card rounded-lg border border-dashed px-4 py-10 text-center shadow-sm">
               <Bell className="text-muted-foreground/40 mx-auto mb-3 h-12 w-12" />
               <p className="text-muted-foreground text-sm">
                 No notifications available.
               </p>
             </div>
-          ) : (
+          ) : !isLoading && !isError ? (
             notifications.map((item) => (
               <div
                 key={item.id}
                 className={`rounded-lg border p-4 shadow-sm transition-colors ${
                   item.isRead
                     ? "bg-card"
-                    : "border-blue-200 bg-blue-50/60 dark:border-blue-900/50 dark:bg-blue-950/20"
+                    : "border-primary/25 bg-primary/10"
                 }`}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="mb-1 flex items-center gap-2">
                       {!item.isRead ? (
-                        <span className="notification-dot h-2 w-2 rounded-full bg-blue-500" />
+                        <span className="notification-dot bg-chart-2 h-2 w-2 rounded-full" />
                       ) : null}
                       <p className="text-foreground text-sm font-semibold sm:text-base">
                         {item.title}
                       </p>
-                      <Badge variant="outline">{typeLabel[item.type]}</Badge>
+                      {item.role ? <Badge variant="outline">{item.role}</Badge> : null}
                     </div>
                     <p className="text-muted-foreground text-sm">{item.message}</p>
-                    <p className="text-muted-foreground mt-2 text-xs">{item.time}</p>
+                    <p className="text-muted-foreground mt-2 text-xs">
+                      {new Date(item.createdAt).toLocaleString("en-US")}
+                    </p>
                   </div>
                   <div>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleMarkAsRead(item.id)}
-                      disabled={item.isRead}
+                      disabled={item.isRead || isMarkingAsRead}
                     >
                       {item.isRead ? "Read" : "Mark as Read"}
                     </Button>
@@ -105,7 +123,7 @@ export const NotificationsPage = () => {
                 </div>
               </div>
             ))
-          )}
+          ) : null}
         </div>
       </div>
     </section>

@@ -238,7 +238,7 @@ export const HeaderCustom = ({
   const buildDesignConfig = () => ({
     units: { distance: "m", rotation: "rad" },
     room: roomState.roomConfig,
-    mainModels: roomState.mainModels.map((id, index) => {
+    productBase: roomState.mainModels.map((id, index) => {
       const transform = roomState.mainModelTransforms[index];
       return {
         id,
@@ -252,7 +252,7 @@ export const HeaderCustom = ({
         texture: transform?.texture ?? null,
       };
     }),
-    addOnModels: roomState.addOnModels.map((id, index) => {
+    productComponent: roomState.addOnModels.map((id, index) => {
       const transform = roomState.addOnTransforms[index];
       return {
         id,

@@ -4,12 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import useGetAdminOrders from "@/hooks/api/order/useGetAdminOrders";
+import useGetOrders from "@/hooks/api/order/useGetOrders";
 import { formatPrice } from "@/lib/price";
 import { getStatusBadgeClass } from "@/lib/statusStyles";
 import { OrderStatus } from "@/types/customOrder";
 import { useRouter } from "next/navigation";
-import { parseAsInteger, useQueryState } from "nuqs";
 
 const statusLabel: Record<OrderStatus, string> = {
   PENDING_PAYMENT: "Waiting Payment",
@@ -25,45 +24,24 @@ const statusTone: Record<
   "warning" | "info" | "success" | "danger"
 > = {
   PENDING_PAYMENT: "warning",
-  IN_PRODUCTION: "info",
+  IN_PRODUCTION: "warning",
   READY_TO_SHIP: "info",
   SHIPPED: "info",
   COMPLETED: "success",
   CANCELLED: "danger",
 };
 
-export const AdminOrdersPage = () => {
+export const BillingTest = () => {
   const router = useRouter();
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const perPage = 9;
-
-  const { data, isLoading, isError } = useGetAdminOrders({
-    page,
-    perPage,
-    sortBy: "createdAt",
-    orderBy: "desc",
-  });
-  const orders = data?.data ?? [];
-  const meta = data?.meta;
+  const { data: orders = [], isLoading, isError } = useGetOrders();
 
   const sortedOrders = [...orders].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
-  const pendingPaymentCount = sortedOrders.filter(
-    (order) => order.status === "PENDING_PAYMENT",
-  ).length;
-  const inProductionCount = sortedOrders.filter(
-    (order) => order.status === "IN_PRODUCTION",
-  ).length;
-  const readyToShipCount = sortedOrders.filter(
-    (order) => order.status === "READY_TO_SHIP",
-  ).length;
-
   if (isLoading) {
     return (
       <section className="space-y-4">
-        <Skeleton className="h-28 w-full rounded-xl" />
         <Skeleton className="h-24 w-full rounded-xl" />
         <Skeleton className="h-24 w-full rounded-xl" />
       </section>
@@ -74,7 +52,7 @@ export const AdminOrdersPage = () => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Admin Orders</CardTitle>
+          <CardTitle>Billing Test</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm">Failed to load orders.</p>
@@ -87,42 +65,15 @@ export const AdminOrdersPage = () => {
     <section className="space-y-6">
       <div className="bg-muted/60 rounded-lg px-4 py-6 sm:px-6 sm:py-8">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-          Admin Orders
+          Billing Test
         </h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          All orders with production status labels.
+          Click one order to open the dedicated 4-phase payment stepper page.
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Card className="py-3">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-sm">Waiting Payment</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{pendingPaymentCount}</p>
-          </CardContent>
-        </Card>
-        <Card className="py-3">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-sm">In Production</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{inProductionCount}</p>
-          </CardContent>
-        </Card>
-        <Card className="py-3">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-sm">Ready to Ship</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{readyToShipCount}</p>
-          </CardContent>
-        </Card>
-      </div>
-
       {sortedOrders.length === 0 ? (
-        <Card className="py-3">
+        <Card>
           <CardContent className="py-10 text-center">
             <p className="text-sm">No orders available.</p>
           </CardContent>
@@ -131,9 +82,8 @@ export const AdminOrdersPage = () => {
         <div className="space-y-4">
           {sortedOrders.map((order) => {
             const orderRef = order.orderNumber?.trim() || order.id;
-
             return (
-              <Card key={order.id} className="py-3">
+              <Card key={order.id}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -144,9 +94,7 @@ export const AdminOrdersPage = () => {
                         {new Date(order.createdAt).toLocaleString("en-US")}
                       </p>
                     </div>
-                    <Badge
-                      className={getStatusBadgeClass(statusTone[order.status])}
-                    >
+                    <Badge className={getStatusBadgeClass(statusTone[order.status])}>
                       {statusLabel[order.status]}
                     </Badge>
                   </div>
@@ -157,43 +105,17 @@ export const AdminOrdersPage = () => {
                   </p>
                   <Button
                     size="sm"
-                    onClick={() =>
-                      router.push(`/dashboard/admin/orders/${order.id}/process`)
-                    }
+                    onClick={() => router.push(`/dashboard/billing-test/${order.id}`)}
                   >
-                    Process Order
+                    Open Stepper
                   </Button>
                 </CardContent>
               </Card>
             );
           })}
-
-          <div className="flex items-center justify-between">
-            <p className="text-muted-foreground text-xs">
-              Page {meta?.page ?? page} of{" "}
-              {meta ? Math.max(1, Math.ceil(meta.total / meta.perPage)) : 1}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void setPage(Math.max(1, (meta?.page ?? page) - 1))}
-                disabled={!meta?.hasPrevious}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void setPage((meta?.page ?? page) + 1)}
-                disabled={!meta?.hasNext}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
         </div>
       )}
     </section>
   );
 };
+
