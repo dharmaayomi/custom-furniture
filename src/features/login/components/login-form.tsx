@@ -71,6 +71,7 @@ export function LoginForm({
     onSuccess: async (result) => {
       const payload = (result as any)?.data ?? result;
       const userId = payload?.id;
+      const role = String(payload?.role ?? "").toLowerCase();
 
       if (userId === undefined || userId === null) {
         toast.error("Login failed: missing user id");
@@ -85,7 +86,7 @@ export function LoginForm({
       });
 
       toast.success("Login success");
-      router.push("/custom");
+      router.push(role === "admin" ? "/dashboard" : "/custom");
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error));

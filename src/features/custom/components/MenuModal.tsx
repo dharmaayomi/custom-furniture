@@ -159,10 +159,12 @@ export const MenuModal = ({
                 onClick={handleBack}
                 id="menu-back-button"
                 name="menu-back"
-                className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
+                className="hover:bg-muted group/menu-item flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
               >
                 <ArrowLeft size={20} />
-                <span className="font-medium">Back</span>
+                <span className="font-medium transition-transform duration-150 group-hover/menu-item:translate-x-1">
+                  Back
+                </span>
               </button>
 
               {/* Save (only visible on mobile in original design) */}
@@ -170,10 +172,12 @@ export const MenuModal = ({
                 onClick={handleSave}
                 id="menu-save-button"
                 name="menu-save"
-                className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors md:hidden"
+                className="hover:bg-muted group/menu-item flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors md:hidden"
               >
                 <Save size={20} />
-                <span className="font-medium">Save</span>
+                <span className="font-medium transition-transform duration-150 group-hover/menu-item:translate-x-1">
+                  Save
+                </span>
               </button>
 
               {/* share design */}
@@ -181,10 +185,12 @@ export const MenuModal = ({
                 onClick={handleOpenShareDesign}
                 id="menu-share-design-button"
                 name="menu-share-design"
-                className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
+                className="hover:bg-muted group/menu-item flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
               >
                 <Share size={20} />
-                <span className="font-medium">Share Design</span>
+                <span className="font-medium transition-transform duration-150 group-hover/menu-item:translate-x-1">
+                  Share Design
+                </span>
               </button>
 
               {/* My Design */}
@@ -192,10 +198,12 @@ export const MenuModal = ({
                 onClick={handleOpenMyDesign}
                 id="menu-my-design-button"
                 name="menu-my-design"
-                className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
+                className="hover:bg-muted group/menu-item flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
               >
                 <FolderClosed size={20} />
-                <span className="font-medium">My Design</span>
+                <span className="font-medium transition-transform duration-150 group-hover/menu-item:translate-x-1">
+                  My Design
+                </span>
               </button>
 
               {/* Open Design Code */}
@@ -203,10 +211,12 @@ export const MenuModal = ({
                 onClick={handleOpenDesignCode}
                 id="menu-open-design-code-button"
                 name="menu-open-design-code"
-                className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
+                className="hover:bg-muted group/menu-item flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
               >
                 <FolderOpen size={20} />
-                <span className="font-medium">Open Design Code</span>
+                <span className="font-medium transition-transform duration-150 group-hover/menu-item:translate-x-1">
+                  Open Design Code
+                </span>
               </button>
 
               {/* Start from Scratch */}
@@ -214,10 +224,12 @@ export const MenuModal = ({
                 onClick={handleStartFromScratch}
                 id="menu-start-from-scratch-button"
                 name="menu-start-from-scratch"
-                className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
+                className="hover:bg-muted group/menu-item flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors"
               >
                 <Frame size={20} />
-                <span className="font-medium">Start from scratch</span>
+                <span className="font-medium transition-transform duration-150 group-hover/menu-item:translate-x-1">
+                  Start from scratch
+                </span>
               </button>
             </div>
           </div>

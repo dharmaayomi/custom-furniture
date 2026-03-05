@@ -7,6 +7,7 @@ import {
   Trash2,
   type LucideIcon,
 } from "lucide-react";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -38,7 +39,8 @@ export function NavProfiles({
   }[];
   unreadNotificationCount?: number;
 }) {
-  const { isMobile } = useSidebar();
+  const { isMobile, state } = useSidebar();
+  const isCollapsed = state === "collapsed";
   const pathname = usePathname();
 
   return (
@@ -54,48 +56,41 @@ export function NavProfiles({
               }
               className="text-base"
             >
-              <Link href={item.url}>
+              <Link href={item.url} className="group/navlink">
                 <item.icon />
-                <span>{item.name}</span>
+                <motion.span
+                  animate={{
+                    opacity: isCollapsed ? 0 : 1,
+                    x: isCollapsed ? -8 : 0,
+                    width: isCollapsed ? 0 : "auto",
+                  }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  className="inline-block overflow-hidden whitespace-nowrap transition-transform duration-150 group-hover/navlink:translate-x-1"
+                >
+                  {item.name}
+                </motion.span>
                 {item.url === "/dashboard/notifications" &&
                 unreadNotificationCount > 0 ? (
                   <span className="notification-dot bg-chart-2 ml-auto h-2 w-2 rounded-full" />
                 ) : null}
               </Link>
             </SidebarMenuButton>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuAction showOnHover>
-                  <MoreHorizontal />
-                  <span className="sr-only">More</span>
-                </SidebarMenuAction>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-48"
-                side={isMobile ? "bottom" : "right"}
-                align={isMobile ? "end" : "start"}
-              >
-                <DropdownMenuItem>
-                  <Folder className="text-muted-foreground" />
-                  <span>View Project</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Share className="text-muted-foreground" />
-                  <span>Share Project</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Trash2 className="text-muted-foreground" />
-                  <span>Delete Project</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </SidebarMenuItem>
         ))}
         <SidebarMenuItem>
           <SidebarMenuButton className="text-base">
             <MoreHorizontal />
-            <span>More</span>
+            <motion.span
+              animate={{
+                opacity: isCollapsed ? 0 : 1,
+                x: isCollapsed ? -8 : 0,
+                width: isCollapsed ? 0 : "auto",
+              }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="inline-block overflow-hidden whitespace-nowrap transition-transform duration-150 group-hover/menu-button:translate-x-1"
+            >
+              More
+            </motion.span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>

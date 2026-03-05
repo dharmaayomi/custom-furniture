@@ -187,7 +187,10 @@ export default function SummaryDesignPage() {
     }
 
     try {
-      console.log("[Summary] checkout mode:", resolvedDesignCode ? "designCode" : "configuration");
+      console.log(
+        "[Summary] checkout mode:",
+        resolvedDesignCode ? "designCode" : "configuration",
+      );
       if (!resolvedDesignCode && resolvedConfiguration) {
         const config = resolvedConfiguration as Record<string, unknown>;
         const productBase = Array.isArray(config.productBase)
@@ -197,7 +200,10 @@ export default function SummaryDesignPage() {
           ? config.productComponent
           : [];
         console.log("[Summary] configuration keys:", Object.keys(config));
-        console.log("[Summary] configuration productBase count:", productBase.length);
+        console.log(
+          "[Summary] configuration productBase count:",
+          productBase.length,
+        );
         console.log(
           "[Summary] configuration productComponent count:",
           productComponent.length,
@@ -249,7 +255,7 @@ export default function SummaryDesignPage() {
 
   return (
     <main className="bg-background text-foreground min-h-screen">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
+      <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
         {/* Breadcrumb */}
         <div className="text-muted-foreground mb-5 flex items-center gap-2 text-sm">
           <span>Design</span>

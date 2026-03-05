@@ -1,19 +1,9 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatPrice } from "@/lib/price";
 import { ProductComponent } from "@/types/componentProduct";
-import {
-  Grid3x3,
-  Layers,
-  List,
-  PackageSearch,
-  Pencil,
-  Trash2,
-} from "lucide-react";
-import { ComponentPreview } from "./ComponentPreview";
-import { toCloudinaryThumbUrl } from "./component-helpers";
+import { Grid3x3, List, PackageSearch } from "lucide-react";
+import { ComponentCard } from "./ComponentCard";
 
 type ComponentListContentProps = {
   viewMode: "grid" | "list";
@@ -25,11 +15,6 @@ type ComponentListContentProps = {
   onEdit: (id: string) => void;
   onDelete: (component: ProductComponent) => void;
 };
-
-const ACTIVE_BADGE_CLASS =
-  "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300";
-const INACTIVE_BADGE_CLASS =
-  "border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-300";
 
 function ComponentListSkeleton({ viewMode }: { viewMode: "grid" | "list" }) {
   return (
@@ -125,128 +110,15 @@ export function ComponentListContent({
               : "space-y-4"
           }
         >
-          {components.map((item) =>
-            viewMode === "grid" ? (
-              <div key={item.id} className="bg-card overflow-hidden rounded-lg border shadow-sm">
-                <div className="overflow-hidden">
-                  <ComponentPreview
-                    candidates={[
-                      toCloudinaryThumbUrl(item.componentUrl),
-                      item.componentImageUrls?.[0],
-                    ]}
-                    name={item.componentName}
-                  />
-                </div>
-                <div className="p-3">
-                  <div className="mb-1 flex items-center gap-2">
-                    <Layers className="text-muted-foreground h-4 w-4" />
-                    <p className="text-foreground truncate text-sm font-semibold">
-                      {item.componentName}
-                    </p>
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    Category: {item.componentCategory}
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    Price: {item.price != null ? formatPrice(item.price) : "-"}
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    Weight: {item.weight} kg
-                  </p>
-                  <div className="mt-2">
-                    <Badge
-                      variant="outline"
-                      className={item.isActive ? ACTIVE_BADGE_CLASS : INACTIVE_BADGE_CLASS}
-                    >
-                      {item.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                  <div className="border-border mt-3 flex gap-2 border-t pt-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEdit(item.id)}
-                      className="flex-1 bg-transparent"
-                    >
-                      <Pencil className="h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onDelete(item)}
-                      className="text-destructive hover:bg-destructive bg-transparent hover:text-white"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div key={item.id} className="bg-card rounded-lg border p-3 shadow-sm">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <ComponentPreview
-                    list
-                    candidates={[
-                      toCloudinaryThumbUrl(item.componentUrl),
-                      item.componentImageUrls?.[0],
-                    ]}
-                    name={item.componentName}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex items-center gap-2">
-                      <Layers className="text-muted-foreground h-4 w-4" />
-                      <p className="text-foreground truncate text-sm font-semibold">
-                        {item.componentName}
-                      </p>
-                    </div>
-                    <p className="text-muted-foreground text-xs">
-                      Category: {item.componentCategory}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      Price: {item.price != null ? formatPrice(item.price) : "-"}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      Weight: {item.weight} kg
-                    </p>
-                    <div className="mt-2">
-                      <Badge
-                        variant="outline"
-                        className={
-                          item.isActive ? ACTIVE_BADGE_CLASS : INACTIVE_BADGE_CLASS
-                        }
-                      >
-                        {item.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex w-full gap-2 sm:w-auto sm:shrink-0">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEdit(item.id)}
-                      className="flex-1 bg-transparent sm:flex-none"
-                    >
-                      <Pencil className="h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onDelete(item)}
-                      className="text-destructive hover:bg-destructive bg-transparent hover:text-white sm:flex-none"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ),
-          )}
+          {components.map((item) => (
+            <ComponentCard
+              key={item.id}
+              item={item}
+              viewMode={viewMode}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))}
         </div>
       )}
     </>

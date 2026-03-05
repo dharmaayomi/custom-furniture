@@ -30,7 +30,7 @@ export const HeaderPayment = () => {
 
   return (
     <header className="bg-background/95 supports-backdrop-filter:bg-background/75 sticky top-0 z-40 border-b backdrop-blur">
-      <div className="mx-8 flex items-center justify-between p-4">
+      <div className="container mx-auto flex items-center justify-between p-4">
         <Link href="/" className="flex items-center gap-2 font-medium">
           <div className="text-primary-foreground flex items-center justify-center">
             <Image src={logoSrc} alt="Logo" width={200} height={62} />

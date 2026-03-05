@@ -26,7 +26,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Package,
   MapPin,
@@ -79,7 +78,19 @@ const getStatusDotClass = (status: string) => {
   }
 };
 
-export const CheckoutPage = () => {
+const formatDateTimeDDMMYYYY = (value?: string | Date | null) => {
+  if (!value) return "-";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear());
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+};
+
+export const CheckoutPageNew = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const axiosInstance = useAxios();
@@ -93,7 +104,7 @@ export const CheckoutPage = () => {
 
   const urlOrderId = searchParams.get("orderId") ?? "";
   const orderId = urlOrderId || snapshot?.orderId || "";
-  const { data: order, isLoading } = useGetOrder(orderId || undefined);
+  const { data: order } = useGetOrder(orderId || undefined);
   const canUseSnapshotFallback =
     !urlOrderId || snapshot?.orderId === urlOrderId;
 
@@ -111,11 +122,9 @@ export const CheckoutPage = () => {
     (canUseSnapshotFallback
       ? snapshot?.previewImage || snapshot?.previewUrl
       : undefined);
-  const createdAtLabel = order?.createdAt
-    ? new Date(order.createdAt).toLocaleString()
-    : snapshot?.createdAt
-      ? new Date(snapshot.createdAt).toLocaleString()
-      : "-";
+  const createdAtLabel = formatDateTimeDDMMYYYY(
+    order?.createdAt ?? snapshot?.createdAt ?? null,
+  );
 
   const productIds = useMemo(
     () =>
@@ -258,7 +267,6 @@ export const CheckoutPage = () => {
 
   return (
     <main className="container mx-auto min-h-screen p-4 sm:p-6 lg:p-8">
-      {/* Page header */}
       <div className="mb-6">
         <div className="text-muted-foreground flex items-center gap-2 text-sm">
           <span>Orders</span>
@@ -268,157 +276,7 @@ export const CheckoutPage = () => {
       </div>
 
       <div className="mx-auto grid gap-6 lg:grid-cols-3">
-        {/* ── LEFT COLUMN ─────────────────────────────────────── */}
-        <section className="space-y-5 lg:col-span-2">
-          {/* Order Header Card */}
-          <Card className="ring-border/60 overflow-hidden border-0 pb-3 shadow-sm ring-1">
-            {previewImage ? (
-              <div className="relative h-62 w-full overflow-hidden sm:h-72">
-                <img
-                  src={previewImage}
-                  alt="Design preview"
-                  className="h-full w-full object-cover"
-                />
-                {/* Gradient overlay for legibility */}
-                <div className="from-background/60 absolute inset-0 bg-linear-to-t via-transparent to-transparent" />
-                {/* Order number pill over the image */}
-                <div className="absolute bottom-4 left-4 flex items-center gap-3">
-                  <p className="text-foreground/90 text-sm font-semibold drop-shadow">
-                    #{displayOrderNumber}
-                  </p>
-                  <Badge
-                    variant="outline"
-                    className={`${getStatusBadgeClassName(status)} flex items-center gap-1.5`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${getStatusDotClass(status)}`}
-                    />
-                    {status}
-                  </Badge>
-                </div>
-              </div>
-            ) : (
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-lg">Checkout</CardTitle>
-                    <CardDescription className="mt-0.5">
-                      Order #{displayOrderNumber}
-                    </CardDescription>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={`${getStatusBadgeClassName(status)} flex items-center gap-1.5`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${getStatusDotClass(status)}`}
-                    />
-                    {status}
-                  </Badge>
-                </div>
-              </CardHeader>
-            )}
-
-            <CardContent className="px-5 py-4">
-              {isLoading ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-48" />
-                  <Skeleton className="h-4 w-32" />
-                </div>
-              ) : (
-                /* Fulfillment info row */
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {/* Fulfillment type */}
-                  <div className="bg-muted/40 flex flex-col gap-1 rounded-xl p-3">
-                    <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] tracking-wide uppercase">
-                      {deliveryType === "PICKUP" ? (
-                        <Store className="h-3 w-3" />
-                      ) : (
-                        <Truck className="h-3 w-3" />
-                      )}
-                      Fulfillment
-                    </span>
-                    <span className="text-sm font-semibold">
-                      {getDeliveryTypeLabel(deliveryType)}
-                    </span>
-                  </div>
-
-                  {/* Created at */}
-                  <div className="bg-muted/40 flex flex-col gap-1 rounded-xl p-3">
-                    <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] tracking-wide uppercase">
-                      <Clock className="h-3 w-3" />
-                      Created
-                    </span>
-                    <span className="text-sm leading-snug font-semibold">
-                      {createdAtLabel}
-                    </span>
-                  </div>
-
-                  {/* Weight */}
-                  <div className="bg-muted/40 flex flex-col gap-1 rounded-xl p-3">
-                    <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] tracking-wide uppercase">
-                      <Weight className="h-3 w-3" />
-                      Weight
-                    </span>
-                    <span className="text-sm font-semibold">
-                      {totalWeightKg.toFixed(2)} kg
-                    </span>
-                  </div>
-
-                  {/* Distance – only for delivery */}
-                  {deliveryType === "DELIVERY" && (
-                    <div className="bg-muted/40 flex flex-col gap-1 rounded-xl p-3">
-                      <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] tracking-wide uppercase">
-                        <Ruler className="h-3 w-3" />
-                        Distance
-                      </span>
-                      <span className="text-sm font-semibold">
-                        {deliveryDistance} km
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Delivery Address Card */}
-          {deliveryType === "DELIVERY" && address && (
-            <Card className="ring-border/60 border-0 shadow-sm ring-1">
-              <CardHeader className="pt-4 pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                  <div className="bg-primary/10 flex h-7 w-7 items-center justify-center rounded-lg">
-                    <MapPin className="text-primary h-3.5 w-3.5" />
-                  </div>
-                  Delivery Address
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-5 pb-5">
-                <div className="bg-muted/30 rounded-xl p-4">
-                  <p className="text-sm font-semibold">
-                    {address.recipientName}
-                    <span className="text-muted-foreground ml-2 font-normal">
-                      {address.phoneNumber}
-                    </span>
-                  </p>
-                  <p className="text-muted-foreground mt-1 text-sm">
-                    {address.line1}
-                    {address.line2 ? `, ${address.line2}` : ""}
-                  </p>
-                  <p className="text-muted-foreground text-sm">
-                    {address.subdistrict ? `${address.subdistrict}, ` : ""}
-                    {address.district ? `${address.district}, ` : ""}
-                    {address.city}, {address.province}
-                  </p>
-                  <p className="text-muted-foreground text-sm">
-                    {address.country} {address.postalCode}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Product List */}
+        <section className="lg:col-span-2">
           <Card className="ring-border/60 border-0 shadow-sm ring-1">
             <CardHeader className="pt-4 pb-2">
               <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -440,7 +298,6 @@ export const CheckoutPage = () => {
                         key={item.id}
                         className="ring-border/50 hover:bg-muted/20 rounded-xl p-4 ring-1 transition-colors"
                       >
-                        {/* Product header row */}
                         <div className="flex items-start gap-3">
                           {product?.images?.[0] ? (
                             <img
@@ -468,7 +325,6 @@ export const CheckoutPage = () => {
                           </p>
                         </div>
 
-                        {/* Price breakdown */}
                         <div className="mt-3 grid grid-cols-2 gap-1.5">
                           <div className="bg-muted/40 flex items-center justify-between rounded-lg px-3 py-2">
                             <span className="text-muted-foreground text-xs">
@@ -488,7 +344,6 @@ export const CheckoutPage = () => {
                           </div>
                         </div>
 
-                        {/* Components */}
                         {item.components?.length ? (
                           <div className="mt-3">
                             <div className="mb-2 flex items-center gap-1.5">
@@ -525,7 +380,7 @@ export const CheckoutPage = () => {
                                       {comp?.componentName ??
                                         component.componentId}
                                       <span className="text-muted-foreground ml-1 font-normal">
-                                        ×{component.quantity}
+                                        x{component.quantity}
                                       </span>
                                     </span>
                                     <span className="shrink-0 text-xs font-semibold">
@@ -562,7 +417,6 @@ export const CheckoutPage = () => {
           </Card>
         </section>
 
-        {/* ── RIGHT COLUMN – sticky summary ───────────────────── */}
         <aside className="lg:sticky lg:top-22 lg:h-fit">
           <Card className="ring-border/60 overflow-hidden border-0 shadow-sm ring-1">
             <CardHeader className="pt-4 pb-2">
@@ -573,9 +427,94 @@ export const CheckoutPage = () => {
                 Order Summary
               </CardTitle>
             </CardHeader>
-
             <CardContent className="space-y-4 px-5 pb-5">
-              {/* Line items */}
+              <div className="bg-muted/40 flex items-center justify-between rounded-xl p-3">
+                <p className="text-sm font-semibold">#{displayOrderNumber}</p>
+                <Badge
+                  variant="outline"
+                  className={`${getStatusBadgeClassName(status)} flex items-center gap-1.5`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${getStatusDotClass(status)}`}
+                  />
+                  {status}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-muted/40 flex flex-col gap-1 rounded-xl p-3">
+                  <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] tracking-wide uppercase">
+                    {deliveryType === "PICKUP" ? (
+                      <Store className="h-3 w-3" />
+                    ) : (
+                      <Truck className="h-3 w-3" />
+                    )}
+                    Fulfillment
+                  </span>
+                  <span className="text-sm font-semibold">
+                    {getDeliveryTypeLabel(deliveryType)}
+                  </span>
+                </div>
+                <div className="bg-muted/40 flex flex-col gap-1 rounded-xl p-3">
+                  <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] tracking-wide uppercase">
+                    <Clock className="h-3 w-3" />
+                    Created
+                  </span>
+                  <span className="text-sm leading-snug font-semibold">
+                    {createdAtLabel}
+                  </span>
+                </div>
+                <div className="bg-muted/40 flex flex-col gap-1 rounded-xl p-3">
+                  <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] tracking-wide uppercase">
+                    <Weight className="h-3 w-3" />
+                    Weight
+                  </span>
+                  <span className="text-sm font-semibold">
+                    {totalWeightKg.toFixed(2)} kg
+                  </span>
+                </div>
+                <div className="bg-muted/40 flex flex-col gap-1 rounded-xl p-3">
+                  <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] tracking-wide uppercase">
+                    <Ruler className="h-3 w-3" />
+                    Distance
+                  </span>
+                  <span className="text-sm font-semibold">
+                    {deliveryType === "DELIVERY"
+                      ? `${deliveryDistance} km`
+                      : "-"}
+                  </span>
+                </div>
+              </div>
+
+              {deliveryType === "DELIVERY" && address ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <MapPin className="text-primary h-4 w-4" />
+                    Delivery Address
+                  </div>
+                  <div className="bg-muted/30 rounded-xl p-4">
+                    <p className="text-sm font-semibold">
+                      {address.recipientName}
+                      <span className="text-muted-foreground ml-2 font-normal">
+                        {address.phoneNumber}
+                      </span>
+                    </p>
+                    <p className="text-muted-foreground mt-1 text-sm">
+                      {address.line1}
+                      {address.line2 ? `, ${address.line2}` : ""}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      {address.subdistrict ? `${address.subdistrict}, ` : ""}
+                      {address.district ? `${address.district}, ` : ""}
+                      {address.city}, {address.province}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      {address.country} {address.postalCode}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Items</span>
@@ -595,7 +534,6 @@ export const CheckoutPage = () => {
 
               <Separator />
 
-              {/* Grand total */}
               <div className="bg-muted/40 flex items-center justify-between rounded-xl px-4 py-3">
                 <span className="text-sm font-semibold">Grand Total</span>
                 <span className="text-xl font-bold tracking-tight">
@@ -603,7 +541,6 @@ export const CheckoutPage = () => {
                 </span>
               </div>
 
-              {/* CTA */}
               <Button
                 className="w-full gap-2 font-semibold"
                 size="lg"
@@ -613,7 +550,7 @@ export const CheckoutPage = () => {
                 {isCreatingSnapPayment ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Redirecting…
+                    Redirecting...
                   </>
                 ) : (
                   <>
