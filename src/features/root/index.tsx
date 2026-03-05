@@ -1,146 +1,26 @@
 "use client";
 
-import DottedGlowBackgroundDemoSecond from "@/components/dotted-glow-background-demo-2";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import {
-  MobileNav,
-  MobileNavHeader,
-  MobileNavMenu,
-  MobileNavToggle,
-  Navbar,
-  NavbarButton,
-  NavbarLogo,
-  NavbarThemeToggle,
-  NavBody,
-  NavItems,
-} from "@/components/ui/resizable-navbar";
-import { getAvatarFallback } from "@/lib/avatar";
-import { useUser } from "@/providers/UserProvider";
-import Link from "next/link";
-import { useState } from "react";
+import CTASection from "@/components/dotted-glow-background-demo-2";
 import { Footer } from "./components/Footer";
+import Step02 from "@/features/root/components/vertical-progress-tracker";
+import Testimonial04 from "./components/TestimonialSection";
+import Gallery01 from "./components/Portfolio";
+import { RootNavbar } from "./components/Navbar";
+import Hero03 from "./components/Hero";
+import CTA06 from "./components/CTA";
 
 export const HomePage = () => {
-  const { navUser } = useUser();
-  const navItems = [
-    {
-      name: "Features",
-      link: "#features",
-    },
-    {
-      name: "Pricing",
-      link: "#pricing",
-    },
-    {
-      name: "Contact",
-      link: "#contact",
-    },
-  ];
-
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const isLoggedIn = !!navUser;
-  const avatarFallback = getAvatarFallback({
-    name: navUser?.userName ?? "User",
-  });
-
   return (
     <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
-      <Navbar>
-        <NavBody>
-          <NavbarLogo />
-          <NavItems items={navItems} />
-          <div className="flex items-center gap-4">
-            <NavbarThemeToggle />
-            {isLoggedIn ? (
-              <Link href="/dashboard/profile" aria-label="Profile">
-                <Avatar className="ring-primary/30 hover:ring-primary/50 h-8 w-8 ring-2 ring-offset-2 transition">
-                  <AvatarImage
-                    src={navUser?.avatar}
-                    alt={navUser?.userName ?? "User"}
-                  />
-                  <AvatarFallback>{avatarFallback}</AvatarFallback>
-                </Avatar>
-              </Link>
-            ) : (
-              <NavbarButton href="/login" variant="secondary">
-                Login
-              </NavbarButton>
-            )}
-            <NavbarButton href="/custom" variant="primary">
-              Start Customizing
-            </NavbarButton>
-          </div>
-        </NavBody>
+      <RootNavbar />
 
-        <MobileNav>
-          <MobileNavHeader>
-            <NavbarLogo />
-            <MobileNavToggle
-              isOpen={isMobileMenuOpen}
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            />
-          </MobileNavHeader>
-
-          <MobileNavMenu
-            isOpen={isMobileMenuOpen}
-            onClose={() => setIsMobileMenuOpen(false)}
-          >
-            {navItems.map((item, idx) => (
-              <a
-                key={`mobile-link-${idx}`}
-                href={item.link}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="relative text-neutral-600 dark:text-neutral-300"
-              >
-                <span className="block">{item.name}</span>
-              </a>
-            ))}
-            <div className="flex w-full flex-col gap-4">
-              <div className="flex w-full justify-end">
-                <NavbarThemeToggle />
-              </div>
-              {isLoggedIn ? (
-                <Link
-                  href="/dashboard/profile"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex w-full justify-center"
-                  aria-label="Profile"
-                >
-                  <Avatar className="ring-primary/30 hover:ring-primary/50 h-10 w-10 ring-2 ring-offset-2 transition">
-                    <AvatarImage
-                      src={navUser?.avatar}
-                      alt={navUser?.userName ?? "User"}
-                    />
-                    <AvatarFallback>{avatarFallback}</AvatarFallback>
-                  </Avatar>
-                </Link>
-              ) : (
-                <NavbarButton
-                  href="/login"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  variant="primary"
-                  className="w-full"
-                >
-                  Login
-                </NavbarButton>
-              )}
-              <NavbarButton
-                href="/custom"
-                onClick={() => setIsMobileMenuOpen(false)}
-                variant="primary"
-                className="w-full"
-              >
-                Start Customizing
-              </NavbarButton>
-            </div>
-          </MobileNavMenu>
-        </MobileNav>
-      </Navbar>
-
-      <main className="container mx-auto min-h-screen">
-        <DummyContent />
-        <DottedGlowBackgroundDemoSecond />
+      <main className="min-h-screen">
+        <Hero03 />
+        <Gallery01 />
+        <Step02 />
+        <Testimonial04 />
+        {/* <CTASection /> */}
+        <CTA06 />
       </main>
       <Footer />
     </div>

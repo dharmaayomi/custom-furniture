@@ -86,7 +86,7 @@ export function LoginForm({
       });
 
       toast.success("Login success");
-      router.push(role === "admin" ? "/dashboard" : "/custom");
+      router.push(role === "admin" ? "/dashboard/admin" : "/custom");
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error));

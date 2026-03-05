@@ -1,4 +1,4 @@
-import { ProcessOrderPage } from "@/features/dashboard/orders/process";
+import AdminOrderProcessPageTrial from "@/features/dashboard/orders/admin/trialprocess";
 import { auth } from "@/lib/auth";
 import { normalizeRole } from "@/lib/dashboard-access";
 import { redirect } from "next/navigation";
@@ -20,7 +20,7 @@ const ProcessOrderRoute = async ({ params }: ProcessOrderRouteProps) => {
 
   const { orderid } = await params;
 
-  return <ProcessOrderPage orderId={orderid} />;
+  return <AdminOrderProcessPageTrial orderId={orderid} />;
 };
 
 export default ProcessOrderRoute;

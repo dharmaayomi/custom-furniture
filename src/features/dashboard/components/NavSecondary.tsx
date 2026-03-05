@@ -32,7 +32,7 @@ export function NavSecondary({
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild size="sm">
                 <a href={item.url} className="group/navlink">
-                  <item.icon />
+                  <item.icon className="size-5 shrink-0" />
                   <motion.span
                     animate={{
                       opacity: isCollapsed ? 0 : 1,

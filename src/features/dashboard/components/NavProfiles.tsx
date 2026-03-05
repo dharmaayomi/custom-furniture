@@ -44,7 +44,7 @@ export function NavProfiles({
   const pathname = usePathname();
 
   return (
-    <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+    <SidebarGroup>
       <SidebarGroupLabel className="text-base">Profiles</SidebarGroupLabel>
       <SidebarMenu>
         {profiles.map((item) => (
@@ -57,7 +57,7 @@ export function NavProfiles({
               className="text-base"
             >
               <Link href={item.url} className="group/navlink">
-                <item.icon />
+                <item.icon className="size-5 shrink-0" />
                 <motion.span
                   animate={{
                     opacity: isCollapsed ? 0 : 1,
@@ -79,7 +79,7 @@ export function NavProfiles({
         ))}
         <SidebarMenuItem>
           <SidebarMenuButton className="text-base">
-            <MoreHorizontal />
+            <MoreHorizontal className="size-5 shrink-0" />
             <motion.span
               animate={{
                 opacity: isCollapsed ? 0 : 1,

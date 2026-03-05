@@ -40,10 +40,11 @@ export function NavMain({
   const pathname = usePathname();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const matchesPath = (url: string) =>
+    pathname === url || pathname.startsWith(`${url}/`);
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel className="text-sm">Dashboard</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
           const hasActiveSub =
@@ -52,10 +53,15 @@ export function NavMain({
                 pathname === subItem.url ||
                 pathname.startsWith(`${subItem.url}/`),
             ) ?? false;
+          const isMostSpecificMatch = !items.some(
+            (other) =>
+              other.url !== item.url &&
+              matchesPath(other.url) &&
+              other.url.length > item.url.length,
+          );
           const isActive =
             item.isActive ??
-            (!hasActiveSub &&
-              (pathname === item.url || pathname.startsWith(`${item.url}/`)));
+            (!hasActiveSub && matchesPath(item.url) && isMostSpecificMatch);
           return (
             <Collapsible
               key={item.title}
@@ -70,7 +76,7 @@ export function NavMain({
                   className="text-md"
                 >
                   <Link href={item.url} className="group/navlink">
-                    <item.icon />
+                    <item.icon className="size-5 shrink-0" />
                     <motion.span
                       animate={{
                         opacity: isCollapsed ? 0 : 1,

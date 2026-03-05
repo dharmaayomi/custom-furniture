@@ -4,6 +4,7 @@ import {
   Bell,
   CreditCard,
   Frame,
+  LayoutDashboard,
   LifeBuoy,
   Lock,
   MapPin,
@@ -81,6 +82,11 @@ const navSecondary: SecondaryItem[] = [
 
 const adminNavMain: NavMainItem[] = [
   {
+    title: "Dashboard",
+    url: "/dashboard/admin",
+    icon: LayoutDashboard,
+  },
+  {
     title: "Orders",
     url: "/dashboard/admin/orders",
     icon: SquareTerminal,
@@ -113,6 +119,11 @@ const adminNavMain: NavMainItem[] = [
 ];
 
 const userNavMain: NavMainItem[] = [
+  {
+    title: "Dashboard",
+    url: "/dashboard",
+    icon: LayoutDashboard,
+  },
   {
     title: "Orders",
     url: "/dashboard/orders",
