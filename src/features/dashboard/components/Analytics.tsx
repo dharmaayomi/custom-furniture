@@ -169,40 +169,47 @@ const Analytics = () => {
   const topCategory = [...categoryData].sort((a, b) => b.value - a.value)[0];
 
   return (
-    <div className="text-foreground mx-auto w-full p-4 md:p-6">
-      <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Analytics Dashboard
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Welcome back! Here's what's happening with your store today.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="hidden sm:flex">
-                <Download className="mr-2 h-4 w-4" /> Export Data
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Export Options</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <span>CSV Format</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <span>PDF Report</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <span>Share Link</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button size="sm">
-            <RefreshCw className="mr-2 h-4 w-4" /> Check Updates
-          </Button>
+    <div className="text-foreground mx-auto w-full p-4 md:p-0">
+      <div className="bg-muted/60 mb-8 rounded-lg px-4 py-6 sm:px-6 sm:py-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-foreground text-2xl font-semibold tracking-tight md:text-3xl">
+              Analytics Dashboard
+            </h1>
+            <p className="text-muted-foreground mt-2 text-sm">
+              Welcome back! Here&apos;s what&apos;s happening with your store
+              today.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-muted/60 hidden sm:flex"
+                >
+                  <Download className="mr-2 h-4 w-4" /> Export Data
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Export Options</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <span>CSV Format</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <span>PDF Report</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <span>Share Link</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button size="sm">
+              <RefreshCw className="mr-2 h-4 w-4" /> Check Updates
+            </Button>
+          </div>
         </div>
       </div>
 

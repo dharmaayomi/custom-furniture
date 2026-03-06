@@ -38,10 +38,12 @@ type ProductionLog = {
 
 type AdminOrderProcessPageTrialProps = {
   orderId?: string;
+  orderNumber?: string;
 };
 
 export default function AdminOrderProcessPageTrial({
   orderId,
+  orderNumber,
 }: AdminOrderProcessPageTrialProps) {
   const router = useRouter();
   const [uploadedImageItems, setUploadedImageItems] = useState<
@@ -101,7 +103,7 @@ export default function AdminOrderProcessPageTrial({
   };
 
   const percentage = progressValue[0] ?? 0;
-  const orderRef = orderId ?? "ORD-12345";
+  const orderRef = orderNumber ?? "ORD-12345";
   const nowLabel = new Date().toLocaleString("id-ID");
 
   return (
@@ -124,10 +126,10 @@ export default function AdminOrderProcessPageTrial({
                   </Button>
                   <div>
                     <p className="text-muted-foreground text-xs font-medium tracking-widest uppercase">
-                      Order ID
+                      Order Number
                     </p>
                     <h1 className="text-xl leading-tight font-bold tracking-tight">
-                      #{orderRef}
+                      {orderRef}
                     </h1>
                   </div>
                 </div>

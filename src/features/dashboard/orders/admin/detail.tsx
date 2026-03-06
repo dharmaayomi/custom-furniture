@@ -24,6 +24,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import useGetAdminOrder from "@/hooks/api/order/useGetAdminOrder";
+import useGetProductionProgress from "@/hooks/api/production/useGetProductionProgress";
 import useAxios from "@/hooks/useAxios";
 import { formatPrice } from "@/lib/price";
 import { ProductComponent } from "@/types/componentProduct";
@@ -111,34 +112,47 @@ function formatLogDate(isoString: string) {
 }
 
 function ProgressRing({ value }: { value: number }) {
-  const r = 20;
+  const safeValue = Math.min(100, Math.max(0, Number(value) || 0));
+  const size = 56;
+  const stroke = 5;
+  const center = size / 2;
+  const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
-  const offset = circ - (value / 100) * circ;
+  const offset = circ - (safeValue / 100) * circ;
+
   return (
-    <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
-      <svg className="absolute inset-0 -rotate-90" width="56" height="56">
+    <div
+      className="relative flex shrink-0 items-center justify-center"
+      style={{ width: size, height: size }}
+    >
+      <svg
+        className="absolute inset-0 -rotate-90"
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+      >
         <circle
-          cx="28"
-          cy="28"
+          cx={center}
+          cy={center}
           r={r}
           fill="none"
           stroke="#e5e7eb"
-          strokeWidth="3.5"
+          strokeWidth={stroke}
         />
         <circle
-          cx="28"
-          cy="28"
+          cx={center}
+          cy={center}
           r={r}
           fill="none"
           stroke="currentColor"
-          strokeWidth="3.5"
+          strokeWidth={stroke}
           strokeDasharray={circ}
           strokeDashoffset={offset}
           strokeLinecap="round"
           className="text-primary transition-all duration-700"
         />
       </svg>
-      <span className="text-[11px] leading-none font-bold">{value}%</span>
+      <span className="text-md leading-none font-bold">{safeValue}%</span>
     </div>
   );
 }
@@ -155,7 +169,7 @@ function PhotoLightbox({
   const [idx, setIdx] = useState(initialIndex);
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -223,7 +237,7 @@ function ProductionLogCard({
       <div className="relative flex gap-4">
         {/* Timeline stem */}
         <div className="flex flex-col items-center">
-          <div className="bg-primary/10 ring-background flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-4">
+          <div className="ring-background flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#e6f6f1] ring-4">
             <ProgressRing value={log.progressPercent} />
           </div>
         </div>
@@ -289,11 +303,23 @@ export const AdminOrderDetailPage = ({
   const router = useRouter();
   const axiosInstance = useAxios();
   const { data: order, isLoading, isError } = useGetAdminOrder(orderId);
+  const {
+    data: productionProgress = [],
+    isLoading: isProductionProgressLoading,
+  } = useGetProductionProgress(orderId);
 
   const items = order?.items ?? [];
-  const productionLogs = ((
-    order as unknown as { productionLogs?: ProductionLog[] }
-  )?.productionLogs ?? []) as ProductionLog[];
+  const productionLogs = useMemo<ProductionLog[]>(
+    () =>
+      productionProgress.map((progress) => ({
+        id: progress.id,
+        progressPercent: progress.percentage,
+        description: progress.description,
+        createdAt: progress.createdAt,
+        photos: progress.photoUrls ?? [],
+      })),
+    [productionProgress],
+  );
 
   const componentIds = useMemo(
     () =>
@@ -386,10 +412,106 @@ export const AdminOrderDetailPage = ({
 
   if (isLoading) {
     return (
-      <section className="w-full space-y-4">
-        <Skeleton className="h-36 w-full rounded-2xl" />
-        <Skeleton className="h-28 w-full rounded-2xl" />
-        <Skeleton className="h-52 w-full rounded-2xl" />
+      <section className="w-full space-y-5">
+        <div className="relative overflow-hidden rounded-2xl border p-6 shadow-sm">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-6 w-40" />
+                </div>
+              </div>
+              <Skeleton className="h-10 w-36 rounded-xl" />
+            </div>
+            <div className="flex gap-3">
+              <Skeleton className="h-6 w-32 rounded-full" />
+              <Skeleton className="h-6 w-40 rounded-full" />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border p-4">
+              <Skeleton className="mb-3 h-8 w-8 rounded-lg" />
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="mt-2 h-6 w-24" />
+            </div>
+          ))}
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border p-5 shadow-sm">
+            <Skeleton className="mb-4 h-3 w-36" />
+            <div className="grid grid-cols-2 gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-xl border p-3">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="mt-2 h-4 w-24" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl border p-5 shadow-sm">
+            <Skeleton className="mb-4 h-3 w-28" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-52" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-11/12" />
+              <Skeleton className="h-4 w-44" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border shadow-sm">
+          <div className="flex items-center justify-between border-b px-6 py-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-9 w-9 rounded-xl" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4 p-6">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="flex gap-4">
+                <Skeleton className="h-16 w-16 rounded-xl" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3 w-28" />
+                  <Skeleton className="h-8 w-full rounded-lg" />
+                </div>
+                <Skeleton className="h-5 w-24" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border shadow-sm">
+          <div className="border-b px-6 py-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-9 w-9 rounded-xl" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4 p-6">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="flex gap-4">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-1 rounded-xl border p-4">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="mt-2 h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
     );
   }
@@ -447,7 +569,7 @@ export const AdminOrderDetailPage = ({
                     Order ID
                   </p>
                   <h1 className="text-xl leading-tight font-bold tracking-tight">
-                    #{orderRef}
+                    {orderRef}
                   </h1>
                 </div>
               </div>
@@ -793,7 +915,19 @@ export const AdminOrderDetailPage = ({
         </div>
 
         <div className="px-6 py-5">
-          {productionLogs.length === 0 ? (
+          {isProductionProgressLoading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="flex gap-4">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="flex-1 rounded-xl border p-4">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="mt-2 h-3 w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : productionLogs.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
               <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-2xl">
                 <Scroll className="text-muted-foreground/50 h-5 w-5" />
@@ -808,7 +942,7 @@ export const AdminOrderDetailPage = ({
           ) : (
             <div className="relative">
               {/* vertical line */}
-              <div className="bg-border absolute top-5 bottom-5 left-5 w-px" />
+              <div className="bg-border absolute top-5 bottom-5 left-6 w-1" />
               <div className="space-y-0">
                 {productionLogs.map((log, i) => (
                   <ProductionLogCard key={log.id} log={log} index={i} />
