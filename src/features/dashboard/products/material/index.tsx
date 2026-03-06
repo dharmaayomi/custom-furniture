@@ -3,6 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import useDeleteMaterial from "@/hooks/api/product/useDeleteMaterial";
 import useGetMaterials from "@/hooks/api/product/useGetMaterials";
 import { MaterialCategory, ProductMaterial } from "@/types/materialProduct";
@@ -157,43 +164,49 @@ export const ProductMaterialPage = () => {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="material-category">Category</Label>
-                  <select
-                    id="material-category"
+                  <Select
                     value={categoryFilter}
-                    className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none"
-                    onChange={(event) => {
+                    onValueChange={(value) => {
                       void setCategoryFilter(
-                        event.target.value as "ALL" | MaterialCategory,
+                        value as "ALL" | MaterialCategory,
                       );
                       void setPage(1);
                     }}
                   >
-                    <option value="ALL">All Categories</option>
-                    {MATERIAL_CATEGORIES.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger id="material-category" className="w-full">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Categories</SelectItem>
+                      {MATERIAL_CATEGORIES.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="material-status">Status</Label>
-                  <select
-                    id="material-status"
+                  <Select
                     value={statusFilter}
-                    className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none"
-                    onChange={(event) => {
+                    onValueChange={(value) => {
                       void setStatusFilter(
-                        event.target.value as "ALL" | "ACTIVE" | "INACTIVE",
+                        value as "ALL" | "ACTIVE" | "INACTIVE",
                       );
                       void setPage(1);
                     }}
                   >
-                    <option value="ALL">All Status</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
-                  </select>
+                    <SelectTrigger id="material-status" className="w-full">
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Status</SelectItem>
+                      <SelectItem value="ACTIVE">Active</SelectItem>
+                      <SelectItem value="INACTIVE">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -230,37 +243,48 @@ export const ProductMaterialPage = () => {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="material-sort-by">Sort by</Label>
-                  <select
-                    id="material-sort-by"
+                  <Select
                     value={sortBy}
-                    className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none"
-                    onChange={(event) => {
+                    onValueChange={(value) => {
                       void setSortBy(
-                        event.target.value as "materialName" | "price",
+                        value as
+                          | "materialName"
+                          | "materialCategory"
+                          | "price"
+                          | "createdAt"
+                          | "updatedAt",
                       );
                       void setPage(1);
                     }}
                   >
-                    <option value="materialName">Material Name</option>
-                    <option value="materialCategory">Category</option>
-                    <option value="price">Price</option>
-                  </select>
+                    <SelectTrigger id="material-sort-by" className="w-full">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="materialName">Material Name</SelectItem>
+                      <SelectItem value="materialCategory">Category</SelectItem>
+                      <SelectItem value="price">Price</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="material-sort-order">Sort order</Label>
-                  <select
-                    id="material-sort-order"
+                  <Select
                     value={orderBy}
-                    className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none"
-                    onChange={(event) => {
-                      void setOrderBy(event.target.value as "asc" | "desc");
+                    onValueChange={(value) => {
+                      void setOrderBy(value as "asc" | "desc");
                       void setPage(1);
                     }}
                   >
-                    <option value="asc">Ascending</option>
-                    <option value="desc">Descending</option>
-                  </select>
+                    <SelectTrigger id="material-sort-order" className="w-full">
+                      <SelectValue placeholder="Sort order" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asc">Ascending</SelectItem>
+                      <SelectItem value="desc">Descending</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <Button

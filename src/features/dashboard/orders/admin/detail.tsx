@@ -25,10 +25,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import useGetAdminOrder from "@/hooks/api/order/useGetAdminOrder";
 import useGetProductionProgress from "@/hooks/api/production/useGetProductionProgress";
+import {
+  getOrderStatusDotClass,
+  getOrderStatusLabel,
+  getOrderStatusPillClass,
+} from "@/lib/orderStatus";
 import useAxios from "@/hooks/useAxios";
 import { formatPrice } from "@/lib/price";
 import { ProductComponent } from "@/types/componentProduct";
-import { OrderStatus } from "@/types/customOrder";
 import { ProductMaterial } from "@/types/materialProduct";
 import { ProductBase } from "@/types/product";
 
@@ -42,57 +46,6 @@ type ProductionLog = {
   description: string;
   createdAt: string;
   photos: string[];
-};
-
-const statusLabel: Record<OrderStatus, string> = {
-  PENDING_PAYMENT: "Waiting Payment",
-  AWAITING_PRODUCTION: "Awaiting Production",
-  IN_PRODUCTION: "In Production",
-  READY_TO_SHIP: "Ready to Ship",
-  SHIPPED: "Shipped",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-};
-
-const statusConfig: Record<
-  OrderStatus,
-  { color: string; bg: string; dot: string }
-> = {
-  PENDING_PAYMENT: {
-    color: "text-amber-700",
-    bg: "bg-amber-50 border-amber-200",
-    dot: "bg-amber-500",
-  },
-  AWAITING_PRODUCTION: {
-    color: "text-orange-700",
-    bg: "bg-orange-50 border-orange-200",
-    dot: "bg-orange-500",
-  },
-  IN_PRODUCTION: {
-    color: "text-blue-700",
-    bg: "bg-blue-50 border-blue-200",
-    dot: "bg-blue-500",
-  },
-  READY_TO_SHIP: {
-    color: "text-indigo-700",
-    bg: "bg-indigo-50 border-indigo-200",
-    dot: "bg-indigo-500",
-  },
-  SHIPPED: {
-    color: "text-violet-700",
-    bg: "bg-violet-50 border-violet-200",
-    dot: "bg-violet-500",
-  },
-  COMPLETED: {
-    color: "text-emerald-700",
-    bg: "bg-emerald-50 border-emerald-200",
-    dot: "bg-emerald-500",
-  },
-  CANCELLED: {
-    color: "text-red-700",
-    bg: "bg-red-50 border-red-200",
-    dot: "bg-red-500",
-  },
 };
 
 function formatLogDate(isoString: string) {
@@ -152,7 +105,9 @@ function ProgressRing({ value }: { value: number }) {
           className="text-primary transition-all duration-700"
         />
       </svg>
-      <span className="text-md leading-none font-bold">{safeValue}%</span>
+      <span className="text-md leading-none font-bold dark:text-black">
+        {safeValue}%
+      </span>
     </div>
   );
 }
@@ -542,8 +497,6 @@ export const AdminOrderDetailPage = ({
     order.deliveryDistance ?? order.deliveryDistancce ?? 0,
   );
   const totalWeightKg = Number(order.totalWeight ?? 0) / 1000;
-  const sc = statusConfig[order.status];
-
   return (
     <section className="w-full space-y-5">
       {/* ── HERO HEADER ─────────────────────────────────────── */}
@@ -577,11 +530,9 @@ export const AdminOrderDetailPage = ({
               {/* meta row */}
               <div className="flex flex-wrap items-center gap-3">
                 {/* status pill */}
-                <span
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${sc.bg} ${sc.color}`}
-                >
-                  <span className={`h-1.5 w-1.5 rounded-full ${sc.dot}`} />
-                  {statusLabel[order.status]}
+                <span className={getOrderStatusPillClass(order.status)}>
+                  <span className={getOrderStatusDotClass(order.status)} />
+                  {getOrderStatusLabel(order.status)}
                 </span>
 
                 {/* timestamp */}

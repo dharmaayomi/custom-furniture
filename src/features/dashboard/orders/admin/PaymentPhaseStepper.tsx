@@ -35,14 +35,14 @@ const phaseMeta: Record<PaymentPhase, { title: string; detail: string }> = {
 };
 
 type PaymentPhaseStepperProps = {
-  paymentPhase: PaymentPhase;
+  paymentPhase?: PaymentPhase | null;
 };
 
 export function PaymentPhaseStepper({
   paymentPhase,
 }: PaymentPhaseStepperProps) {
-  const currentIndex = PAYMENT_PHASES.indexOf(paymentPhase);
-  const activeIndex = currentIndex >= 0 ? currentIndex : 0;
+  const currentIndex = paymentPhase ? PAYMENT_PHASES.indexOf(paymentPhase) : -1;
+  const activeIndex = currentIndex >= 0 ? currentIndex : -1;
 
   return (
     <ol

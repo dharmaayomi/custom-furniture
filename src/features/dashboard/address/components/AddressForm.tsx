@@ -6,6 +6,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
   Card,
@@ -319,8 +326,7 @@ export default function AddressForm({
     );
   };
 
-  const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const code = e.currentTarget.value;
+  const handleProvinceChange = (code: string) => {
     const selected = provinces.find((item) => item.id === code);
 
     setFormData((prev) => ({
@@ -336,8 +342,7 @@ export default function AddressForm({
     }));
   };
 
-  const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const code = e.currentTarget.value;
+  const handleCityChange = (code: string) => {
     const selected = cities.find((item) => item.id === code);
 
     setFormData((prev) => ({
@@ -351,8 +356,7 @@ export default function AddressForm({
     }));
   };
 
-  const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const code = e.currentTarget.value;
+  const handleDistrictChange = (code: string) => {
     const selected = districts.find((item) => item.id === code);
 
     setFormData((prev) => ({
@@ -364,8 +368,7 @@ export default function AddressForm({
     }));
   };
 
-  const handleSubdistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const code = e.currentTarget.value;
+  const handleSubdistrictChange = (code: string) => {
     const selected = subdistricts.find((item) => item.id === code);
 
     setFormData((prev) => ({
@@ -384,7 +387,9 @@ export default function AddressForm({
             ? `fallback:${formData.province}`
             : "";
         const fallbackCityValue =
-          !formData.cityCode && formData.city ? `fallback:${formData.city}` : "";
+          !formData.cityCode && formData.city
+            ? `fallback:${formData.city}`
+            : "";
         const fallbackDistrictValue =
           !formData.districtCode && formData.district
             ? `fallback:${formData.district}`
@@ -396,110 +401,131 @@ export default function AddressForm({
 
         return (
           <>
-      <div className="space-y-2">
-        <Label htmlFor="provinceCode" className="text-sm font-medium">
-          Province *
-        </Label>
-        <select
-          id="provinceCode"
-          value={formData.provinceCode || fallbackProvinceValue}
-          onChange={handleProvinceChange}
-          required
-          disabled={isLoadingProvinces}
-          className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <option value="">
-            {isLoadingProvinces ? "Loading provinces..." : "Select province"}
-          </option>
-          {fallbackProvinceValue ? (
-            <option value={fallbackProvinceValue}>{formData.province}</option>
-          ) : null}
-          {provinces.map((province) => (
-            <option key={province.id} value={province.id}>
-              {province.name}
-            </option>
-          ))}
-        </select>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="provinceCode" className="text-sm font-medium">
+                Province *
+              </Label>
+              <Select
+                value={formData.provinceCode || fallbackProvinceValue}
+                onValueChange={handleProvinceChange}
+                disabled={isLoadingProvinces}
+              >
+                <SelectTrigger id="provinceCode" className="w-full">
+                  <SelectValue
+                    placeholder={
+                      isLoadingProvinces
+                        ? "Loading provinces..."
+                        : "Select province"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {fallbackProvinceValue ? (
+                    <SelectItem value={fallbackProvinceValue}>
+                      {formData.province}
+                    </SelectItem>
+                  ) : null}
+                  {provinces.map((province) => (
+                    <SelectItem key={province.id} value={province.id}>
+                      {province.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="cityCode" className="text-sm font-medium">
-          City *
-        </Label>
-        <select
-          id="cityCode"
-          value={formData.cityCode || fallbackCityValue}
-          onChange={handleCityChange}
-          required
-          disabled={!formData.provinceCode || isLoadingCities}
-          className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <option value="">
-            {isLoadingCities ? "Loading cities..." : "Select city"}
-          </option>
-          {fallbackCityValue ? (
-            <option value={fallbackCityValue}>{formData.city}</option>
-          ) : null}
-          {cities.map((city) => (
-            <option key={city.id} value={city.id}>
-              {city.name}
-            </option>
-          ))}
-        </select>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="cityCode" className="text-sm font-medium">
+                City *
+              </Label>
+              <Select
+                value={formData.cityCode || fallbackCityValue}
+                onValueChange={handleCityChange}
+                disabled={!formData.provinceCode || isLoadingCities}
+              >
+                <SelectTrigger id="cityCode" className="w-full">
+                  <SelectValue
+                    placeholder={isLoadingCities ? "Loading cities..." : "Select city"}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {fallbackCityValue ? (
+                    <SelectItem value={fallbackCityValue}>{formData.city}</SelectItem>
+                  ) : null}
+                  {cities.map((city) => (
+                    <SelectItem key={city.id} value={city.id}>
+                      {city.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="districtCode" className="text-sm font-medium">
-          District *
-        </Label>
-        <select
-          id="districtCode"
-          value={formData.districtCode || fallbackDistrictValue}
-          onChange={handleDistrictChange}
-          required
-          disabled={!formData.cityCode || isLoadingDistricts}
-          className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <option value="">
-            {isLoadingDistricts ? "Loading districts..." : "Select district"}
-          </option>
-          {fallbackDistrictValue ? (
-            <option value={fallbackDistrictValue}>{formData.district}</option>
-          ) : null}
-          {districts.map((district) => (
-            <option key={district.id} value={district.id}>
-              {district.name}
-            </option>
-          ))}
-        </select>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="districtCode" className="text-sm font-medium">
+                District *
+              </Label>
+              <Select
+                value={formData.districtCode || fallbackDistrictValue}
+                onValueChange={handleDistrictChange}
+                disabled={!formData.cityCode || isLoadingDistricts}
+              >
+                <SelectTrigger id="districtCode" className="w-full">
+                  <SelectValue
+                    placeholder={
+                      isLoadingDistricts
+                        ? "Loading districts..."
+                        : "Select district"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {fallbackDistrictValue ? (
+                    <SelectItem value={fallbackDistrictValue}>
+                      {formData.district}
+                    </SelectItem>
+                  ) : null}
+                  {districts.map((district) => (
+                    <SelectItem key={district.id} value={district.id}>
+                      {district.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="subdistrictCode" className="text-sm font-medium">
-          Subdistrict
-        </Label>
-        <select
-          id="subdistrictCode"
-          value={formData.subdistrictCode || fallbackSubdistrictValue}
-          onChange={handleSubdistrictChange}
-          disabled={!formData.districtCode || isLoadingSubdistricts}
-          className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <option value="">
-            {isLoadingSubdistricts
-              ? "Loading subdistricts..."
-              : "Select subdistrict"}
-          </option>
-          {fallbackSubdistrictValue ? (
-            <option value={fallbackSubdistrictValue}>{formData.subdistrict}</option>
-          ) : null}
-          {subdistricts.map((subdistrict) => (
-            <option key={subdistrict.id} value={subdistrict.id}>
-              {subdistrict.name}
-            </option>
-          ))}
-        </select>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="subdistrictCode" className="text-sm font-medium">
+                Subdistrict
+              </Label>
+              <Select
+                value={formData.subdistrictCode || fallbackSubdistrictValue}
+                onValueChange={handleSubdistrictChange}
+                disabled={!formData.districtCode || isLoadingSubdistricts}
+              >
+                <SelectTrigger id="subdistrictCode" className="w-full">
+                  <SelectValue
+                    placeholder={
+                      isLoadingSubdistricts
+                        ? "Loading subdistricts..."
+                        : "Select subdistrict"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {fallbackSubdistrictValue ? (
+                    <SelectItem value={fallbackSubdistrictValue}>
+                      {formData.subdistrict}
+                    </SelectItem>
+                  ) : null}
+                  {subdistricts.map((subdistrict) => (
+                    <SelectItem key={subdistrict.id} value={subdistrict.id}>
+                      {subdistrict.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </>
         );
       })()}
@@ -527,7 +553,7 @@ export default function AddressForm({
   if (layout === "stacked") {
     return (
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
+        <Card className="py-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
@@ -654,7 +680,7 @@ export default function AddressForm({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="py-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
@@ -673,13 +699,18 @@ export default function AddressForm({
                 className="gap-2"
               >
                 <LocateFixed className="h-4 w-4" />
-                {isLocating ? "Detecting location..." : "Use My Current Location"}
+                {isLocating
+                  ? "Detecting location..."
+                  : "Use My Current Location"}
               </Button>
               <p className="text-muted-foreground mt-2 text-xs">
-                Enable location permission in your browser for accurate pin placement.
+                Enable location permission in your browser for accurate pin
+                placement.
               </p>
               {locationNotice ? (
-                <p className="text-muted-foreground mt-1 text-xs">{locationNotice}</p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {locationNotice}
+                </p>
               ) : null}
             </div>
           </CardHeader>
@@ -886,13 +917,18 @@ export default function AddressForm({
                 className="gap-2"
               >
                 <LocateFixed className="h-4 w-4" />
-                {isLocating ? "Detecting location..." : "Use My Current Location"}
+                {isLocating
+                  ? "Detecting location..."
+                  : "Use My Current Location"}
               </Button>
               <p className="text-muted-foreground mt-2 text-xs">
-                Enable location permission in your browser for accurate pin placement.
+                Enable location permission in your browser for accurate pin
+                placement.
               </p>
               {locationNotice ? (
-                <p className="text-muted-foreground mt-1 text-xs">{locationNotice}</p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {locationNotice}
+                </p>
               ) : null}
             </div>
           </CardHeader>
@@ -908,4 +944,3 @@ export default function AddressForm({
     </div>
   );
 }
-

@@ -10,7 +10,6 @@ import {
   Clock3,
   FileText,
   Upload,
-  Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,9 @@ import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUpload } from "@/features/dashboard/products/components/ImageUpload";
+import useGetAdminOrder from "@/hooks/api/order/useGetAdminOrder";
+import useCreateProductionProgress from "@/hooks/api/production/useCreateProductionProgress";
+import useGetProductionProgress from "@/hooks/api/production/useGetProductionProgress";
 import { UploadedProductImage } from "@/types/product";
 import {
   PAYMENT_PHASES,
@@ -27,9 +29,10 @@ import {
   PaymentPhaseStepper,
 } from "./PaymentPhaseStepper";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 type ProductionLog = {
-  id: number;
+  id: string;
   percentage: number;
   notes: string;
   timestamp: string;
@@ -41,40 +44,61 @@ type AdminOrderProcessPageTrialProps = {
   orderNumber?: string;
 };
 
-export default function AdminOrderProcessPageTrial({
+export default function AdminOrderProcessPage({
   orderId,
   orderNumber,
 }: AdminOrderProcessPageTrialProps) {
   const router = useRouter();
+  const safeOrderId = orderId?.trim() ?? "";
+  const { data: order } = useGetAdminOrder(safeOrderId || undefined);
+
   const [uploadedImageItems, setUploadedImageItems] = useState<
     UploadedProductImage[]
   >([]);
-  const [progressValue, setProgressValue] = useState([40]);
-  const [notes, setNotes] = useState("Sedang proses amplas halus...");
-  const [paymentPhase, setPaymentPhase] = useState<PaymentPhase>("PROGRESS_1");
-  const [submitting, setSubmitting] = useState(false);
+  const [progressValue, setProgressValue] = useState([0]);
+  const [notes, setNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const {
+    data: productionProgress = [],
+    isLoading: isProductionProgressLoading,
+  } = useGetProductionProgress(safeOrderId || undefined);
+  const { mutateAsync: createProgress, isPending: submitting } =
+    useCreateProductionProgress();
 
-  const currentPhaseIndex = PAYMENT_PHASES.indexOf(paymentPhase);
-  const previousPhase = PAYMENT_PHASES[currentPhaseIndex - 1];
-  const nextPhase = PAYMENT_PHASES[currentPhaseIndex + 1];
+  const paymentPhase = useMemo<PaymentPhase | undefined>(() => {
+    const rawPhase = order?.currentPaymentPhase;
+    if (rawPhase && PAYMENT_PHASES.includes(rawPhase as PaymentPhase)) {
+      return rawPhase as PaymentPhase;
+    }
+    return undefined;
+  }, [order?.currentPaymentPhase]);
 
-  const productionLogs: ProductionLog[] = [
-    {
-      id: 1,
-      percentage: 40,
-      notes: "Sedang proses amplas halus pada bagian kaki meja.",
-      timestamp: "Hari ini, 10:42",
-      images: 2,
-    },
-    {
-      id: 2,
-      percentage: 35,
-      notes: "Rangka utama berhasil dirakit dengan presisi tinggi.",
-      timestamp: "Kemarin, 15:20",
-      images: 1,
-    },
-  ];
+  const productionLogs: ProductionLog[] = useMemo(
+    () =>
+      [...productionProgress]
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
+        .map((progress) => ({
+          id: progress.id,
+          percentage: progress.percentage,
+          notes: progress.description || "-",
+          timestamp: new Date(progress.createdAt).toLocaleString("id-ID"),
+          images: progress.photoUrls.length,
+        })),
+    [productionProgress],
+  );
+  const latestProgressFloor = useMemo(
+    () =>
+      productionProgress.length === 0
+        ? 0
+        : productionProgress.reduce(
+            (maxValue, item) => Math.max(maxValue, item.percentage),
+            0,
+          ),
+    [productionProgress],
+  );
 
   const statusText = useMemo(() => {
     const percentage = progressValue[0] ?? 0;
@@ -93,17 +117,48 @@ export default function AdminOrderProcessPageTrial({
     };
   }, [uploadedImageItems]);
 
-  const handleSubmitProgress = () => {
-    setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+  useEffect(() => {
+    setProgressValue((prev) => {
+      const current = prev[0] ?? 0;
+      if (current >= latestProgressFloor) return prev;
+      return [latestProgressFloor];
+    });
+  }, [latestProgressFloor]);
+
+  const handleSubmitProgress = async () => {
+    const percentage = progressValue[0] ?? 0;
+    if (!safeOrderId) {
+      toast.error("Invalid order id");
+      return;
+    }
+    if (uploadedImageItems.length === 0) {
+      toast.error("Please upload at least one photo");
+      return;
+    }
+
+    try {
+      await createProgress({
+        orderId: safeOrderId,
+        percentage,
+        imageFiles: uploadedImageItems.map((item) => item.file),
+        description: notes.trim() || undefined,
+      });
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 2500);
-    }, 1200);
+      setUploadedImageItems([]);
+      setNotes("");
+      toast.success("Progress submitted");
+    } catch (error) {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message ?? "Failed to submit progress";
+      toast.error(message);
+    }
   };
 
   const percentage = progressValue[0] ?? 0;
-  const orderRef = orderNumber ?? "ORD-12345";
+  const orderRef =
+    order?.orderNumber?.trim() || orderNumber || safeOrderId || "ORD-12345";
   const nowLabel = new Date().toLocaleString("id-ID");
 
   return (
@@ -165,7 +220,7 @@ export default function AdminOrderProcessPageTrial({
         <div className="bg-card space-y-4 rounded-xl border px-4 pt-4 pb-8">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium">Payment Progress</p>
-            <Badge variant="outline">{paymentPhase}</Badge>
+            <Badge variant="outline">{paymentPhase ?? "-"}</Badge>
           </div>
           <PaymentPhaseStepper paymentPhase={paymentPhase} />
         </div>
@@ -203,10 +258,14 @@ export default function AdminOrderProcessPageTrial({
               <Progress value={percentage} />
               <Slider
                 value={progressValue}
-                min={0}
+                min={latestProgressFloor}
                 max={100}
                 step={1}
-                onValueChange={setProgressValue}
+                onValueChange={(value) =>
+                  setProgressValue([
+                    Math.max(latestProgressFloor, value[0] ?? 0),
+                  ])
+                }
                 className="**:data-[slot=slider-thumb]:border-primary **:data-[slot=slider-thumb]:bg-background **:data-[slot=slider-thumb]:size-5 **:data-[slot=slider-track]:h-2"
               />
               <div className="grid grid-cols-4 gap-2">
@@ -216,7 +275,10 @@ export default function AdminOrderProcessPageTrial({
                     type="button"
                     variant={percentage === val ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setProgressValue([val])}
+                    onClick={() =>
+                      setProgressValue([Math.max(latestProgressFloor, val)])
+                    }
+                    disabled={val < latestProgressFloor}
                   >
                     {val}%
                   </Button>
@@ -265,26 +327,34 @@ export default function AdminOrderProcessPageTrial({
             <Badge variant="outline">{productionLogs.length} entri</Badge>
           </CardHeader>
           <CardContent className="space-y-3">
-            {productionLogs.map((log) => (
-              <div key={log.id} className="bg-muted/30 rounded-lg border p-4">
-                <div className="flex items-start gap-3">
-                  <Badge variant="outline">{log.percentage}%</Badge>
-                  <div className="flex-1 space-y-2">
-                    <p className="text-sm">{log.notes}</p>
-                    <div className="text-muted-foreground flex items-center gap-4 text-xs">
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {log.timestamp}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Camera className="h-3 w-3" />
-                        {log.images} foto
-                      </span>
+            {isProductionProgressLoading ? (
+              <p className="text-muted-foreground text-sm">Loading logs...</p>
+            ) : productionLogs.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No production logs yet.
+              </p>
+            ) : (
+              productionLogs.map((log) => (
+                <div key={log.id} className="bg-muted/30 rounded-lg border p-4">
+                  <div className="flex items-start gap-3">
+                    <Badge variant="outline">{log.percentage}%</Badge>
+                    <div className="flex-1 space-y-2">
+                      <p className="text-sm">{log.notes}</p>
+                      <div className="text-muted-foreground flex items-center gap-4 text-xs">
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {log.timestamp}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Camera className="h-3 w-3" />
+                          {log.images} foto
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
