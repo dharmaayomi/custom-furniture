@@ -1,22 +1,9 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatPrice } from "@/lib/price";
 import { ProductMaterial } from "@/types/materialProduct";
-import {
-  Grid3x3,
-  List,
-  PackageSearch,
-  Palette,
-  Pencil,
-  Trash2,
-} from "lucide-react";
-import {
-  formatMaterialCategory,
-  toCloudinaryThumbUrl,
-} from "./materialHelpers";
-import { MaterialPreview } from "./MaterialPreview";
+import { Grid3x3, List, PackageSearch } from "lucide-react";
+import { MaterialCard } from "./MaterialCard";
 
 type MaterialListContentProps = {
   viewMode: "grid" | "list";
@@ -28,11 +15,6 @@ type MaterialListContentProps = {
   onEdit: (id: string) => void;
   onDelete: (material: ProductMaterial) => void;
 };
-
-const ACTIVE_BADGE_CLASS =
-  "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300";
-const INACTIVE_BADGE_CLASS =
-  "border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-300";
 
 function MaterialListSkeleton({ viewMode }: { viewMode: "grid" | "list" }) {
   return (
@@ -131,127 +113,15 @@ export function MaterialListContent({
               : "space-y-4"
           }
         >
-          {materials.map((item) =>
-            viewMode === "grid" ? (
-              <div
-                key={item.id}
-                className="bg-card overflow-hidden rounded-lg border shadow-sm"
-              >
-                <MaterialPreview
-                  candidates={[
-                    toCloudinaryThumbUrl(item.materialUrl),
-                    item.materialUrl,
-                  ]}
-                  name={item.materialName}
-                />
-                <div className="p-3">
-                  <div className="mb-1 flex items-center gap-2">
-                    <Palette className="text-muted-foreground h-4 w-4" />
-                    <p className="text-foreground truncate text-sm font-semibold">
-                      {item.materialName}
-                    </p>
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    Category: {formatMaterialCategory(item)}
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    Price: {item.price != null ? formatPrice(item.price) : "-"}
-                  </p>
-                  <div className="mt-2">
-                    <Badge
-                      variant="outline"
-                      className={item.isActive ? ACTIVE_BADGE_CLASS : INACTIVE_BADGE_CLASS}
-                    >
-                      {item.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                  <div className="border-border mt-3 flex gap-2 border-t pt-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEdit(item.id)}
-                      className="flex-1 bg-transparent"
-                    >
-                      <Pencil className="h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onDelete(item)}
-                      className="text-destructive hover:bg-destructive bg-transparent hover:text-white"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div
-                key={item.id}
-                className="bg-card rounded-lg border p-3 shadow-sm"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <MaterialPreview
-                    list
-                    candidates={[
-                      toCloudinaryThumbUrl(item.materialUrl),
-                      item.materialUrl,
-                    ]}
-                    name={item.materialName}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex items-center gap-2">
-                      <Palette className="text-muted-foreground h-4 w-4" />
-                      <p className="text-foreground truncate text-sm font-semibold">
-                        {item.materialName}
-                      </p>
-                    </div>
-                    <p className="text-muted-foreground text-xs">
-                      Category: {formatMaterialCategory(item)}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      Price:{" "}
-                      {item.price != null ? formatPrice(item.price) : "-"}
-                    </p>
-                    <div className="mt-2">
-                      <Badge
-                        variant="outline"
-                        className={
-                          item.isActive ? ACTIVE_BADGE_CLASS : INACTIVE_BADGE_CLASS
-                        }
-                      >
-                        {item.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex w-full gap-2 sm:w-auto sm:shrink-0">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEdit(item.id)}
-                      className="flex-1 bg-transparent sm:flex-none"
-                    >
-                      <Pencil className="h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onDelete(item)}
-                      className="text-destructive hover:bg-destructive bg-transparent hover:text-white sm:flex-none"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ),
-          )}
+          {materials.map((item) => (
+            <MaterialCard
+              key={item.id}
+              item={item}
+              viewMode={viewMode}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))}
         </div>
       )}
     </>

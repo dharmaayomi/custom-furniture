@@ -10,6 +10,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import Image from "next/image";
 import { NavMain } from "./NavMain";
@@ -26,6 +27,8 @@ import useGetNotifications from "@/hooks/api/notification/useGetNotifications";
 export function DashboardSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
   const { navUser } = useUser();
   const { data: session } = useSession();
   const { data: unreadData } = useGetUnreadCount();
@@ -46,19 +49,20 @@ export function DashboardSidebar({
   const navData = React.useMemo(() => getDashboardNavDataByRole(role), [role]);
 
   return (
-    <Sidebar variant="inset" {...props}>
+    <Sidebar variant="inset" {...props} collapsible="icon">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <div className="flex justify-center gap-2 md:justify-start">
+              <div className="flex justify-start gap-2 group-data-[collapsible=icon]:justify-center">
                 <Link href="/" className="flex items-center gap-2 font-medium">
                   <div className="text-primary-foreground flex items-center justify-center">
                     <Image
-                      src="/logo-dark.svg"
+                      src={isCollapsed ? "/icon.png" : "/logo-dark.svg"}
                       alt="Logo"
-                      width={180}
-                      height={56}
+                      width={isCollapsed ? 32 : 180}
+                      height={isCollapsed ? 32 : 56}
+                      className="items-center justify-center object-contain"
                     />
                   </div>
                 </Link>

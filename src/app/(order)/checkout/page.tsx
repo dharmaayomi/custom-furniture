@@ -1,10 +1,15 @@
 import { CheckoutPage } from "@/features/checkout";
-import React from "react";
+import { CheckoutPageNew } from "@/features/checkout/CheckoutPageNew";
+import { Suspense } from "react";
 
 const Checkout = () => {
   return (
     <div>
-      <CheckoutPage />
+      <Suspense
+        fallback={<div className="p-6 text-sm">Loading checkout...</div>}
+      >
+        <CheckoutPageNew />
+      </Suspense>
     </div>
   );
 };

@@ -2,8 +2,21 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +48,7 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@/providers/UserProvider";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useDebounceValue } from "usehooks-ts";
+import { format } from "date-fns";
 
 type ComponentItem = {
   id: number;
@@ -226,6 +240,9 @@ export const ProductsPage = () => {
     void setPage(1);
   };
 
+  const dateFromValue = dateFrom ? new Date(dateFrom) : undefined;
+  const dateToValue = dateTo ? new Date(dateTo) : undefined;
+
   return (
     <section>
       <div className="bg-muted/60 mb-8 rounded-lg px-4 py-6 sm:px-6 sm:py-8">
@@ -272,37 +289,43 @@ export const ProductsPage = () => {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="sort-by">Sort by</Label>
-                  <select
-                    id="sort-by"
+                  <Select
                     value={resolvedSortBy}
-                    className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none"
-                    onChange={(event) => {
-                      void setSortBy(event.target.value);
+                    onValueChange={(value) => {
+                      void setSortBy(value);
                       void setPage(1);
                     }}
                   >
-                    <option value="createdAt">Created Date</option>
-                    <option value="updatedAt">Updated Date</option>
-                    <option value="productName">Product Name</option>
-                    <option value="sku">SKU</option>
-                    <option value="basePrice">Base Price</option>
-                  </select>
+                    <SelectTrigger id="sort-by" className="w-full">
+                      <SelectValue placeholder="Select sort field" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="createdAt">Created Date</SelectItem>
+                      <SelectItem value="updatedAt">Updated Date</SelectItem>
+                      <SelectItem value="productName">Product Name</SelectItem>
+                      <SelectItem value="sku">SKU</SelectItem>
+                      <SelectItem value="basePrice">Base Price</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="sort-order">Sort order</Label>
-                  <select
-                    id="sort-order"
+                  <Select
                     value={resolvedOrderBy}
-                    className="border-input bg-muted/40 h-9 w-full rounded-md border px-3 text-sm outline-none"
-                    onChange={(event) => {
-                      void setOrderBy(event.target.value);
+                    onValueChange={(value) => {
+                      void setOrderBy(value);
                       void setPage(1);
                     }}
                   >
-                    <option value="desc">Descending</option>
-                    <option value="asc">Ascending</option>
-                  </select>
+                    <SelectTrigger id="sort-order" className="w-full">
+                      <SelectValue placeholder="Select order" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="desc">Descending</SelectItem>
+                      <SelectItem value="asc">Ascending</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -312,27 +335,86 @@ export const ProductsPage = () => {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="date-from">From</Label>
-                    <Input
-                      id="date-from"
-                      type="date"
-                      value={dateFrom}
-                      onChange={(event) => {
-                        void setDateFrom(event.target.value);
-                        void setPage(1);
-                      }}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="date-from"
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                        >
+                          {dateFromValue ? (
+                            format(dateFromValue, "LLL dd, y")
+                          ) : (
+                            <span className="text-muted-foreground">
+                              Pick start date
+                            </span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dateFromValue}
+                          onSelect={(selectedDate) => {
+                            if (!selectedDate) {
+                              void setDateFrom("");
+                              void setPage(1);
+                              return;
+                            }
+
+                            const nextFrom = format(selectedDate, "yyyy-MM-dd");
+                            void setDateFrom(nextFrom);
+                            if (dateTo) {
+                              const toDate = new Date(dateTo);
+                              if (selectedDate.getTime() > toDate.getTime()) {
+                                void setDateTo("");
+                              }
+                            }
+                            void setPage(1);
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="date-to">To</Label>
-                    <Input
-                      id="date-to"
-                      type="date"
-                      value={dateTo}
-                      onChange={(event) => {
-                        void setDateTo(event.target.value);
-                        void setPage(1);
-                      }}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="date-to"
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                        >
+                          {dateToValue ? (
+                            format(dateToValue, "LLL dd, y")
+                          ) : (
+                            <span className="text-muted-foreground">
+                              Pick end date
+                            </span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dateToValue}
+                          disabled={(date) =>
+                            dateFromValue ? date < dateFromValue : false
+                          }
+                          onSelect={(selectedDate) => {
+                            if (!selectedDate) {
+                              void setDateTo("");
+                              void setPage(1);
+                              return;
+                            }
+                            void setDateTo(format(selectedDate, "yyyy-MM-dd"));
+                            void setPage(1);
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
 

@@ -25,6 +25,7 @@ type GetAdminOrdersQuery = {
   status?: OrderStatus;
   dateFrom?: string;
   dateTo?: string;
+  search?: string;
 };
 
 type GetAdminOrdersResponse = PageableResponse<CustomOrder>;
@@ -78,6 +79,7 @@ const useGetAdminOrders = (query?: GetAdminOrdersQuery) => {
     status: query?.status,
     dateFrom: query?.dateFrom,
     dateTo: query?.dateTo,
+    search: query?.search,
   };
 
   return useQuery<GetAdminOrdersResponse>({
