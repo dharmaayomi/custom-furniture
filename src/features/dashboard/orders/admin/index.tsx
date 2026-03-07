@@ -46,7 +46,10 @@ import {
 import useGetAdminOrders from "@/hooks/api/order/useGetAdminOrders";
 import useStartOrder from "@/hooks/api/order/useStartOrder";
 import { getAvatarFallback } from "@/lib/avatar";
-import { getOrderStatusBadgeClass, getOrderStatusLabel } from "@/lib/orderStatus";
+import {
+  getOrderStatusBadgeClass,
+  getOrderStatusLabel,
+} from "@/lib/orderStatus";
 import { formatPrice } from "@/lib/price";
 import { CustomOrder, OrderStatus } from "@/types/customOrder";
 import {
@@ -97,7 +100,11 @@ const statusTabs: Array<{
   icon: React.ComponentType<{ className?: string }>;
 }> = [
   { value: "ALL", label: "All", icon: PackageCheck },
-  { value: "PENDING_PAYMENT", label: "Waiting Payment", icon: CircleDollarSign },
+  {
+    value: "PENDING_PAYMENT",
+    label: "Waiting Payment",
+    icon: CircleDollarSign,
+  },
   { value: "AWAITING_PRODUCTION", label: "Awaiting Production", icon: Clock3 },
   { value: "IN_PRODUCTION", label: "In Production", icon: Hammer },
   { value: "READY_TO_SHIP", label: "Ready to Ship", icon: Truck },
@@ -239,7 +246,9 @@ export const AdminOrdersPage = () => {
   const readyToShipCount = orders.filter(
     (order) => order.status === "READY_TO_SHIP",
   ).length;
-  const shippedCount = orders.filter((order) => order.status === "SHIPPED").length;
+  const shippedCount = orders.filter(
+    (order) => order.status === "SHIPPED",
+  ).length;
   const completedCount = orders.filter(
     (order) => order.status === "COMPLETED",
   ).length;
@@ -588,6 +597,7 @@ export const AdminOrdersPage = () => {
                   const canStartProduction =
                     order.status === "AWAITING_PRODUCTION";
                   const canProcessOrder = order.status === "IN_PRODUCTION";
+                  const canDeliverOrder = order.status === "READY_TO_SHIP";
 
                   return (
                     <Fragment key={order.id}>
@@ -628,7 +638,9 @@ export const AdminOrdersPage = () => {
                           {formatPrice(Number(order.grandTotalPrice ?? 0))}
                         </TableCell>
                         <TableCell>
-                          <Badge className={getOrderStatusBadgeClass(order.status)}>
+                          <Badge
+                            className={getOrderStatusBadgeClass(order.status)}
+                          >
                             {getOrderStatusLabel(order.status)}
                           </Badge>
                         </TableCell>
@@ -660,6 +672,15 @@ export const AdminOrdersPage = () => {
                                   </span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
+                                  disabled={!canStartProduction}
+                                  onClick={() => setConfirmStartOrder(order)}
+                                >
+                                  <span className="flex gap-2">
+                                    <SquarePlayIcon className="h-4 w-4" />
+                                    Start Order
+                                  </span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                   disabled={!canProcessOrder}
                                   onClick={() =>
                                     router.push(
@@ -673,12 +694,16 @@ export const AdminOrdersPage = () => {
                                   </span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  disabled={!canStartProduction}
-                                  onClick={() => setConfirmStartOrder(order)}
+                                  disabled={!canDeliverOrder}
+                                  onClick={() =>
+                                    router.push(
+                                      `/dashboard/admin/orders/${order.id}/deliver`,
+                                    )
+                                  }
                                 >
                                   <span className="flex gap-2">
-                                    <SquarePlayIcon className="h-4 w-4" />
-                                    Start Order
+                                    <Truck className="h-4 w-4" />
+                                    Deliver Order
                                   </span>
                                 </DropdownMenuItem>
                               </DropdownMenuContent>

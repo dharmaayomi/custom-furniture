@@ -1,4 +1,5 @@
 import { ProductMaterial } from "./materialProduct";
+import { ProductBase } from "./product";
 
 export interface SnapshotAddress {
   label?: string | null;
@@ -39,6 +40,7 @@ export interface CustomOrder {
   snapShotAddress?: SnapshotAddress | null;
   status: OrderStatus;
   currentPaymentPhase?: PaymentPhase | null;
+  currentPaymentStatus?: PaymentStatus | null;
 
   subtotalPrice?: number | null;
   deliveryType: DeliveryType;
@@ -51,6 +53,8 @@ export interface CustomOrder {
   grandTotalPrice: number;
 
   items: CustomOrderItem[];
+  payments?: CustomOrderPayment[];
+  user?: CustomOrderUser | null;
 
   addressId?: number | null;
   notes?: string | null;
@@ -89,6 +93,7 @@ export interface CustomOrderItem {
   productBaseId: string;
   materialId?: string | null;
   material?: ProductMaterial | null;
+  productBase?: ProductBase | null;
 
   lockedBasePrice: number;
   lockedMaterialPrice: number;
@@ -96,6 +101,26 @@ export interface CustomOrderItem {
 
   components: CustomOrderComponent[];
   deletedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomOrderUser {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export interface CustomOrderPayment {
+  id: string;
+  phase: PaymentPhase;
+  status: PaymentStatus;
+  amount: number;
+  paymentType?: string | null;
+  paymentUrl?: string | null;
+  paidAt?: string | null;
+  expiresAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

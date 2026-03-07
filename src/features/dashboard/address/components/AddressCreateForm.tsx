@@ -6,12 +6,15 @@ import useCreateNewAddress, {
   CreateAddressInput,
 } from "@/hooks/api/user/useCreateNewAddress";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function AddressCreateForm() {
+  const router = useRouter();
   const { userId } = useUser();
   const { mutateAsync } = useCreateNewAddress(userId, {
     onSuccess: () => {
       toast.success("Address created");
+      router.push("/dashboard/address");
     },
     onError: (error) => {
       const message =

@@ -39,7 +39,7 @@ type CreateProductionProgressPayload = {
   billing: CreateProductionProgressResponse["billing"];
 };
 
-const normalizeResponse = <T,>(payload: unknown): T => {
+const normalizeResponse = <T>(payload: unknown): T => {
   return ((payload as { data?: unknown })?.data ?? payload) as T;
 };
 
@@ -119,8 +119,9 @@ const useCreateProductionProgress = () => {
             const signatureRes = await axiosInstance.post(
               "/product/upload-signature/image",
             );
-            const signature =
-              normalizeResponse<CloudinarySignaturePayload>(signatureRes.data);
+            const signature = normalizeResponse<CloudinarySignaturePayload>(
+              signatureRes.data,
+            );
             return Promise.all(
               payload.imageFiles!.map((file) =>
                 uploadToCloudinary(file, signature, "image"),
@@ -129,10 +130,7 @@ const useCreateProductionProgress = () => {
           })()
         : [];
 
-      const photoUrls = [
-        ...(payload.photoUrls ?? []),
-        ...uploadedUrls,
-      ]
+      const photoUrls = [...(payload.photoUrls ?? []), ...uploadedUrls]
         .map((url) => url.trim())
         .filter(Boolean);
 

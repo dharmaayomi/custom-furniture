@@ -9,12 +9,14 @@ import { useUser } from "@/providers/UserProvider";
 import { Address } from "@/types/address";
 import { toast } from "sonner";
 import AddressFormSkeleton from "./AddressFormSkeleton";
+import { useRouter } from "next/navigation";
 
 interface AddressEditFormProps {
   addressId: number;
 }
 
 export default function AddressEditForm({ addressId }: AddressEditFormProps) {
+  const router = useRouter();
   const { userId } = useUser();
   const {
     data: addressData,
@@ -30,11 +32,17 @@ export default function AddressEditForm({ addressId }: AddressEditFormProps) {
         recipientName:
           rawAddress.recipientName ?? rawAddress.recipient_name ?? "",
         phoneNumber: rawAddress.phoneNumber ?? rawAddress.phone_number ?? "",
-        line1: rawAddress.line1 ?? rawAddress.line_1 ?? rawAddress.address1 ?? "",
-        line2: rawAddress.line2 ?? rawAddress.line_2 ?? rawAddress.address2 ?? "",
-        city: rawAddress.city ?? rawAddress.regency ?? rawAddress.kabupaten ?? "",
+        line1:
+          rawAddress.line1 ?? rawAddress.line_1 ?? rawAddress.address1 ?? "",
+        line2:
+          rawAddress.line2 ?? rawAddress.line_2 ?? rawAddress.address2 ?? "",
+        city:
+          rawAddress.city ?? rawAddress.regency ?? rawAddress.kabupaten ?? "",
         district:
-          rawAddress.district ?? rawAddress.kecamatan ?? rawAddress.subregency ?? "",
+          rawAddress.district ??
+          rawAddress.kecamatan ??
+          rawAddress.subregency ??
+          "",
         subdistrict:
           rawAddress.subdistrict ??
           rawAddress.village ??
@@ -46,16 +54,14 @@ export default function AddressEditForm({ addressId }: AddressEditFormProps) {
           rawAddress.provinceName ??
           rawAddress.province_name ??
           "",
-        provinceCode:
-          rawAddress.provinceCode ?? rawAddress.province_code ?? "",
+        provinceCode: rawAddress.provinceCode ?? rawAddress.province_code ?? "",
         cityCode:
           rawAddress.cityCode ??
           rawAddress.city_code ??
           rawAddress.regencyCode ??
           rawAddress.regency_code ??
           "",
-        districtCode:
-          rawAddress.districtCode ?? rawAddress.district_code ?? "",
+        districtCode: rawAddress.districtCode ?? rawAddress.district_code ?? "",
         subdistrictCode:
           rawAddress.subdistrictCode ??
           rawAddress.subdistrict_code ??
@@ -66,9 +72,11 @@ export default function AddressEditForm({ addressId }: AddressEditFormProps) {
         latitude:
           rawAddress.latitude ?? rawAddress.lat ?? rawAddress.location_lat ?? 0,
         longitude:
-          rawAddress.longitude ?? rawAddress.lng ?? rawAddress.location_lng ?? 0,
-        isDefault:
-          rawAddress.isDefault ?? rawAddress.is_default ?? false,
+          rawAddress.longitude ??
+          rawAddress.lng ??
+          rawAddress.location_lng ??
+          0,
+        isDefault: rawAddress.isDefault ?? rawAddress.is_default ?? false,
         postalCode: String(
           rawAddress.postalCode ?? rawAddress.postal_code ?? "",
         ),
@@ -77,6 +85,7 @@ export default function AddressEditForm({ addressId }: AddressEditFormProps) {
   const { mutateAsync } = useEditAddress(userId, addressId, {
     onSuccess: () => {
       toast("Address updated");
+      router.push("/dashboard/address");
     },
     onError: (error) => {
       const message =

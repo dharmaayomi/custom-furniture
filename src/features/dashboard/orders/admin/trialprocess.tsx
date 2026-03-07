@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
@@ -148,6 +149,9 @@ export default function AdminOrderProcessPage({
       setUploadedImageItems([]);
       setNotes("");
       toast.success("Progress submitted");
+      setTimeout(() => {
+        router.push("/dashboard/admin/orders");
+      }, 800);
     } catch (error) {
       const message =
         (error as { response?: { data?: { message?: string } } })?.response
@@ -157,6 +161,7 @@ export default function AdminOrderProcessPage({
   };
 
   const percentage = progressValue[0] ?? 0;
+  const canSubmitProgress = order?.currentPaymentStatus === "PAID";
   const orderRef =
     order?.orderNumber?.trim() || orderNumber || safeOrderId || "ORD-12345";
   const nowLabel = new Date().toLocaleString("id-ID");
@@ -222,6 +227,16 @@ export default function AdminOrderProcessPage({
             <p className="text-sm font-medium">Payment Progress</p>
             <Badge variant="outline">{paymentPhase ?? "-"}</Badge>
           </div>
+          {!canSubmitProgress && (
+            <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+              <Clock3 className="h-4 w-4" />
+              <AlertTitle>Payment not settled</AlertTitle>
+              <AlertDescription>
+                Progress cannot be submitted until current payment status is{" "}
+                <strong>PAID</strong>
+              </AlertDescription>
+            </Alert>
+          )}
           <PaymentPhaseStepper paymentPhase={paymentPhase} />
         </div>
       </header>
@@ -302,7 +317,7 @@ export default function AdminOrderProcessPage({
             <Button
               className="w-full"
               onClick={handleSubmitProgress}
-              disabled={submitting}
+              disabled={submitting || !canSubmitProgress}
             >
               {submitting ? (
                 "Menyimpan..."

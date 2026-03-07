@@ -89,8 +89,9 @@ function ProgressRing({ value }: { value: number }) {
           cy={center}
           r={r}
           fill="none"
-          stroke="#e5e7eb"
+          stroke="currentColor"
           strokeWidth={stroke}
+          className="text-border"
         />
         <circle
           cx={center}
@@ -105,7 +106,7 @@ function ProgressRing({ value }: { value: number }) {
           className="text-primary transition-all duration-700"
         />
       </svg>
-      <span className="text-md leading-none font-bold dark:text-black">
+      <span className="text-md text-foreground leading-none font-bold">
         {safeValue}%
       </span>
     </div>
@@ -192,7 +193,7 @@ function ProductionLogCard({
       <div className="relative flex gap-4">
         {/* Timeline stem */}
         <div className="flex flex-col items-center">
-          <div className="ring-background flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#e6f6f1] ring-4">
+          <div className="bg-background ring-background flex h-14 w-14 shrink-0 items-center justify-center rounded-full ring-4">
             <ProgressRing value={log.progressPercent} />
           </div>
         </div>
@@ -206,8 +207,8 @@ function ProductionLogCard({
               <span
                 className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${
                   log.progressPercent === 100
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-primary/10 text-primary"
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                    : "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
                 }`}
               >
                 {log.progressPercent}%
@@ -893,7 +894,7 @@ export const AdminOrderDetailPage = ({
           ) : (
             <div className="relative">
               {/* vertical line */}
-              <div className="bg-border absolute top-5 bottom-5 left-6 w-1" />
+              <div className="bg-border/70 absolute top-5 bottom-5 left-6 w-1" />
               <div className="space-y-0">
                 {productionLogs.map((log, i) => (
                   <ProductionLogCard key={log.id} log={log} index={i} />

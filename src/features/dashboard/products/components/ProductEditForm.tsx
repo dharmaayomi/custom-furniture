@@ -7,12 +7,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useGetProductById from "@/hooks/api/product/useGetProductById";
 import useEditProduct from "@/hooks/api/product/useUpdateProduct";
-import { ProductBase, ProductFormData, UploadedProductImage } from "@/types/product";
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ProductBase,
+  ProductFormData,
+  UploadedProductImage,
+} from "@/types/product";
+import {
+  ChangeEvent,
+  FormEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { FormPreview } from "./FormPreview";
 import { ImageUpload } from "./ImageUpload";
+import { useRouter } from "next/navigation";
 
 type ProductEditFormProps = {
   productId: string;
@@ -34,10 +46,13 @@ const INITIAL_FORM_DATA: ProductFormData = {
 };
 
 export function ProductEditForm({ productId }: ProductEditFormProps) {
+  const router = useRouter();
   const [formData, setFormData] = useState<ProductFormData>(INITIAL_FORM_DATA);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [productFile, setProductFile] = useState<File | null>(null);
-  const [uploadedImageItems, setUploadedImageItems] = useState<UploadedProductImage[]>([]);
+  const [uploadedImageItems, setUploadedImageItems] = useState<
+    UploadedProductImage[]
+  >([]);
   const uploadedImageItemsRef = useRef<UploadedProductImage[]>([]);
   const { data, isLoading, isError } = useGetProductById(productId);
   const { mutateAsync: editProduct, isPending: isSaving } = useEditProduct();
@@ -130,11 +145,17 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
-      images: [...existingImages, ...uploadedImageItems.map((item) => item.previewUrl)],
+      images: [
+        ...existingImages,
+        ...uploadedImageItems.map((item) => item.previewUrl),
+      ],
     }));
   }, [existingImages, uploadedImageItems]);
 
-  const buildUpdatePayload = (current: ProductFormData, original: ProductBase) => {
+  const buildUpdatePayload = (
+    current: ProductFormData,
+    original: ProductBase,
+  ) => {
     const payload: Partial<{
       productName: string;
       sku: string;
@@ -222,7 +243,11 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
       return;
     }
 
-    if (Object.keys(payload).length === 0 && uploadedImageItems.length === 0 && !productFile) {
+    if (
+      Object.keys(payload).length === 0 &&
+      uploadedImageItems.length === 0 &&
+      !productFile
+    ) {
       toast("No changes", { description: "Nothing to update." });
       return;
     }
@@ -235,6 +260,7 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
         imageFiles: uploadedImageItems.map((item) => item.file),
       });
       toast.success("Product updated.");
+      router.push("/dashboard/products");
       setProductFile(null);
     } catch (error) {
       const message =
@@ -245,12 +271,16 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
   };
 
   if (isLoading) {
-    return <div className="text-muted-foreground text-sm">Loading product...</div>;
+    return (
+      <div className="text-muted-foreground text-sm">Loading product...</div>
+    );
   }
 
   if (isError || !product) {
     return (
-      <div className="text-muted-foreground text-sm">Failed to load product.</div>
+      <div className="text-muted-foreground text-sm">
+        Failed to load product.
+      </div>
     );
   }
 
@@ -309,7 +339,8 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
                   </div>
                 ) : null}
 
-                {existingImages.length === 0 && uploadedImageItems.length === 0 ? (
+                {existingImages.length === 0 &&
+                uploadedImageItems.length === 0 ? (
                   <p className="text-muted-foreground text-sm">
                     No images selected.
                   </p>
@@ -398,7 +429,9 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
             </Card>
 
             <Card className="border-border bg-card min-w-0 border p-4 sm:p-6">
-              <h2 className="text-foreground mb-4 text-lg font-semibold">Pricing</h2>
+              <h2 className="text-foreground mb-4 text-lg font-semibold">
+                Pricing
+              </h2>
               <div>
                 <Label htmlFor="basePrice" className="text-foreground">
                   Base Price (Rp) *
@@ -494,7 +527,9 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
             </Card>
 
             <Card className="border-border bg-card min-w-0 border p-4 sm:p-6">
-              <h2 className="text-foreground mb-4 text-lg font-semibold">Options</h2>
+              <h2 className="text-foreground mb-4 text-lg font-semibold">
+                Options
+              </h2>
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -503,7 +538,10 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
                     onCheckedChange={() => handleCheckboxChange("isActive")}
                     className="border-input"
                   />
-                  <Label htmlFor="isActive" className="text-foreground cursor-pointer">
+                  <Label
+                    htmlFor="isActive"
+                    className="text-foreground cursor-pointer"
+                  >
                     Product is Active
                   </Label>
                 </div>
@@ -511,7 +549,9 @@ export function ProductEditForm({ productId }: ProductEditFormProps) {
                   <Checkbox
                     id="isCustomizable"
                     checked={formData.isCustomizable}
-                    onCheckedChange={() => handleCheckboxChange("isCustomizable")}
+                    onCheckedChange={() =>
+                      handleCheckboxChange("isCustomizable")
+                    }
                     className="border-input"
                   />
                   <Label
