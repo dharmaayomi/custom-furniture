@@ -1,9 +1,13 @@
-import { BillingTest } from "@/features/dashboard/billing/BillingTest";
+import { BillingDetail } from "@/features/dashboard/billing/BillingDetail";
 import { auth } from "@/lib/auth";
 import { normalizeRole } from "@/lib/dashboard-access";
 import { redirect } from "next/navigation";
 
-const BillingTestPage = async () => {
+type BillingDetailPageProps = {
+  params: Promise<{ orderId: string }>;
+};
+
+const BillingDetailPage = async ({ params }: BillingDetailPageProps) => {
   const session = await auth();
   if (!session) {
     redirect("/login?reason=login_required");
@@ -14,12 +18,13 @@ const BillingTestPage = async () => {
     redirect("/dashboard");
   }
 
+  const { orderId } = await params;
+
   return (
     <div>
-      <BillingTest />
+      <BillingDetail orderId={orderId} />
     </div>
   );
 };
 
-export default BillingTestPage;
-
+export default BillingDetailPage;

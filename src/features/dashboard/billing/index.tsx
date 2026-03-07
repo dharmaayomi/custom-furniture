@@ -121,7 +121,7 @@ export const BillingPage = () => {
     </div>
   );
 
-  const renderList = (items: BillingItem[], mode: "pending" | "other") => {
+  const renderList = (items: BillingItem[]) => {
     if (isLoading) {
       return renderSkeletonList();
     }
@@ -157,13 +157,7 @@ export const BillingPage = () => {
           <div
             key={item.id}
             className="bg-card hover:bg-muted/35 hover:border-border cursor-pointer rounded-lg border p-4 shadow-sm transition"
-            onClick={() => {
-              if (mode === "pending") {
-                router.push(`/checkout?orderId=${item.orderId}`);
-                return;
-              }
-              router.push(`/dashboard/orders/${item.orderId}`);
-            }}
+            onClick={() => router.push(`/dashboard/billing/${item.orderId}`)}
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -216,10 +210,10 @@ export const BillingPage = () => {
             </TabsList>
 
             <TabsContent value="waiting-payment">
-              {renderList(waitingPayment, "pending")}
+              {renderList(waitingPayment)}
             </TabsContent>
             <TabsContent value="other-status">
-              {renderList(otherStatus, "other")}
+              {renderList(otherStatus)}
             </TabsContent>
           </Tabs>
         </div>

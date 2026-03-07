@@ -241,8 +241,15 @@ export const CheckoutPage = () => {
       return;
     }
     try {
-      const payment = await createSnapPayment({ orderId });
-      const paymentUrl = payment?.paymentUrl?.trim();
+      const payment = await createSnapPayment({
+        orderId,
+        channel: "CORE",
+        corePayload: { payment_type: "qris" },
+      });
+      const paymentUrl =
+        payment?.paymentUrl?.trim() ??
+        payment?.actions?.find((item) => item?.url)?.url?.trim() ??
+        "";
       if (!paymentUrl) {
         toast.error("Payment URL is missing.");
         return;
@@ -250,9 +257,17 @@ export const CheckoutPage = () => {
       toast.info("Redirecting to payment gateway...");
       window.location.assign(paymentUrl);
     } catch (error) {
-      toast.error(
-        getApiErrorMessage(error, "Failed to create payment transaction."),
+      const message = getApiErrorMessage(
+        error,
+        "Failed to create payment transaction.",
       );
+      if (message.includes("No invoice available for this phase yet")) {
+        toast.error(
+          "Invoice tahap ini belum tersedia. Tunggu update progress produksi dari admin.",
+        );
+        return;
+      }
+      toast.error(message);
     }
   };
 

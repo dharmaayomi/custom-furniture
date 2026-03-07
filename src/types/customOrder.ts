@@ -114,13 +114,25 @@ export interface CustomOrderUser {
 
 export interface CustomOrderPayment {
   id: string;
+  orderId?: string;
   phase: PaymentPhase;
   status: PaymentStatus;
   amount: number;
   paymentType?: string | null;
+  midtransPaymentType?: string | null;
+  midtransBank?: string | null;
+  midtransReference?: string | null;
   paymentUrl?: string | null;
   paidAt?: string | null;
   expiresAt?: string | null;
+  order?: {
+    id: string;
+    orderNumber?: string | null;
+    status: OrderStatus;
+    grandTotalPrice: number;
+    createdAt: string;
+    updatedAt: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
