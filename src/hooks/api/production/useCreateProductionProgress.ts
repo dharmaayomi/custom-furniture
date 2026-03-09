@@ -146,9 +146,14 @@ const useCreateProductionProgress = () => {
         queryKey: ["production-progress", variables.orderId],
       });
       void queryClient.invalidateQueries({
+        queryKey: ["order", variables.orderId],
+      });
+      void queryClient.invalidateQueries({
         queryKey: ["admin-order", variables.orderId],
       });
       void queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      void queryClient.invalidateQueries({ queryKey: ["orders"] });
+      void queryClient.invalidateQueries({ queryKey: ["user-payments"] });
     },
   });
 };

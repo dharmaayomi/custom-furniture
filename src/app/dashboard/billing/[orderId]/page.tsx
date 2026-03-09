@@ -5,9 +5,13 @@ import { redirect } from "next/navigation";
 
 type BillingDetailPageProps = {
   params: Promise<{ orderId: string }>;
+  searchParams: Promise<{ paymentId?: string; attemptId?: string }>;
 };
 
-const BillingDetailPage = async ({ params }: BillingDetailPageProps) => {
+const BillingDetailPage = async ({
+  params,
+  searchParams,
+}: BillingDetailPageProps) => {
   const session = await auth();
   if (!session) {
     redirect("/login?reason=login_required");
@@ -19,10 +23,15 @@ const BillingDetailPage = async ({ params }: BillingDetailPageProps) => {
   }
 
   const { orderId } = await params;
+  const { paymentId, attemptId } = await searchParams;
 
   return (
     <div>
-      <BillingDetail orderId={orderId} />
+      <BillingDetail
+        orderId={orderId}
+        paymentId={paymentId}
+        paymentAttemptId={attemptId}
+      />
     </div>
   );
 };

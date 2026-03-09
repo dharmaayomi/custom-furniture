@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useQueries } from "@tanstack/react-query";
 import { toast } from "sonner";
 import useAxios from "@/hooks/useAxios";
-import useCreateSnapPayment from "@/hooks/api/order/useCreateSnapPayment";
+import useCreateSnapPayment from "@/hooks/api/payment/useCreateSnapPayment";
 import useGetOrder from "@/hooks/api/order/useGetOrder";
 import { formatPrice } from "@/lib/price";
 import { getApiErrorMessage } from "@/lib/api-error";
@@ -223,8 +223,7 @@ export const CheckoutPage = () => {
   const deliveryDistance = Number(
     order?.deliveryDistance ?? order?.deliveryDistancce ?? 0,
   );
-  const totalWeightGrams = Number(order?.totalWeight ?? 0);
-  const totalWeightKg = totalWeightGrams / 1000;
+  const totalWeightKg = Number(order?.totalWeight ?? 0);
   const grandTotal = Number(
     order?.grandTotalPrice ?? snapshot?.grandTotal ?? 0,
   );
