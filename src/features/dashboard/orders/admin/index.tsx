@@ -947,6 +947,7 @@ import {
   CircleX,
   PackageCheck,
   Clock3,
+  WalletCards,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -973,19 +974,14 @@ type OrderFilterStatus = (typeof orderFilterStatuses)[number];
 const statusTabs: Array<{
   value: OrderFilterStatus;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
 }> = [
-  { value: "ALL", label: "All", icon: PackageCheck },
-  {
-    value: "PENDING_PAYMENT",
-    label: "Waiting Payment",
-    icon: CircleDollarSign,
-  },
-  { value: "AWAITING_PRODUCTION", label: "Awaiting", icon: Clock3 },
-  { value: "IN_PRODUCTION", label: "Production", icon: Hammer },
-  { value: "READY_TO_SHIP", label: "Ready", icon: Truck },
-  { value: "COMPLETED", label: "Done", icon: CheckCircle2 },
-  { value: "CANCELLED", label: "Cancelled", icon: CircleX },
+  { value: "ALL", label: "All" },
+  { value: "PENDING_PAYMENT", label: "Waiting Payment" },
+  { value: "AWAITING_PRODUCTION", label: "Awaiting" },
+  { value: "IN_PRODUCTION", label: "Production" },
+  { value: "READY_TO_SHIP", label: "Ready" },
+  { value: "COMPLETED", label: "Done" },
+  { value: "CANCELLED", label: "Cancelled" },
 ];
 
 export const AdminOrdersPage = () => {
@@ -1048,17 +1044,47 @@ export const AdminOrdersPage = () => {
     setExpandedRows((prev) => ({ ...prev, [orderId]: !prev[orderId] }));
   };
 
+  const statusCounts: Record<OrderFilterStatus, number> = {
+    ALL: orders.length,
+    PENDING_PAYMENT: orders.filter((o) => o.status === "PENDING_PAYMENT")
+      .length,
+    AWAITING_PRODUCTION: orders.filter(
+      (o) => o.status === "AWAITING_PRODUCTION",
+    ).length,
+    IN_PRODUCTION: orders.filter((o) => o.status === "IN_PRODUCTION").length,
+    READY_TO_SHIP: orders.filter((o) => o.status === "READY_TO_SHIP").length,
+    SHIPPED: orders.filter((o) => o.status === "SHIPPED").length,
+    COMPLETED: orders.filter((o) => o.status === "COMPLETED").length,
+    CANCELLED: orders.filter((o) => o.status === "CANCELLED").length,
+  };
+
   if (isLoading) return <AdminOrdersPageSkeleton />;
 
   return (
     <section className="space-y-8 px-1 pb-10">
       {/* --- Header Section --- */}
-      <div className="bg-muted/40 rounded-3xl border p-8 shadow-sm backdrop-blur-sm">
-        <h1 className="text-3xl font-black tracking-tight">Admin Orders</h1>
-        <p className="text-muted-foreground mt-1 text-sm font-medium">
-          Manage production workflow and track order status globally.
-        </p>
-      </div>
+
+      <header className="bg-card border-accent relative overflow-hidden rounded-2xl border px-6 py-10 shadow-lg/5 sm:px-10">
+        <div className="from-primary/5 to-primary/20 pointer-events-none absolute -top-17 -right-20 h-72 w-72 rounded-full bg-linear-to-br md:-top-14 md:-right-24 lg:-top-16 lg:-right-8" />
+        <div className="from-primary/10 to-primary/30 pointer-events-none absolute -top-13 -right-28 h-64 w-64 rounded-full bg-linear-to-br md:-top-10 md:-right-32 lg:-top-12 lg:-right-12" />
+        <div className="from-primary/20 to-primary/80 pointer-events-none absolute -top-9 -right-36 h-56 w-56 rounded-full bg-linear-to-br md:-top-6 md:-right-40 lg:-top-8 lg:-right-16" />
+
+        <div className="relative z-10 flex items-end justify-between gap-4">
+          <div>
+            <div className="mb-1 flex items-center gap-2.5">
+              <div className="bg-primary/10 rounded-lg p-2">
+                <WalletCards className="text-primary h-5 w-5" />
+              </div>
+              <h1 className="text-foreground text-2xl font-bold tracking-tight">
+                Admin Orders
+              </h1>
+            </div>
+            <p className="text-muted-foreground max-w-md text-sm">
+              Manage production workflow and track order status globally.
+            </p>
+          </div>
+        </div>
+      </header>
 
       {/* --- Stats Section --- */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -1093,19 +1119,21 @@ export const AdminOrdersPage = () => {
         <Tabs
           value={statusFilter}
           onValueChange={(v) => setStatusFilter(v as OrderFilterStatus)}
-          className="w-full lg:w-auto"
+          className="bg-muted/50 w-full rounded-full p-1 lg:w-auto"
         >
-          <TabsList className="bg-muted/50 h-auto flex-wrap justify-start gap-1 rounded-2xl border p-1.5">
-            {statusTabs.map(({ value, label, icon: Icon }) => (
+          <TabsList className="no-scrollbar h-auto w-full justify-start gap-2 overflow-x-auto bg-transparent p-0">
+            {statusTabs.map(({ value, label }) => (
               <TabsTrigger
                 key={value}
                 value={value}
-                className="data-[state=active]:bg-background group flex items-center gap-2 rounded-xl px-4 py-2 transition-all data-[state=active]:shadow-sm"
+                className="data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-background rounded-full border px-4 py-2 text-xs font-bold transition-all"
               >
-                <div className="bg-primary/20 group-data-[state=active]:bg-primary h-1.5 w-1.5 rounded-full transition-colors" />
-                <span className="text-xs font-bold tracking-wider uppercase">
-                  {label}
-                </span>
+                {label}
+                {statusCounts[value] > 0 && (
+                  <span className="bg-chart-2 text-card group-data-[state=active]:bg-background group-data-[state=active]:text-background ml-2 rounded-full px-1.5 py-0.5 text-[10px]">
+                    {statusCounts[value]}
+                  </span>
+                )}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -1304,110 +1332,172 @@ export const AdminOrdersPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedOrders.map((order) => {
-              const orderRef = order.orderNumber?.trim() || order.id;
-              const isExpanded = !!expandedRows[order.id];
-              const userMeta = getOrderUserMeta(order);
+            {sortedOrders.length === 0 ? (
+              <TableRow className="bg-transparent hover:bg-transparent">
+                <TableCell colSpan={7} className="px-6 py-14">
+                  <div className="bg-muted/30 rounded-3xl border border-dashed p-8 text-center">
+                    <p className="text-base font-bold">
+                      No orders in{" "}
+                      {statusTabs.find((tab) => tab.value === statusFilter)
+                        ?.label ?? "this"}{" "}
+                      tab
+                    </p>
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      Try another tab or adjust your search and filters.
+                    </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              sortedOrders.map((order) => {
+                const orderRef = order.orderNumber?.trim() || order.id;
+                const isExpanded = !!expandedRows[order.id];
+                const userMeta = getOrderUserMeta(order);
 
-              return (
-                <Fragment key={order.id}>
-                  <TableRow
-                    className={cn(
-                      "group bg-card border-none transition-all duration-200 hover:-translate-y-0.5",
-                    )}
-                  >
-                    <TableCell className="rounded-l-3xl border-y border-l px-6 py-5">
-                      <span className="bg-muted rounded-lg border px-2.5 py-1 font-mono text-xs font-black">
-                        #{orderRef}
-                      </span>
-                    </TableCell>
-                    <TableCell className="border-y">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-primary/10 text-primary ring-primary/5 flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-bold ring-2">
-                          {getAvatarFallback({
-                            firstName: userMeta.firstName,
-                            name: userMeta.firstName,
-                          })}
-                        </div>
-                        <span className="text-sm font-bold tracking-tight">
-                          {userMeta.firstName}
+                return (
+                  <Fragment key={order.id}>
+                    <TableRow
+                      className={cn(
+                        "group bg-card border-none transition-all duration-200 hover:-translate-y-0.5",
+                      )}
+                    >
+                      <TableCell className="rounded-l-3xl border-y border-l px-6 py-5">
+                        <span className="bg-muted rounded-lg border px-2.5 py-1 font-mono text-xs font-black">
+                          {orderRef}
                         </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground border-y text-xs font-medium">
-                      {format(new Date(order.createdAt), "MMM dd, yyyy")}
-                    </TableCell>
-                    <TableCell className="border-y text-sm font-black tracking-tight">
-                      {formatPrice(Number(order.grandTotalPrice ?? 0))}
-                    </TableCell>
-                    <TableCell className="border-y">
-                      <Badge
-                        className={cn(
-                          "px-2.5 py-0.5 shadow-none",
-                          getOrderStatusBadgeClass(order.status),
-                        )}
-                      >
-                        {getOrderStatusLabel(order.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="border-y text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="hover:bg-muted h-9 w-9 rounded-xl"
-                          >
-                            <Settings className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          className="w-48 rounded-xl shadow-xl"
-                        >
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(`/dashboard/admin/orders/${order.id}`)
-                            }
-                          >
-                            <Eye className="mr-2 h-4 w-4" /> View Detail
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            disabled={order.status !== "AWAITING_PRODUCTION"}
-                            onClick={() => setConfirmStartOrder(order)}
-                          >
-                            <SquarePlayIcon className="mr-2 h-4 w-4" /> Start
-                            Production
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                    <TableCell className="rounded-r-3xl border-y border-r pr-4">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "h-8 w-8 transition-transform duration-300",
-                          isExpanded && "rotate-180",
-                        )}
-                        onClick={() => toggleExpand(order.id)}
-                      >
-                        <ChevronDown className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                  {isExpanded && (
-                    <TableRow className="bg-transparent hover:bg-transparent">
-                      <TableCell colSpan={7} className="p-0 pt-1 pb-4">
-                        <div className="bg-muted/30 mx-2 rounded-3xl border border-dashed p-6 shadow-inner">
-                          <ExpandedOrderContent order={order} />
+                      </TableCell>
+                      <TableCell className="border-y">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-primary/10 text-primary ring-primary/5 flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-bold ring-2">
+                            {getAvatarFallback({
+                              firstName: userMeta.firstName,
+                              name: userMeta.firstName,
+                            })}
+                          </div>
+                          <span className="text-sm font-bold tracking-tight">
+                            {userMeta.firstName}
+                          </span>
                         </div>
                       </TableCell>
+                      <TableCell className="text-muted-foreground border-y text-xs font-medium">
+                        {format(new Date(order.createdAt), "MMM dd, yyyy")}
+                      </TableCell>
+                      <TableCell className="border-y text-sm font-black tracking-tight">
+                        {formatPrice(Number(order.grandTotalPrice ?? 0))}
+                      </TableCell>
+                      <TableCell className="border-y">
+                        <Badge
+                          className={cn(
+                            "px-2.5 py-0.5 shadow-none",
+                            getOrderStatusBadgeClass(order.status),
+                          )}
+                        >
+                          {getOrderStatusLabel(order.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="border-y text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="hover:bg-muted h-9 w-9 rounded-xl"
+                            >
+                              <Settings className="text-muted-foreground h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-52 rounded-2xl p-2 shadow-xl"
+                          >
+                            <div className="text-muted-foreground/70 px-2 py-1.5 text-[10px] font-bold tracking-widest uppercase">
+                              Order Actions
+                            </div>
+
+                            {/* 1. View Detail (Selalu Ada) */}
+                            <DropdownMenuItem
+                              className="cursor-pointer rounded-lg py-2.5"
+                              onClick={() =>
+                                router.push(
+                                  `/dashboard/admin/orders/${order.id}`,
+                                )
+                              }
+                            >
+                              <Eye className="mr-3 h-4 w-4 text-blue-500" />
+                              <span className="font-medium">View Detail</span>
+                            </DropdownMenuItem>
+
+                            {/* 2. Start Production (Hanya untuk AWAITING_PRODUCTION) */}
+                            <DropdownMenuItem
+                              className="cursor-pointer rounded-lg py-2.5"
+                              disabled={order.status !== "AWAITING_PRODUCTION"}
+                              onClick={() => setConfirmStartOrder(order)}
+                            >
+                              <SquarePlayIcon className="mr-3 h-4 w-4 text-orange-500" />
+                              <span className="font-medium">
+                                Start Production
+                              </span>
+                            </DropdownMenuItem>
+
+                            {/* 3. Process Order (Progress Produksi - Hanya untuk IN_PRODUCTION) */}
+                            <DropdownMenuItem
+                              className="cursor-pointer rounded-lg py-2.5"
+                              disabled={order.status !== "IN_PRODUCTION"}
+                              onClick={() =>
+                                router.push(
+                                  `/dashboard/admin/orders/${order.id}/process`,
+                                )
+                              }
+                            >
+                              <CogIcon className="mr-3 h-4 w-4 text-indigo-500" />
+                              <span className="font-medium">
+                                Update Progress
+                              </span>
+                            </DropdownMenuItem>
+
+                            {/* 4. Deliver Order (Hanya untuk READY_TO_SHIP) */}
+                            <DropdownMenuItem
+                              className="cursor-pointer rounded-lg py-2.5"
+                              disabled={order.status !== "READY_TO_SHIP"}
+                              onClick={() =>
+                                router.push(
+                                  `/dashboard/admin/orders/${order.id}/deliver`,
+                                )
+                              }
+                            >
+                              <Truck className="mr-3 h-4 w-4 text-emerald-500" />
+                              <span className="font-medium">Deliver Order</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                      <TableCell className="rounded-r-3xl border-y border-r pr-4">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn(
+                            "h-8 w-8 transition-transform duration-300",
+                            isExpanded && "rotate-180",
+                          )}
+                          onClick={() => toggleExpand(order.id)}
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
-                  )}
-                </Fragment>
-              );
-            })}
+                    {isExpanded && (
+                      <TableRow className="bg-transparent hover:bg-transparent">
+                        <TableCell colSpan={7} className="p-0 pt-1 pb-4">
+                          <div className="bg-muted/30 mx-2 rounded-3xl border border-dashed p-6 shadow-inner">
+                            <ExpandedOrderContent order={order} />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </div>
@@ -1458,7 +1548,7 @@ export const AdminOrdersPage = () => {
             <DialogDescription>
               Order{" "}
               <span className="font-mono font-bold">
-                #{confirmStartOrder?.orderNumber}
+                {confirmStartOrder?.orderNumber}
               </span>{" "}
               will be moved to the production queue.
             </DialogDescription>

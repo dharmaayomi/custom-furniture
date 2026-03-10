@@ -165,8 +165,12 @@ export const OrdersPage = () => {
   return (
     <div className="mx-auto space-y-8 pb-20">
       {/* --- Page Header --- */}
-      <header className="bg-card relative overflow-hidden rounded-2xl px-6 py-10 shadow-lg sm:px-10">
-        <div className="flex items-end justify-between gap-4">
+      <header className="bg-card border-accent relative overflow-hidden rounded-2xl border px-6 py-10 shadow-lg/5 sm:px-10">
+        <div className="from-primary/5 to-primary/20 pointer-events-none absolute -top-17 -right-20 h-72 w-72 rounded-full bg-linear-to-br md:-top-14 md:-right-24 lg:-top-16 lg:-right-8" />
+        <div className="from-primary/10 to-primary/30 pointer-events-none absolute -top-13 -right-28 h-64 w-64 rounded-full bg-linear-to-br md:-top-10 md:-right-32 lg:-top-12 lg:-right-12" />
+        <div className="from-primary/20 to-primary/80 pointer-events-none absolute -top-9 -right-36 h-56 w-56 rounded-full bg-linear-to-br md:-top-6 md:-right-40 lg:-top-8 lg:-right-16" />
+
+        <div className="relative z-10 flex items-end justify-between gap-4">
           <div>
             <div className="mb-1 flex items-center gap-2.5">
               <div className="bg-primary/10 rounded-lg p-2">
@@ -176,7 +180,7 @@ export const OrdersPage = () => {
                 Your Orders
               </h1>
             </div>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground max-w-md text-sm">
               Manage and track the progress of your custom furniture pieces in
               real-time.
             </p>
@@ -212,7 +216,7 @@ export const OrdersPage = () => {
 
       {/* --- Tabs & Content --- */}
       <Tabs defaultValue="all" className="w-full">
-        <div className="mb-6 flex items-center justify-between overflow-hidden">
+        <div className="bg-muted/50 mb-6 flex items-center justify-between overflow-hidden rounded-full p-1">
           <TabsList className="no-scrollbar h-auto w-full justify-start gap-2 overflow-x-auto bg-transparent p-0">
             {[
               { id: "all", label: "All", count: orderHistory.length },
