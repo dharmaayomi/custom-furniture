@@ -33,14 +33,14 @@ const loadingStates = [
 export default function MultiStepLoaderDemo() {
   const [loading, setLoading] = useState(false);
   return (
-    <div className="w-full h-[60vh] flex items-center justify-center">
+    <div className="flex h-[60vh] w-full items-center justify-center">
       {/* Core Loader Modal */}
       <Loader loadingStates={loadingStates} loading={loading} duration={2000} />
 
       {/* The buttons are for demo only, remove it in your actual code ⬇️ */}
       <button
         onClick={() => setLoading(true)}
-        className="bg-[#39C3EF] hover:bg-[#39C3EF]/90 text-black mx-auto text-sm md:text-base transition font-medium duration-200 h-10 rounded-lg px-8 flex items-center justify-center"
+        className="mx-auto flex h-10 items-center justify-center rounded-lg bg-[#39C3EF] px-8 text-sm font-medium text-black transition duration-200 hover:bg-[#39C3EF]/90 md:text-base"
         style={{
           boxShadow:
             "0px -1px 0px 0px #ffffff40 inset, 0px 1px 0px 0px #ffffff40 inset",
@@ -51,7 +51,7 @@ export default function MultiStepLoaderDemo() {
 
       {loading && (
         <button
-          className="fixed top-4 right-4 text-black dark:text-white z-[120]"
+          className="fixed top-4 right-4 z-120 text-black dark:text-white"
           onClick={() => setLoading(false)}
         >
           <IconSquareRoundedX className="h-10 w-10" />

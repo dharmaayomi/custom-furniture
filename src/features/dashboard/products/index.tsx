@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
@@ -25,7 +24,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import useDeleteProduct from "@/hooks/api/product/useDeleteProduct";
 import useGetProducts from "@/hooks/api/product/useGetProducts";
 import { BaseProductCard } from "./components/BaseProductCard";
@@ -35,116 +33,18 @@ import {
   CalendarDays,
   Filter,
   Grid3x3,
-  Layers,
   List,
   PackageSearch,
-  Palette,
   Plus,
   RotateCcw,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/providers/UserProvider";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useDebounceValue } from "usehooks-ts";
 import { format } from "date-fns";
-
-type ComponentItem = {
-  id: number;
-  componentName: string;
-  category: string;
-  price: string;
-  isActive: boolean;
-};
-
-type MaterialItem = {
-  id: number;
-  materialName: string;
-  finish: string;
-  isActive: boolean;
-};
-
-const COMPONENTS: ComponentItem[] = [
-  {
-    id: 1,
-    componentName: "Soft-Close Drawer",
-    category: "DRAWER",
-    price: "Rp 350.000",
-    isActive: true,
-  },
-  {
-    id: 2,
-    componentName: "Sliding Door Rail",
-    category: "RAIL",
-    price: "Rp 475.000",
-    isActive: true,
-  },
-  {
-    id: 3,
-    componentName: "Handle Set",
-    category: "ACCESSORY",
-    price: "Rp 120.000",
-    isActive: false,
-  },
-];
-
-const MATERIALS: MaterialItem[] = [
-  {
-    id: 1,
-    materialName: "Oak Veneer",
-    finish: "Matte",
-    isActive: true,
-  },
-  {
-    id: 2,
-    materialName: "Walnut Laminate",
-    finish: "Satin",
-    isActive: true,
-  },
-  {
-    id: 3,
-    materialName: "White Duco",
-    finish: "Glossy",
-    isActive: false,
-  },
-];
-
-const Preview = ({
-  list,
-  src,
-  alt,
-}: {
-  list?: boolean;
-  src?: string;
-  alt?: string;
-}) => {
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    setHasError(false);
-  }, [src]);
-
-  const baseClass = list
-    ? "bg-muted text-muted-foreground flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs"
-    : "bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center overflow-hidden text-xs";
-
-  if (src && !hasError) {
-    return (
-      <div className={baseClass}>
-        <img
-          src={src}
-          alt={alt ?? "Product preview"}
-          className="h-full w-full object-cover"
-          onError={() => setHasError(true)}
-          loading="lazy"
-        />
-      </div>
-    );
-  }
-
-  return <div className={baseClass}>Preview</div>;
-};
 
 export const ProductsPage = () => {
   const router = useRouter();
@@ -171,7 +71,7 @@ export const ProductsPage = () => {
     productName: string;
   } | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const perPage = 9;
+  const perPage = 12;
   const { userId } = useUser();
   const SORT_BY_OPTIONS: ProductSortBy[] = [
     "createdAt",
@@ -208,7 +108,6 @@ export const ProductsPage = () => {
     useDeleteProduct();
   const baseMeta = data?.meta;
   const baseTotal = baseMeta?.total ?? baseProducts.length;
-  const totalItems = baseTotal + COMPONENTS.length + MATERIALS.length;
 
   const handleDeleteClick = (product: ProductBase) => {
     setDeleteTarget({ id: product.id, productName: product.productName });
@@ -245,14 +144,23 @@ export const ProductsPage = () => {
 
   return (
     <section>
-      <div className="bg-muted/60 mb-8 rounded-lg px-4 py-6 sm:px-6 sm:py-8">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <header className="bg-card border-accent relative mb-8 overflow-hidden rounded-2xl border px-6 py-10 shadow-lg/5 sm:px-10">
+        <div className="from-primary/5 to-primary/20 pointer-events-none absolute -top-17 -right-20 h-72 w-72 rounded-full bg-linear-to-br md:-top-14 md:-right-24 lg:-top-16 lg:-right-8" />
+        <div className="from-primary/10 to-primary/30 pointer-events-none absolute -top-13 -right-28 h-64 w-64 rounded-full bg-linear-to-br md:-top-10 md:-right-32 lg:-top-12 lg:-right-12" />
+        <div className="from-primary/20 to-primary/80 pointer-events-none absolute -top-9 -right-36 h-56 w-56 rounded-full bg-linear-to-br md:-top-6 md:-right-40 lg:-top-8 lg:-right-16" />
+
+        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-foreground text-2xl font-semibold tracking-tight md:text-3xl">
-              Products
-            </h1>
+            <div className="mb-1 flex items-center gap-2.5">
+              <div className="bg-primary/10 rounded-lg p-2">
+                <PackageSearch className="text-primary h-5 w-5" />
+              </div>
+              <h1 className="text-foreground text-2xl font-bold tracking-tight">
+                Products
+              </h1>
+            </div>
             <p className="text-muted-foreground mt-2 text-sm">
-              Manage product catalog, components, and materials.
+              Manage the base product catalog.
             </p>
           </div>
           <Button
@@ -263,472 +171,310 @@ export const ProductsPage = () => {
             Add Product
           </Button>
         </div>
-      </div>
+      </header>
 
-      <div className="bg-muted/50 min-h-screen rounded-md p-3 sm:p-4">
-        <div className="mx-auto px-1 py-3 sm:px-4 sm:py-4 lg:px-2 lg:py-2">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
-            <aside className="bg-card border-border h-fit rounded-lg border p-4 lg:sticky lg:top-4 lg:col-start-2">
-              <div className="mb-4 flex items-center gap-2">
-                <Filter className="text-muted-foreground h-4 w-4" />
-                <h2 className="text-sm font-semibold">Filters</h2>
+      <div className="min-h-screen rounded-md">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+          <aside className="bg-card h-fit rounded-xl border p-4 shadow-lg/5 lg:sticky lg:top-4 lg:col-start-2">
+            <div className="mb-4 flex items-center gap-2">
+              <Filter className="text-muted-foreground h-4 w-4" />
+              <h2 className="text-sm font-semibold">Filters</h2>
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="product-search">Search product</Label>
+                <Input
+                  id="product-search"
+                  placeholder="Name or SKU"
+                  value={search}
+                  onChange={(event) => {
+                    void setSearch(event.target.value);
+                    void setPage(1);
+                  }}
+                />
               </div>
-              <div className="space-y-4">
+
+              <div className="space-y-1.5">
+                <Label htmlFor="sort-by">Sort by</Label>
+                <Select
+                  value={resolvedSortBy}
+                  onValueChange={(value) => {
+                    void setSortBy(value);
+                    void setPage(1);
+                  }}
+                >
+                  <SelectTrigger id="sort-by" className="w-full">
+                    <SelectValue placeholder="Select sort field" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="createdAt">Created Date</SelectItem>
+                    <SelectItem value="updatedAt">Updated Date</SelectItem>
+                    <SelectItem value="productName">Product Name</SelectItem>
+                    <SelectItem value="sku">SKU</SelectItem>
+                    <SelectItem value="basePrice">Base Price</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="sort-order">Sort order</Label>
+                <Select
+                  value={resolvedOrderBy}
+                  onValueChange={(value) => {
+                    void setOrderBy(value);
+                    void setPage(1);
+                  }}
+                >
+                  <SelectTrigger id="sort-order" className="w-full">
+                    <SelectValue placeholder="Select order" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="desc">Descending</SelectItem>
+                    <SelectItem value="asc">Ascending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="text-muted-foreground h-4 w-4" />
+                  <p className="text-sm font-medium">Date range</p>
+                </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="product-search">Search product</Label>
+                  <Label htmlFor="date-from">From</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="date-from"
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        {dateFromValue ? (
+                          format(dateFromValue, "LLL dd, y")
+                        ) : (
+                          <span className="text-muted-foreground">
+                            Pick start date
+                          </span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateFromValue}
+                        onSelect={(selectedDate) => {
+                          if (!selectedDate) {
+                            void setDateFrom("");
+                            void setPage(1);
+                            return;
+                          }
+
+                          const nextFrom = format(selectedDate, "yyyy-MM-dd");
+                          void setDateFrom(nextFrom);
+                          if (dateTo) {
+                            const toDate = new Date(dateTo);
+                            if (selectedDate.getTime() > toDate.getTime()) {
+                              void setDateTo("");
+                            }
+                          }
+                          void setPage(1);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="date-to">To</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="date-to"
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        {dateToValue ? (
+                          format(dateToValue, "LLL dd, y")
+                        ) : (
+                          <span className="text-muted-foreground">
+                            Pick end date
+                          </span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateToValue}
+                        disabled={(date) =>
+                          dateFromValue ? date < dateFromValue : false
+                        }
+                        onSelect={(selectedDate) => {
+                          if (!selectedDate) {
+                            void setDateTo("");
+                            void setPage(1);
+                            return;
+                          }
+                          void setDateTo(format(selectedDate, "yyyy-MM-dd"));
+                          void setPage(1);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Price range</p>
+                <div className="space-y-1.5">
+                  <Label htmlFor="price-min">Min price</Label>
                   <Input
-                    id="product-search"
-                    placeholder="Name or SKU"
-                    value={search}
+                    id="price-min"
+                    type="number"
+                    placeholder="0"
+                    value={minPrice ?? ""}
+                    min={0}
                     onChange={(event) => {
-                      void setSearch(event.target.value);
+                      const value = event.target.value;
+                      void setMinPrice(value ? Number(value) : null);
                       void setPage(1);
                     }}
                   />
                 </div>
-
                 <div className="space-y-1.5">
-                  <Label htmlFor="sort-by">Sort by</Label>
-                  <Select
-                    value={resolvedSortBy}
-                    onValueChange={(value) => {
-                      void setSortBy(value);
+                  <Label htmlFor="price-max">Max price</Label>
+                  <Input
+                    id="price-max"
+                    type="number"
+                    placeholder="100000000"
+                    value={maxPrice ?? ""}
+                    min={0}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      void setMaxPrice(value ? Number(value) : null);
                       void setPage(1);
                     }}
-                  >
-                    <SelectTrigger id="sort-by" className="w-full">
-                      <SelectValue placeholder="Select sort field" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="createdAt">Created Date</SelectItem>
-                      <SelectItem value="updatedAt">Updated Date</SelectItem>
-                      <SelectItem value="productName">Product Name</SelectItem>
-                      <SelectItem value="sku">SKU</SelectItem>
-                      <SelectItem value="basePrice">Base Price</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
+              </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="sort-order">Sort order</Label>
-                  <Select
-                    value={resolvedOrderBy}
-                    onValueChange={(value) => {
-                      void setOrderBy(value);
-                      void setPage(1);
-                    }}
-                  >
-                    <SelectTrigger id="sort-order" className="w-full">
-                      <SelectValue placeholder="Select order" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="desc">Descending</SelectItem>
-                      <SelectItem value="asc">Ascending</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleResetFilters}
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset Filters
+              </Button>
+            </div>
+          </aside>
 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <CalendarDays className="text-muted-foreground h-4 w-4" />
-                    <p className="text-sm font-medium">Date range</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="date-from">From</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          id="date-from"
-                          type="button"
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal"
-                        >
-                          {dateFromValue ? (
-                            format(dateFromValue, "LLL dd, y")
-                          ) : (
-                            <span className="text-muted-foreground">
-                              Pick start date
-                            </span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={dateFromValue}
-                          onSelect={(selectedDate) => {
-                            if (!selectedDate) {
-                              void setDateFrom("");
-                              void setPage(1);
-                              return;
-                            }
-
-                            const nextFrom = format(selectedDate, "yyyy-MM-dd");
-                            void setDateFrom(nextFrom);
-                            if (dateTo) {
-                              const toDate = new Date(dateTo);
-                              if (selectedDate.getTime() > toDate.getTime()) {
-                                void setDateTo("");
-                              }
-                            }
-                            void setPage(1);
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="date-to">To</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          id="date-to"
-                          type="button"
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal"
-                        >
-                          {dateToValue ? (
-                            format(dateToValue, "LLL dd, y")
-                          ) : (
-                            <span className="text-muted-foreground">
-                              Pick end date
-                            </span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={dateToValue}
-                          disabled={(date) =>
-                            dateFromValue ? date < dateFromValue : false
-                          }
-                          onSelect={(selectedDate) => {
-                            if (!selectedDate) {
-                              void setDateTo("");
-                              void setPage(1);
-                              return;
-                            }
-                            void setDateTo(format(selectedDate, "yyyy-MM-dd"));
-                            void setPage(1);
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Price range</p>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="price-min">Min price</Label>
-                    <Input
-                      id="price-min"
-                      type="number"
-                      placeholder="0"
-                      value={minPrice ?? ""}
-                      min={0}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        void setMinPrice(value ? Number(value) : null);
-                        void setPage(1);
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="price-max">Max price</Label>
-                    <Input
-                      id="price-max"
-                      type="number"
-                      placeholder="100000000"
-                      value={maxPrice ?? ""}
-                      min={0}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        void setMaxPrice(value ? Number(value) : null);
-                        void setPage(1);
-                      }}
-                    />
-                  </div>
-                </div>
-
+          <div className="lg:col-start-1 lg:row-start-1">
+            <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-muted-foreground text-sm">{baseTotal} items</p>
+              <div className="border-border bg-muted flex w-full gap-2 rounded-lg border p-1 sm:w-auto">
                 <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleResetFilters}
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                  className="flex-1 gap-2 sm:flex-none"
                 >
-                  <RotateCcw className="h-4 w-4" />
-                  Reset Filters
+                  <Grid3x3 className="h-4 w-4" />
+                  Grid
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                  className="flex-1 gap-2 sm:flex-none"
+                >
+                  <List className="h-4 w-4" />
+                  List
                 </Button>
               </div>
-            </aside>
+            </div>
 
-            <div className="lg:col-start-1 lg:row-start-1">
-              <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-muted-foreground text-sm">
-                  {totalItems} items
-                </p>
-                <div className="border-border bg-muted flex w-full gap-2 rounded-lg border p-1 sm:w-auto">
-                  <Button
-                    variant={viewMode === "grid" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("grid")}
-                    className="flex-1 gap-2 sm:flex-none"
-                  >
-                    <Grid3x3 className="h-4 w-4" />
-                    Grid
-                  </Button>
-                  <Button
-                    variant={viewMode === "list" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("list")}
-                    className="flex-1 gap-2 sm:flex-none"
-                  >
-                    <List className="h-4 w-4" />
-                    List
-                  </Button>
+            <div className="w-full">
+              {isLoading ? (
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+                      : "space-y-4"
+                  }
+                >
+                  {Array.from({ length: perPage }).map((_, index) => (
+                    <BaseProductCardSkeleton key={index} viewMode={viewMode} />
+                  ))}
                 </div>
-              </div>
-
-              <Tabs defaultValue="base-products" className="w-full">
-                <TabsList className="mb-4 grid w-full grid-cols-3 sm:mb-6">
-                  <TabsTrigger value="base-products">
-                    Base ({baseTotal})
-                  </TabsTrigger>
-                  <TabsTrigger value="components">
-                    Components ({COMPONENTS.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="materials">
-                    Materials ({MATERIALS.length})
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="base-products">
-                  {isLoading ? (
-                    <div
-                      className={
-                        viewMode === "grid"
-                          ? "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-                          : "space-y-4"
+              ) : isError ? (
+                <div className="border-border bg-card flex w-full flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12">
+                  <PackageSearch className="text-muted-foreground/40 mb-3 h-12 w-12" />
+                  <h3 className="text-foreground mb-2 text-lg font-medium">
+                    Failed to load products
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    Please try again later.
+                  </p>
+                </div>
+              ) : baseProducts.length === 0 ? (
+                <div className="border-border bg-card flex w-full flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12">
+                  <PackageSearch className="text-muted-foreground/40 mb-3 h-12 w-12" />
+                  <h3 className="text-foreground mb-2 text-lg font-medium">
+                    No base products
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    Add your first base product to get started.
+                  </p>
+                </div>
+              ) : (
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 2xl:grid-cols-4"
+                      : "space-y-4"
+                  }
+                >
+                  {baseProducts.map((item) => (
+                    <BaseProductCard
+                      key={item.id}
+                      item={item}
+                      viewMode={viewMode}
+                      onEdit={() =>
+                        router.push(`/dashboard/products/${item.id}/edit`)
                       }
+                      onDelete={() => handleDeleteClick(item)}
+                    />
+                  ))}
+                </div>
+              )}
+              {baseMeta ? (
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-muted-foreground text-xs">
+                    Page {baseMeta.page} of{" "}
+                    {Math.max(1, Math.ceil(baseMeta.total / baseMeta.perPage))}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(Math.max(1, page - 1))}
+                      disabled={!baseMeta.hasPrevious || isFetching}
                     >
-                      {Array.from({ length: perPage }).map((_, index) => (
-                        <BaseProductCardSkeleton
-                          key={index}
-                          viewMode={viewMode}
-                        />
-                      ))}
-                    </div>
-                  ) : isError ? (
-                    <div className="border-border bg-card flex w-full flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12">
-                      <PackageSearch className="text-muted-foreground/40 mb-3 h-12 w-12" />
-                      <h3 className="text-foreground mb-2 text-lg font-medium">
-                        Failed to load products
-                      </h3>
-                      <p className="text-muted-foreground text-sm">
-                        Please try again later.
-                      </p>
-                    </div>
-                  ) : baseProducts.length === 0 ? (
-                    <div className="border-border bg-card flex w-full flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12">
-                      <PackageSearch className="text-muted-foreground/40 mb-3 h-12 w-12" />
-                      <h3 className="text-foreground mb-2 text-lg font-medium">
-                        No base products
-                      </h3>
-                      <p className="text-muted-foreground text-sm">
-                        Add your first base product to get started.
-                      </p>
-                    </div>
-                  ) : (
-                    <div
-                      className={
-                        viewMode === "grid"
-                          ? "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-                          : "space-y-4"
-                      }
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(page + 1)}
+                      disabled={!baseMeta.hasNext || isFetching}
                     >
-                      {baseProducts.map((item) => (
-                        <BaseProductCard
-                          key={item.id}
-                          item={item}
-                          viewMode={viewMode}
-                          onEdit={() =>
-                            router.push(`/dashboard/products/${item.id}/edit`)
-                          }
-                          onDelete={() => handleDeleteClick(item)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  {baseMeta ? (
-                    <div className="mt-4 flex items-center justify-between">
-                      <p className="text-muted-foreground text-xs">
-                        Page {baseMeta.page} of{" "}
-                        {Math.max(
-                          1,
-                          Math.ceil(baseMeta.total / baseMeta.perPage),
-                        )}
-                      </p>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setPage(Math.max(1, page - 1))}
-                          disabled={!baseMeta.hasPrevious || isFetching}
-                        >
-                          Previous
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setPage(page + 1)}
-                          disabled={!baseMeta.hasNext || isFetching}
-                        >
-                          Next
-                        </Button>
-                      </div>
-                    </div>
-                  ) : null}
-                </TabsContent>
-
-                <TabsContent value="components">
-                  <div
-                    className={
-                      viewMode === "grid"
-                        ? "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-                        : "space-y-4"
-                    }
-                  >
-                    {COMPONENTS.map((item) =>
-                      viewMode === "grid" ? (
-                        <div
-                          key={item.id}
-                          className="bg-card overflow-hidden rounded-lg border shadow-sm"
-                        >
-                          <Preview />
-                          <div className="p-4">
-                            <div className="mb-1 flex items-center gap-2">
-                              <Layers className="text-muted-foreground h-4 w-4" />
-                              <p className="text-foreground truncate text-sm font-semibold sm:text-base">
-                                {item.componentName}
-                              </p>
-                            </div>
-                            <p className="text-muted-foreground text-xs sm:text-sm">
-                              Category: {item.category}
-                            </p>
-                            <p className="text-muted-foreground text-xs sm:text-sm">
-                              Price: {item.price}
-                            </p>
-                            <div className="mt-3">
-                              <Badge
-                                variant={
-                                  item.isActive ? "default" : "secondary"
-                                }
-                              >
-                                {item.isActive ? "Active" : "Inactive"}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          key={item.id}
-                          className="bg-card rounded-lg border p-4 shadow-sm"
-                        >
-                          <div className="flex items-start gap-3">
-                            <Preview list />
-                            <div className="min-w-0 flex-1">
-                              <div className="mb-1 flex items-center gap-2">
-                                <Layers className="text-muted-foreground h-4 w-4" />
-                                <p className="text-foreground truncate text-sm font-semibold sm:text-base">
-                                  {item.componentName}
-                                </p>
-                              </div>
-                              <p className="text-muted-foreground text-xs sm:text-sm">
-                                Category: {item.category}
-                              </p>
-                              <p className="text-muted-foreground text-xs sm:text-sm">
-                                Price: {item.price}
-                              </p>
-                            </div>
-                            <Badge
-                              variant={item.isActive ? "default" : "secondary"}
-                            >
-                              {item.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                          </div>
-                        </div>
-                      ),
-                    )}
+                      Next
+                    </Button>
                   </div>
-                </TabsContent>
-
-                <TabsContent value="materials">
-                  <div
-                    className={
-                      viewMode === "grid"
-                        ? "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-                        : "space-y-4"
-                    }
-                  >
-                    {MATERIALS.map((item) =>
-                      viewMode === "grid" ? (
-                        <div
-                          key={item.id}
-                          className="bg-card overflow-hidden rounded-lg border shadow-sm"
-                        >
-                          <Preview />
-                          <div className="p-4">
-                            <div className="mb-1 flex items-center gap-2">
-                              <Palette className="text-muted-foreground h-4 w-4" />
-                              <p className="text-foreground truncate text-sm font-semibold sm:text-base">
-                                {item.materialName}
-                              </p>
-                            </div>
-                            <p className="text-muted-foreground text-xs sm:text-sm">
-                              Finish: {item.finish}
-                            </p>
-                            <div className="mt-3">
-                              <Badge
-                                variant={
-                                  item.isActive ? "default" : "secondary"
-                                }
-                              >
-                                {item.isActive ? "Active" : "Inactive"}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          key={item.id}
-                          className="bg-card rounded-lg border p-4 shadow-sm"
-                        >
-                          <div className="flex items-start gap-3">
-                            <Preview list />
-                            <div className="min-w-0 flex-1">
-                              <div className="mb-1 flex items-center gap-2">
-                                <Palette className="text-muted-foreground h-4 w-4" />
-                                <p className="text-foreground truncate text-sm font-semibold sm:text-base">
-                                  {item.materialName}
-                                </p>
-                              </div>
-                              <p className="text-muted-foreground text-xs sm:text-sm">
-                                Finish: {item.finish}
-                              </p>
-                            </div>
-                            <Badge
-                              variant={item.isActive ? "default" : "secondary"}
-                            >
-                              {item.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                          </div>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

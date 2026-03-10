@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+import { ImageOff } from "lucide-react";
 import { useMemo, useState } from "react";
 
 type ComponentPreviewProps = {
@@ -18,27 +20,49 @@ export function ComponentPreview({
     [candidates],
   );
   const [activeIndex, setActiveIndex] = useState(0);
-  const baseClass = list
-    ? "bg-muted text-muted-foreground flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs"
-    : "bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center overflow-hidden text-xs";
+  const [isError, setIsError] = useState(false);
+
+  const baseClass = cn(
+    "relative flex items-center justify-center overflow-hidden bg-muted/50",
+    list
+      ? "h-16 w-20 shrink-0 rounded-lg border"
+      : "aspect-[4/3] rounded-t-xl border-b",
+  );
 
   const activeImage = normalizedCandidates[activeIndex];
 
-  if (!activeImage) return <div className={baseClass}>Preview</div>;
+  const fallback = (
+    <div className="text-muted-foreground/40 flex flex-col items-center gap-1">
+      <ImageOff
+        className={cn(list ? "h-4 w-4" : "h-8 w-8")}
+        strokeWidth={1.5}
+      />
+      {!list && (
+        <span className="text-[9px] font-bold tracking-tighter uppercase">
+          No Image
+        </span>
+      )}
+    </div>
+  );
 
   return (
     <div className={baseClass}>
-      <img
-        src={activeImage}
-        alt={name}
-        className="h-full w-full transform-gpu object-cover transition-all duration-300 ease-in-out hover:scale-107"
-        onError={() => {
-          if (activeIndex < normalizedCandidates.length - 1) {
-            setActiveIndex((prev) => prev + 1);
-          }
-        }}
-      />
+      {activeImage && !isError ? (
+        <img
+          src={activeImage}
+          alt={name}
+          className="h-full w-full object-cover"
+          onError={() => {
+            if (activeIndex < normalizedCandidates.length - 1) {
+              setActiveIndex((prev) => prev + 1);
+            } else {
+              setIsError(true);
+            }
+          }}
+        />
+      ) : (
+        fallback
+      )}
     </div>
   );
 }
-

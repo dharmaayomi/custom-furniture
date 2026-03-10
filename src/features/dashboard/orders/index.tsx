@@ -216,7 +216,7 @@ export const OrdersPage = () => {
 
       {/* --- Tabs & Content --- */}
       <Tabs defaultValue="all" className="w-full">
-        <div className="bg-muted/50 mb-6 flex items-center justify-between overflow-hidden rounded-full p-1">
+        <div className="bg-card mb-6 flex items-center justify-between overflow-hidden rounded-full p-1.5 shadow-2xl/5">
           <TabsList className="no-scrollbar h-auto w-full justify-start gap-2 overflow-x-auto bg-transparent p-0">
             {[
               { id: "all", label: "All", count: orderHistory.length },

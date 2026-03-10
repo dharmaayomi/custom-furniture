@@ -4,14 +4,13 @@ import React from "react";
 
 import {
   TrendingUp,
-  Users,
   DollarSign,
   ArrowUpRight,
   ArrowDownRight,
-  MoreVertical,
   Activity,
   CreditCard,
   Download,
+  Package,
   RefreshCw,
 } from "lucide-react";
 import {
@@ -32,7 +31,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   ChartContainer,
   ChartTooltip,
@@ -40,80 +38,68 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Bar,
   BarChart,
   CartesianGrid,
   Pie,
   PieChart,
+  Cell,
   XAxis,
   YAxis,
 } from "recharts";
 
 const revenueData = [
-  { month: "Jan", revenue: 4500, orders: 120 },
-  { month: "Feb", revenue: 5200, orders: 150 },
-  { month: "Mar", revenue: 4800, orders: 140 },
-  { month: "Apr", revenue: 6100, orders: 180 },
-  { month: "May", revenue: 5900, orders: 170 },
-  { month: "Jun", revenue: 7200, orders: 210 },
-  { month: "Jul", revenue: 8400, orders: 250 },
+  { month: "Jan", revenue: 18500 },
+  { month: "Feb", revenue: 22400 },
+  { month: "Mar", revenue: 19800 },
+  { month: "Apr", revenue: 26700 },
+  { month: "May", revenue: 24300 },
+  { month: "Jun", revenue: 30100 },
+  { month: "Jul", revenue: 33800 },
 ];
 
-const categoryData = [
-  { name: "Electronics", value: 400, fill: "var(--color-electronics)" },
-  { name: "Fashion", value: 300, fill: "var(--color-fashion)" },
-  { name: "Home", value: 200, fill: "var(--color-home)" },
-  { name: "Beauty", value: 100, fill: "var(--color-beauty)" },
+const orderStatusData = [
+  { name: "Pending Payment", value: 18, fill: "var(--chart-1)" },
+  { name: "In Production", value: 26, fill: "var(--chart-2)" },
+  { name: "Ready to Ship", value: 12, fill: "var(--chart-3)" },
+  { name: "Completed", value: 44, fill: "var(--chart-4)" },
 ];
 
-const visitData = [
-  { day: "Mon", visits: 2400 },
-  { day: "Tue", visits: 1398 },
-  { day: "Wed", visits: 9800 },
-  { day: "Thu", visits: 3908 },
-  { day: "Fri", visits: 4800 },
-  { day: "Sat", visits: 3800 },
-  { day: "Sun", visits: 4300 },
+const salesByMaterialData = [
+  { name: "Teak Wood", sales: 14 },
+  { name: "Mahogany", sales: 10 },
+  { name: "Plywood", sales: 8 },
+  { name: "Steel Frame", sales: 6 },
+  { name: "Rattan", sales: 5 },
 ];
 
-const recentSales = [
+const productionUpdateData = [
+  { day: "Mon", completed: 3 },
+  { day: "Tue", completed: 5 },
+  { day: "Wed", completed: 4 },
+  { day: "Thu", completed: 6 },
+  { day: "Fri", completed: 4 },
+  { day: "Sat", completed: 2 },
+];
+
+const liveActivityData = [
   {
-    name: "Olivia Martin",
-    email: "olivia.martin@email.com",
-    amount: "+$1,999.00",
-    avatar: "https://github.com/shadcn.png",
+    title: "New Orders Today",
+    value: "12",
+    note: "3 custom furniture requests added this afternoon",
+    trend: "+4 vs yesterday",
   },
   {
-    name: "Jackson Lee",
-    email: "jackson.lee@email.com",
-    amount: "+$39.00",
-    avatar: "https://github.com/shadcn.png",
+    title: "Payments Received Today",
+    value: "$4,850",
+    note: "2 invoices settled and 5 deposit confirmations",
+    trend: "+12.5%",
   },
   {
-    name: "Isabella Nguyen",
-    email: "isabella.nguyen@email.com",
-    amount: "+$299.00",
-    avatar: "https://github.com/shadcn.png",
-  },
-  {
-    name: "William Kim",
-    email: "will@email.com",
-    amount: "+$99.00",
-    avatar: "https://github.com/shadcn.png",
-  },
-  {
-    name: "Sofia Davis",
-    email: "sofia.davis@email.com",
-    amount: "+$39.00",
-    avatar: "https://github.com/shadcn.png",
+    title: "Production Updates Today",
+    value: "7",
+    note: "Units moved across cutting, assembly, and finishing",
+    trend: "2 delayed items need review",
   },
 ];
 
@@ -122,51 +108,53 @@ const chartConfig = {
     label: "Revenue",
     color: "var(--chart-1)",
   },
-  orders: {
-    label: "Orders",
+  sales: {
+    label: "Sales",
     color: "var(--chart-2)",
   },
-  visits: {
-    label: "Visits",
-    color: "var(--chart-2)",
+  completed: {
+    label: "Completed",
+    color: "var(--chart-3)",
   },
 } satisfies ChartConfig;
 
-const categoryChartConfig = {
+const orderStatusChartConfig = {
   value: {
-    label: "Sales",
+    label: "Orders",
   },
-  electronics: {
-    label: "Electronics",
+  pendingPayment: {
+    label: "Pending Payment",
     color: "var(--chart-1)",
   },
-  fashion: {
-    label: "Fashion",
+  inProduction: {
+    label: "In Production",
     color: "var(--chart-2)",
   },
-  home: {
-    label: "Home",
+  readyToShip: {
+    label: "Ready to Ship",
     color: "var(--chart-3)",
   },
-  beauty: {
-    label: "Beauty",
+  completed: {
+    label: "Completed",
     color: "var(--chart-4)",
   },
 } satisfies ChartConfig;
 
-const categoryColorByName: Record<string, string> = {
-  Electronics: "var(--chart-1)",
-  Fashion: "var(--chart-2)",
-  Home: "var(--chart-3)",
-  Beauty: "var(--chart-4)",
+const orderStatusColorByName: Record<string, string> = {
+  "Pending Payment": "var(--chart-1)",
+  "In Production": "var(--chart-2)",
+  "Ready to Ship": "var(--chart-3)",
+  Completed: "var(--chart-4)",
 };
 
 const Analytics = () => {
-  const totalCategorySales = categoryData.reduce(
+  const totalOrders = orderStatusData.reduce(
     (sum, item) => sum + item.value,
     0,
   );
-  const topCategory = [...categoryData].sort((a, b) => b.value - a.value)[0];
+  const topOrderStatus = [...orderStatusData].sort(
+    (a, b) => b.value - a.value,
+  )[0];
 
   return (
     <div className="text-foreground mx-auto w-full p-4 md:p-0">
@@ -178,16 +166,16 @@ const Analytics = () => {
         <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="mb-1 flex items-center gap-2.5">
-              <div className="bg-primary/10 rounded-lg p-2">
-                <TrendingUp className="text-primary h-5 w-5" />
+              <div className="bg-background/20 border-foreground/10 rounded-lg border p-2 backdrop-blur-xs">
+                <TrendingUp className="text-foreground h-5 w-5" />
               </div>
               <h1 className="text-foreground text-2xl font-bold tracking-tight">
-                Analytics Dashboard
+                Operations Dashboard
               </h1>
             </div>
-            <p className="text-muted-foreground max-w-md text-sm">
-              Welcome back! Here&apos;s what&apos;s happening with your store
-              today.
+            <p className="text-foreground/80 max-w-md text-sm">
+              Revenue, order pipeline, and production progress across the custom
+              furniture workflow.
             </p>
           </div>
           <div className="relative z-10 flex items-center gap-3">
@@ -196,7 +184,7 @@ const Analytics = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-muted/60 hidden sm:flex"
+                  className="border-foreground/15 bg-background/20 text-foreground hover:bg-background/30 hidden shadow-none backdrop-blur-xs sm:flex"
                 >
                   <Download className="mr-2 h-4 w-4" /> Export Data
                 </Button>
@@ -215,7 +203,10 @@ const Analytics = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button size="sm">
+            <Button
+              size="sm"
+              className="bg-foreground text-background hover:bg-foreground/90 shadow-none"
+            >
               <RefreshCw className="mr-2 h-4 w-4" /> Check Updates
             </Button>
           </div>
@@ -226,44 +217,43 @@ const Analytics = () => {
       <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Revenue"
-          value="$45,231.89"
-          change="+20.1% from last month"
+          value="$214,600"
+          change="+14.8% from last month"
           icon={<DollarSign className="text-primary h-4 w-4" />}
           trend="up"
         />
         <StatCard
-          title="Active Users"
-          value="+2350"
-          change="+180.1% from last month"
-          icon={<Users className="text-primary h-4 w-4" />}
+          title="Total Orders"
+          value="100"
+          change="+9 new orders this week"
+          icon={<Package className="text-primary h-4 w-4" />}
           trend="up"
         />
         <StatCard
-          title="Sales"
-          value="+12,234"
-          change="+19% from last month"
+          title="Pending Payments"
+          value="18"
+          change="-3 awaiting confirmation"
           icon={<CreditCard className="text-primary h-4 w-4" />}
-          trend="up"
+          trend="down"
         />
         <StatCard
-          title="Active Now"
-          value="+573"
-          change="+201 since last hour"
+          title="Orders In Production"
+          value="26"
+          change="+5 moved into workshop"
           icon={<Activity className="text-primary h-4 w-4" />}
           trend="up"
         />
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Main Revenue Chart */}
-        <Card className="border-border/50 bg-card/50 py-4 backdrop-blur-sm lg:col-span-2">
+        <Card className="border-border/50 bg-card py-4 shadow-lg/5 backdrop-blur-sm lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div className="space-y-1">
               <CardTitle className="text-xl font-semibold">
-                Revenue Overview
+                Monthly Revenue Overview
               </CardTitle>
               <CardDescription>
-                Monthly performance data for the current year
+                Revenue trend across the latest reporting months
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -271,7 +261,7 @@ const Analytics = () => {
                 variant="secondary"
                 className="bg-primary/10 text-primary border-primary/20"
               >
-                <TrendingUp className="mr-1 h-3 w-3" /> Growth: 24%
+                <TrendingUp className="mr-1 h-3 w-3" /> Growth: 14.8%
               </Badge>
             </div>
           </CardHeader>
@@ -301,7 +291,7 @@ const Analytics = () => {
           </CardContent>
           <CardFooter className="border-border/20 flex-col items-start gap-2 border-t pt-4 text-sm">
             <div className="flex gap-2 leading-none font-medium">
-              Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
+              Trending up by 14.8% this month <TrendingUp className="h-4 w-4" />
             </div>
             <div className="text-muted-foreground leading-none">
               Showing total revenue for the last 7 months
@@ -309,17 +299,16 @@ const Analytics = () => {
           </CardFooter>
         </Card>
 
-        {/* Sales by Category */}
-        <Card className="border-border/50 bg-card/50 py-4 backdrop-blur-sm">
+        <Card className="border-border/50 bg-card py-4 shadow-lg/5 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Sales by Category</CardTitle>
+            <CardTitle>Order Status Distribution</CardTitle>
             <CardDescription>
-              Distribution of sales across top departments
+              Current order mix across payment and production stages
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center">
             <ChartContainer
-              config={categoryChartConfig}
+              config={orderStatusChartConfig}
               className="h-62.5 w-full"
             >
               <PieChart>
@@ -328,20 +317,26 @@ const Analytics = () => {
                   content={<ChartTooltipContent hideLabel />}
                 />
                 <Pie
-                  data={categoryData}
+                  data={orderStatusData}
                   dataKey="value"
                   nameKey="name"
                   innerRadius={60}
                   outerRadius={88}
-                />
+                >
+                  {orderStatusData.map((item) => (
+                    <Cell key={item.name} fill={item.fill} />
+                  ))}
+                </Pie>
               </PieChart>
             </ChartContainer>
             <div className="mt-6 grid w-full grid-cols-2 gap-4">
-              {categoryData.map((item) => (
+              {orderStatusData.map((item) => (
                 <div key={item.name} className="flex items-center gap-2">
                   <div
                     className="h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: categoryColorByName[item.name] }}
+                    style={{
+                      backgroundColor: orderStatusColorByName[item.name],
+                    }}
                   />
                   <span className="text-xs font-medium">{item.name}</span>
                   <span className="text-muted-foreground ml-auto text-xs">
@@ -353,12 +348,16 @@ const Analytics = () => {
             <div className="mt-5 w-full border-t pt-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="bg-muted/40 rounded-lg p-3">
-                  <p className="text-muted-foreground text-xs">Top Category</p>
-                  <p className="font-semibold">{topCategory?.name ?? "-"}</p>
+                  <p className="text-muted-foreground text-xs">
+                    Largest Status
+                  </p>
+                  <p className="font-semibold">{topOrderStatus?.name ?? "-"}</p>
                 </div>
                 <div className="bg-muted/40 rounded-lg p-3">
-                  <p className="text-muted-foreground text-xs">Total Share</p>
-                  <p className="font-semibold">{totalCategorySales}%</p>
+                  <p className="text-muted-foreground text-xs">
+                    Tracked Orders
+                  </p>
+                  <p className="font-semibold">{totalOrders}</p>
                 </div>
               </div>
             </div>
@@ -366,18 +365,48 @@ const Analytics = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Weekly Visits */}
-        <Card className="border-border/50 bg-card/50 py-4 backdrop-blur-sm">
+      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="border-border/50 bg-card py-4 shadow-lg/5 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Weekly Visits</CardTitle>
+            <CardTitle>Sales by Product / Material</CardTitle>
             <CardDescription>
-              Daily user traffic across the past week
+              Top-selling furniture materials in the current period
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-75 w-full">
-              <BarChart data={visitData} accessibilityLayer>
+              <BarChart data={salesByMaterialData} accessibilityLayer>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="name"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                />
+                <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar
+                  dataKey="sales"
+                  fill="var(--color-sales)"
+                  barSize={45}
+                  maxBarSize={50}
+                  radius={[3, 3, 0, 0]}
+                />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 bg-card py-4 shadow-lg/5 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle>Production Updates This Week</CardTitle>
+            <CardDescription>
+              Items completed or advanced by the workshop team
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-75 w-full">
+              <BarChart data={productionUpdateData} accessibilityLayer>
                 <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey="day"
@@ -388,8 +417,8 @@ const Analytics = () => {
                 <YAxis tickLine={false} axisLine={false} tickMargin={8} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar
-                  dataKey="visits"
-                  fill="var(--color-visits)"
+                  dataKey="completed"
+                  fill="var(--color-completed)"
                   barSize={45}
                   maxBarSize={50}
                   radius={[3, 3, 0, 0]}
@@ -398,51 +427,26 @@ const Analytics = () => {
             </ChartContainer>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Recent Transactions / Activity */}
-        <Card className="border-border/50 bg-card/50 py-4 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="space-y-1">
-              <CardTitle>Recent Sales</CardTitle>
-              <CardDescription>You made 265 sales this month.</CardDescription>
-            </div>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentSales.map((sale) => (
-                  <TableRow key={sale.email}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="border-border/50 h-8 w-8 border">
-                          <AvatarImage src={sale.avatar} alt={sale.name} />
-                          <AvatarFallback>
-                            {sale.name.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span>{sale.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {sale.email}
-                    </TableCell>
-                    <TableCell className="text-right">{sale.amount}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {liveActivityData.map((item) => (
+          <Card
+            key={item.title}
+            className="border-border/50 bg-card py-4 shadow-lg/5 backdrop-blur-sm"
+          >
+            <CardHeader className="pb-3">
+              <CardDescription>{item.title}</CardDescription>
+              <CardTitle className="text-2xl">{item.value}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">{item.note}</p>
+            </CardContent>
+            <CardFooter className="text-primary text-xs font-medium">
+              {item.trend}
+            </CardFooter>
+          </Card>
+        ))}
       </div>
     </div>
   );
@@ -462,7 +466,7 @@ const StatCard = ({
   trend: "up" | "down";
 }) => {
   return (
-    <Card className="border-border/50 bg-card/50 hover:border-primary/20 group relative overflow-hidden py-4 backdrop-blur-sm transition-all">
+    <Card className="border-border/50 hover:border-primary/20 group bg-card relative overflow-hidden py-4 shadow-lg/5 backdrop-blur-sm transition-all">
       <div className="from-primary/5 absolute inset-0 bg-linear-to-br to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>

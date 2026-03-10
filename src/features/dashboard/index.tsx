@@ -45,11 +45,8 @@ const DashboardPage = () => {
   };
 
   return (
-    <main className="bg-background min-h-screen p-8">
-      <div className="mx-auto max-w-6xl space-y-12">
-        {/* Horizontal Stepper */}
-        ini punya user
-      </div>
+    <main className="min-h-screen p-8">
+      <div className="mx-auto">ini punya user</div>
     </main>
   );
 };

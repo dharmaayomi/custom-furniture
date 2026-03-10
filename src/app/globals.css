@@ -121,7 +121,7 @@
 
   /* Charts in dark mode */
   --chart-1: oklch(0.7 0.165 162.5); /* brighter green for dark bg */
-  --chart-2: oklch(0.857 0.193 94); /* brand yellow */
+  --chart-2: oklch(0.68 0.14 90); /* darker amber for dark mode */
   --chart-3: oklch(0.85 0 0); /* light grey */
   --chart-4: oklch(0.55 0.12 162.5); /* darker green */
   --chart-5: oklch(0.645 0.246 16.439);

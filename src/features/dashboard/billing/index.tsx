@@ -450,21 +450,27 @@ export const BillingPage = () => {
             setTabParam(value);
           }
         }}
-        className="w-full"
+        className="bg-muted/50 w-full rounded-full p-1 lg:w-auto"
       >
-        <TabsList className="mb-5 grid w-full grid-cols-2">
-          <TabsTrigger value="active-payment">
-            Active Payment
+        <TabsList className="no-scrollbar mb-5 h-auto w-full justify-start gap-2 overflow-x-auto bg-transparent p-0">
+          <TabsTrigger
+            value="active-payment"
+            className="group data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-background rounded-full border px-4 py-2 text-xs font-bold whitespace-nowrap transition-all"
+          >
+            <span>Active Payment</span>
             {activePayments.length > 0 && (
-              <span className="bg-primary text-primary-foreground ml-2 rounded-full px-1.5 py-0.5 text-[10px] leading-none font-bold">
+              <span className="bg-chart-2 text-card group-data-[state=active]:bg-background group-data-[state=active]:text-card ml-2 rounded-full px-1.5 py-0.5 text-[10px]">
                 {activePayments.length}
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="payment-history">
-            Payment History
+          <TabsTrigger
+            value="payment-history"
+            className="group data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-background rounded-full border px-4 py-2 text-xs font-bold whitespace-nowrap transition-all"
+          >
+            <span>Payment History</span>
             {sortedHistoryPayments.length > 0 && (
-              <span className="bg-muted text-muted-foreground ml-2 rounded-full px-1.5 py-0.5 text-[10px] leading-none font-semibold">
+              <span className="bg-chart-2 text-card group-data-[state=active]:bg-chart-2 group-data-[state=active]:text-background ml-2 rounded-full px-1.5 py-0.5 text-[10px]">
                 {sortedHistoryPayments.length}
               </span>
             )}

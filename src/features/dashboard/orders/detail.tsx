@@ -465,7 +465,7 @@ export const OrderDetailPage = ({ orderId }: OrderDetailPageProps) => {
             )}
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-extrabold tracking-tight">
+                <h1 className="text-2xl font-extrabold tracking-tight">
                   #{displayOrderNumber}
                 </h1>
                 <Badge

@@ -13,7 +13,7 @@ import {
 import useDeleteMaterial from "@/hooks/api/product/useDeleteMaterial";
 import useGetMaterials from "@/hooks/api/product/useGetMaterials";
 import { MaterialCategory, ProductMaterial } from "@/types/materialProduct";
-import { Filter, Plus, RotateCcw } from "lucide-react";
+import { Filter, Layers2, Plus, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { parseAsInteger, useQueryState } from "nuqs";
@@ -119,12 +119,21 @@ export const ProductMaterialPage = () => {
 
   return (
     <section>
-      <div className="bg-muted/60 mb-8 rounded-lg px-4 py-6 sm:px-6 sm:py-8">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <header className="bg-card border-accent relative mb-8 overflow-hidden rounded-2xl border px-6 py-10 shadow-lg/5 sm:px-10">
+        <div className="from-primary/5 to-primary/20 pointer-events-none absolute -top-17 -right-20 h-72 w-72 rounded-full bg-linear-to-br md:-top-14 md:-right-24 lg:-top-16 lg:-right-8" />
+        <div className="from-primary/10 to-primary/30 pointer-events-none absolute -top-13 -right-28 h-64 w-64 rounded-full bg-linear-to-br md:-top-10 md:-right-32 lg:-top-12 lg:-right-12" />
+        <div className="from-primary/20 to-primary/80 pointer-events-none absolute -top-9 -right-36 h-56 w-56 rounded-full bg-linear-to-br md:-top-6 md:-right-40 lg:-top-8 lg:-right-16" />
+
+        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-foreground text-2xl font-semibold tracking-tight md:text-3xl">
-              Materials
-            </h1>
+            <div className="mb-1 flex items-center gap-2.5">
+              <div className="bg-primary/10 rounded-lg p-2">
+                <Layers2 className="text-primary h-5 w-5" />
+              </div>
+              <h1 className="text-foreground text-2xl font-bold tracking-tight">
+                Materials
+              </h1>
+            </div>
             <p className="text-muted-foreground mt-2 text-sm">
               Manage product material catalog.
             </p>
@@ -137,12 +146,12 @@ export const ProductMaterialPage = () => {
             Add Material
           </Button>
         </div>
-      </div>
+      </header>
 
       <div className="bg-muted/50 rounded-md p-3 sm:p-4">
         <div className="mx-auto px-1 py-3 sm:px-4 sm:py-4 lg:px-2 lg:py-2">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
-            <aside className="bg-card border-border h-fit rounded-lg border p-4 lg:sticky lg:top-4 lg:col-start-2">
+            <aside className="bg-card h-fit rounded-xl border p-4 shadow-lg/5 lg:sticky lg:top-4 lg:col-start-2">
               <div className="mb-4 flex items-center gap-2">
                 <Filter className="text-muted-foreground h-4 w-4" />
                 <h2 className="text-sm font-semibold">Filters</h2>
@@ -167,9 +176,7 @@ export const ProductMaterialPage = () => {
                   <Select
                     value={categoryFilter}
                     onValueChange={(value) => {
-                      void setCategoryFilter(
-                        value as "ALL" | MaterialCategory,
-                      );
+                      void setCategoryFilter(value as "ALL" | MaterialCategory);
                       void setPage(1);
                     }}
                   >
@@ -261,7 +268,9 @@ export const ProductMaterialPage = () => {
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="materialName">Material Name</SelectItem>
+                      <SelectItem value="materialName">
+                        Material Name
+                      </SelectItem>
                       <SelectItem value="materialCategory">Category</SelectItem>
                       <SelectItem value="price">Price</SelectItem>
                     </SelectContent>
