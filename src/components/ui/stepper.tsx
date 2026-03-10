@@ -96,8 +96,12 @@ const Stepper = React.forwardRef<HTMLDivElement, StepperProps>(
               const isCompleted = index < activeIndex;
               return (
                 <div key={step.id} className="relative flex items-start gap-3">
-                  <div className="relative z-10">{renderStepButton(index, step)}</div>
-                  <div className="min-w-0 flex-1 pt-1">{renderStepText(index, step)}</div>
+                  <div className="relative z-10">
+                    {renderStepButton(index, step)}
+                  </div>
+                  <div className="min-w-0 flex-1 pt-1">
+                    {renderStepText(index, step)}
+                  </div>
                   {index < steps.length - 1 ? (
                     <div
                       className={cn(
@@ -116,11 +120,16 @@ const Stepper = React.forwardRef<HTMLDivElement, StepperProps>(
               {steps.map((step, index) => {
                 const isCompleted = index < activeIndex;
                 return (
-                  <div key={step.id} className="relative flex items-start gap-3">
+                  <div
+                    key={step.id}
+                    className="relative flex items-start gap-3"
+                  >
                     <div className="relative z-10">
                       {renderStepButton(index, step, "sm")}
                     </div>
-                    <div className="min-w-0 flex-1 pt-0.5">{renderStepText(index, step)}</div>
+                    <div className="min-w-0 flex-1 pt-0.5">
+                      {renderStepText(index, step)}
+                    </div>
                     {index < steps.length - 1 ? (
                       <div
                         className={cn(
@@ -141,7 +150,9 @@ const Stepper = React.forwardRef<HTMLDivElement, StepperProps>(
                     <div className="min-w-0">
                       <div className="flex items-start gap-3">
                         {renderStepButton(index, step)}
-                        <div className="w-28">{renderStepText(index, step)}</div>
+                        <div className="w-28">
+                          {renderStepText(index, step)}
+                        </div>
                       </div>
                     </div>
                     {index < steps.length - 1 ? (
@@ -160,7 +171,7 @@ const Stepper = React.forwardRef<HTMLDivElement, StepperProps>(
         )}
 
         <div
-          className="text-muted-foreground text-xs"
+          className="text-muted-foreground pt-3 text-xs"
           role="region"
           aria-live="polite"
         >

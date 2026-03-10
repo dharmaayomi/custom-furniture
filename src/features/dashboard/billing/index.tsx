@@ -13,7 +13,12 @@ import {
   getPaymentStatusIcon,
   getPaymentStatusLabel,
 } from "@/lib/paymentStatus";
-import { ExternalLink, ReceiptText } from "lucide-react";
+import {
+  ArrowRight,
+  ExternalLink,
+  ReceiptText,
+  WalletCards,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CustomOrderPayment, PaymentStatus } from "@/types/customOrder";
 import { PaymentAttempt } from "@/types/payment";
@@ -24,10 +29,17 @@ const isActivePaymentStatus = (status: PaymentStatus) =>
   status === "EXPIRED";
 
 const PHASE_LABEL: Record<string, string> = {
-  DP: "DP Payment",
-  PROGRESS_1: "Progress 1 Payment",
-  PROGRESS_2: "Progress 2 Payment",
+  DP: "Down Payment",
+  PROGRESS_1: "Progress 1",
+  PROGRESS_2: "Progress 2",
   FINAL: "Final Payment",
+};
+
+const PHASE_STEP: Record<string, number> = {
+  DP: 1,
+  PROGRESS_1: 2,
+  PROGRESS_2: 3,
+  FINAL: 4,
 };
 
 const PAYMENT_VISUAL: Record<
@@ -46,37 +58,37 @@ const PAYMENT_VISUAL: Record<
   },
   bca_va: {
     iconPath: "/assets/payment-icons/bca.svg",
-    iconAlt: "Bank BCA",
-    displayName: "Bank BCA",
+    iconAlt: "BCA",
+    displayName: "BCA",
   },
   bni_va: {
     iconPath: "/assets/payment-icons/bni.png",
-    iconAlt: "Bank BNI",
-    displayName: "Bank BNI",
+    iconAlt: "BNI",
+    displayName: "BNI",
   },
   bri_va: {
     iconPath: "/assets/payment-icons/bri.svg",
-    iconAlt: "Bank BRI",
-    displayName: "Bank BRI",
+    iconAlt: "BRI",
+    displayName: "BRI",
   },
   permata_va: {
     iconPath: "/assets/payment-icons/permata.png",
-    iconAlt: "Bank Permata",
-    displayName: "Bank Permata",
+    iconAlt: "Permata",
+    displayName: "Permata",
   },
   cimb_va: {
     iconPath: "/assets/payment-icons/cimb.png",
-    iconAlt: "Bank CIMB",
-    displayName: "Bank CIMB",
+    iconAlt: "CIMB",
+    displayName: "CIMB",
   },
   mandiri_bill: {
     iconPath: "/assets/payment-icons/mandiri.webp",
-    iconAlt: "Bank Mandiri",
-    displayName: "Bank Mandiri",
+    iconAlt: "Mandiri",
+    displayName: "Mandiri",
   },
   bank_transfer: {
     iconPath: "/assets/payment-icons/bca.svg",
-    iconAlt: "Virtual Account",
+    iconAlt: "VA",
     displayName: "Virtual Account",
   },
 };
@@ -89,31 +101,30 @@ const getPaymentVisualKey = (payment: CustomOrderPayment) => {
   if (bank === "permata") return "permata_va";
   if (bank === "cimb") return "cimb_va";
   if (bank === "mandiri") return "mandiri_bill";
-
   const midtransType = String(payment.midtransPaymentType ?? "").toLowerCase();
   if (midtransType === "qris") return "qris";
   if (midtransType === "gopay") return "gopay";
   if (midtransType === "echannel") return "mandiri_bill";
-
   const paymentType = String(payment.paymentType ?? "").toLowerCase();
   if (paymentType.includes("qris")) return "qris";
   if (paymentType.includes("gopay")) return "gopay";
   if (paymentType.includes("echannel")) return "mandiri_bill";
   if (paymentType.includes("bank_transfer")) return "bank_transfer";
-
   return "bank_transfer";
 };
 
 const PaymentLogo = ({
   payment,
-  size = 18,
+  size = 16,
 }: {
   payment: CustomOrderPayment;
   size?: number;
 }) => {
-  const visual = PAYMENT_VISUAL[getPaymentVisualKey(payment)] ?? PAYMENT_VISUAL.bank_transfer;
+  const visual =
+    PAYMENT_VISUAL[getPaymentVisualKey(payment)] ??
+    PAYMENT_VISUAL.bank_transfer;
   return (
-    <span className="inline-flex items-center justify-center rounded-sm border border-zinc-200 bg-white px-1 py-0.5 dark:border-zinc-700 dark:bg-zinc-100">
+    <span className="inline-flex items-center justify-center rounded border border-zinc-200 bg-white px-1 py-0.5 dark:border-zinc-700 dark:bg-zinc-100">
       <img
         src={visual.iconPath}
         alt={visual.iconAlt}
@@ -133,7 +144,7 @@ const formatHistoryDate = (value?: string | null) => {
   if (!value) return "";
   return new Date(value).toLocaleDateString("id-ID", {
     day: "numeric",
-    month: "long",
+    month: "short",
     year: "numeric",
   });
 };
@@ -144,10 +155,7 @@ const mapAttemptToPaymentHistoryItem = (
   attempt: PaymentAttempt,
 ): BillingPaymentHistoryItem | null => {
   const payment = attempt.payment;
-  if (!payment?.id || !payment.phase) {
-    return null;
-  }
-
+  if (!payment?.id || !payment.phase) return null;
   return {
     id: payment.id,
     orderId: payment.orderId,
@@ -177,12 +185,203 @@ const mapAttemptToPaymentHistoryItem = (
   };
 };
 
+/* ── Skeleton ─────────────────────────────────────────────────── */
+const renderSkeletonList = () => (
+  <div className="space-y-3">
+    {Array.from({ length: 4 }).map((_, i) => (
+      <div key={i} className="bg-card rounded-xl border p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-6 w-44" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <div className="flex flex-col items-end space-y-2">
+            <Skeleton className="h-6 w-20 rounded-full" />
+            <Skeleton className="h-6 w-28" />
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+/* ── Empty / Error state ──────────────────────────────────────── */
+const EmptyState = ({ message }: { message: string }) => (
+  <div className="border-border bg-card flex flex-col items-center justify-center rounded-xl border border-dashed px-4 py-14 text-center">
+    <div className="bg-muted mb-4 rounded-full p-4">
+      <ReceiptText className="text-muted-foreground h-8 w-8" />
+    </div>
+    <h3 className="text-foreground font-semibold">No payment data</h3>
+    <p className="text-muted-foreground mt-1 text-sm">{message}</p>
+  </div>
+);
+
+const ErrorState = () => (
+  <div className="border-border bg-card flex flex-col items-center justify-center rounded-xl border border-dashed px-4 py-14 text-center">
+    <p className="text-sm font-medium">Failed to load payment data</p>
+    <p className="text-muted-foreground text-sm">
+      Please refresh and try again.
+    </p>
+  </div>
+);
+
+/* ── History card ─────────────────────────────────────────────── */
+const HistoryCard = ({
+  payment,
+  onClick,
+}: {
+  payment: BillingPaymentHistoryItem;
+  onClick: () => void;
+}) => {
+  const PaymentStatusIcon = getPaymentStatusIcon(payment.status);
+  const orderRef = payment.order?.orderNumber?.trim() || "-";
+  const phaseLabel = PHASE_LABEL[payment.phase] ?? `${payment.phase} Payment`;
+  const phaseStep = PHASE_STEP[payment.phase] ?? null;
+  const displayName = getPaymentDisplayName(payment);
+  const dateStr = formatHistoryDate(payment.paidAt ?? payment.createdAt);
+
+  return (
+    <div
+      className="bg-card hover:bg-muted/30 border-border group cursor-pointer rounded-xl border transition-all hover:shadow-sm"
+      onClick={onClick}
+    >
+      {/* Top strip: order identifier */}
+      <div className="border-border/60 flex items-center justify-between border-b px-4 py-2">
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
+            Order
+          </span>
+          <span className="text-foreground font-mono text-sm font-bold">
+            {orderRef}
+          </span>
+        </div>
+        {phaseStep ? (
+          <span className="bg-primary/10 text-primary rounded-full px-2.5 py-0.5 text-[11px] font-semibold">
+            Step {phaseStep}
+          </span>
+        ) : null}
+      </div>
+
+      {/* Main body */}
+      <div className="flex items-center justify-between gap-4 px-4 py-3">
+        {/* Left: phase + method */}
+        <div className="min-w-0 space-y-1.5">
+          <p className="text-foreground text-sm leading-tight font-bold">
+            {phaseLabel}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <PaymentLogo payment={payment} size={14} />
+            <span className="text-muted-foreground text-xs">{displayName}</span>
+          </div>
+          {payment.paymentUrl ? (
+            <a
+              href={payment.paymentUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-primary inline-flex items-center gap-1 text-xs hover:underline"
+            >
+              Lihat tagihan <ExternalLink size={10} />
+            </a>
+          ) : null}
+        </div>
+
+        {/* Right: status + amount + date */}
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <span className={getPaymentStatusBadgeClass(payment.status)}>
+            <PaymentStatusIcon className="h-3 w-3" />
+            {getPaymentStatusLabel(payment.status)}
+          </span>
+          <p className="text-foreground text-sm font-bold tabular-nums">
+            {formatPrice(Number(payment.amount ?? 0))}
+          </p>
+          {dateStr ? (
+            <p className="text-muted-foreground text-[11px]">{dateStr}</p>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Hover affordance */}
+      <div className="border-border/40 flex items-center justify-end border-t px-4 py-2 opacity-0 transition-opacity group-hover:opacity-100">
+        <span className="text-primary flex items-center gap-1 text-xs font-medium">
+          View detail <ArrowRight className="h-3 w-3" />
+        </span>
+      </div>
+    </div>
+  );
+};
+
+/* ── Active card ──────────────────────────────────────────────── */
+const ActiveCard = ({
+  payment,
+  onClick,
+}: {
+  payment: CustomOrderPayment;
+  onClick: () => void;
+}) => {
+  const PaymentStatusIcon = getPaymentStatusIcon(payment.status);
+  const orderRef = payment.order?.orderNumber?.trim() || "-";
+  const phaseLabel = PHASE_LABEL[payment.phase] ?? `${payment.phase} Payment`;
+  const phaseStep = PHASE_STEP[payment.phase] ?? null;
+  const dateStr = formatHistoryDate(payment.paidAt ?? payment.createdAt);
+
+  return (
+    <div
+      className="bg-card hover:bg-muted/30 border-border group cursor-pointer rounded-xl border transition-all hover:shadow-sm"
+      onClick={onClick}
+    >
+      <div className="border-border/60 flex items-center justify-between border-b px-4 py-2">
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
+            Order
+          </span>
+          <span className="text-foreground font-mono text-sm font-bold">
+            {orderRef}
+          </span>
+        </div>
+        {phaseStep ? (
+          <span className="bg-primary/10 text-primary rounded-full px-2.5 py-0.5 text-[11px] font-semibold">
+            Step {phaseStep}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="flex items-center justify-between gap-4 px-4 py-3">
+        <div className="min-w-0 space-y-1">
+          <p className="text-foreground text-sm font-bold">{phaseLabel}</p>
+          {dateStr ? (
+            <p className="text-muted-foreground text-xs">{dateStr}</p>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <span className={getPaymentStatusBadgeClass(payment.status)}>
+            <PaymentStatusIcon className="h-3 w-3" />
+            {getPaymentStatusLabel(payment.status)}
+          </span>
+          <p className="text-foreground text-sm font-bold tabular-nums">
+            {formatPrice(Number(payment.amount ?? 0))}
+          </p>
+        </div>
+      </div>
+
+      <div className="border-border/40 flex items-center justify-end border-t px-4 py-2 opacity-0 transition-opacity group-hover:opacity-100">
+        <span className="text-primary flex items-center gap-1 text-xs font-medium">
+          View detail <ArrowRight className="h-3 w-3" />
+        </span>
+      </div>
+    </div>
+  );
+};
+
+/* ── Main page ────────────────────────────────────────────────── */
 export const BillingPage = () => {
   const router = useRouter();
   const [tabParam, setTabParam] = useQueryState("tab");
   const currentTab =
     tabParam === "payment-history" ? "payment-history" : "active-payment";
   const { userId } = useUser();
+
   const {
     data: paymentAttempts = [],
     isLoading: isHistoryLoading,
@@ -195,13 +394,14 @@ export const BillingPage = () => {
   } = useGetUserPayments(userId);
 
   const historyPayments = useMemo<BillingPaymentHistoryItem[]>(() => {
-    return paymentAttempts.reduce<BillingPaymentHistoryItem[]>((acc, attempt) => {
-      const mapped = mapAttemptToPaymentHistoryItem(attempt);
-      if (mapped) {
-        acc.push(mapped);
-      }
-      return acc;
-    }, []);
+    return paymentAttempts.reduce<BillingPaymentHistoryItem[]>(
+      (acc, attempt) => {
+        const mapped = mapAttemptToPaymentHistoryItem(attempt);
+        if (mapped) acc.push(mapped);
+        return acc;
+      },
+      [],
+    );
   }, [paymentAttempts]);
 
   const activePayments = useMemo(
@@ -219,235 +419,102 @@ export const BillingPage = () => {
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
-  const renderSkeletonList = () => (
-    <div className="space-y-4">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="bg-card rounded-lg border p-4 shadow-sm">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 space-y-2">
-              <Skeleton className="h-5 w-52" />
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-4 w-32" />
-            </div>
-            <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-end">
-              <Skeleton className="h-5 w-24" />
-              <Skeleton className="h-6 w-28 rounded-full" />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
-  const renderHistoryList = (items: BillingPaymentHistoryItem[]) => {
-    if (isHistoryLoading) {
-      return renderSkeletonList();
-    }
-
-    if (isHistoryError) {
-      return (
-        <div className="border-border bg-card mx-auto flex w-full max-w-xl flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12 lg:max-w-full">
-          <p className="text-sm font-medium">Failed to load payment data</p>
-          <p className="text-muted-foreground text-sm">
-            Please refresh this page and try again.
-          </p>
-        </div>
-      );
-    }
-
-    if (items.length === 0) {
-      return (
-        <div className="border-border bg-card mx-auto flex w-full max-w-xl flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12 lg:max-w-full">
-          <ReceiptText className="text-muted-foreground/40 mb-3 h-12 w-12" />
-          <h3 className="text-foreground mb-2 text-lg font-medium">
-            No payment data
-          </h3>
-          <p className="text-muted-foreground text-sm">
-            There are no payment history logs in this tab yet.
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-4">
-        {items.map((payment) => {
-          const PaymentStatusIcon = getPaymentStatusIcon(payment.status);
-          const orderId = payment.orderId ?? payment.order?.id;
-          const orderRef = payment.order?.orderNumber?.trim() || "-";
-          const phaseTitle = PHASE_LABEL[payment.phase] ?? `${payment.phase} Payment`;
-          const displayName = getPaymentDisplayName(payment);
-          const dateStr = formatHistoryDate(payment.paidAt ?? payment.createdAt);
-
-          return (
-            <div
-              key={payment.attemptId}
-              className="bg-card hover:bg-muted/35 border-border cursor-pointer rounded-md border p-3 transition sm:p-4"
-              onClick={() => {
-                if (!orderId) return;
-                router.push(
-                  `/dashboard/billing/${orderId}?paymentId=${payment.id}&attemptId=${payment.attemptId}`,
-                );
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col gap-1 rounded-md p-1 sm:p-2">
-                  <p className="text-sm font-bold sm:text-base">{phaseTitle}</p>
-                  <p className="text-muted-foreground text-xs">Order {orderRef}</p>
-                  <span className="text-muted-foreground flex items-center gap-1.5 text-sm">
-                    <PaymentLogo payment={payment} size={18} />
-                    {displayName}
-                  </span>
-                  {payment.paymentUrl ? (
-                    <a
-                      href={payment.paymentUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(event) => event.stopPropagation()}
-                      className="text-primary mt-0.5 inline-flex items-center gap-1 text-xs hover:underline"
-                    >
-                      Lihat tagihan
-                      <ExternalLink size={11} />
-                    </a>
-                  ) : null}
-                </div>
-
-                <div className="flex flex-col items-end gap-1 p-1 sm:p-2">
-                  <span className={getPaymentStatusBadgeClass(payment.status)}>
-                    <PaymentStatusIcon className="h-3.5 w-3.5" />
-                    {getPaymentStatusLabel(payment.status)}
-                  </span>
-                  <p className="text-sm font-semibold sm:text-base">
-                    {formatPrice(Number(payment.amount ?? 0))}
-                  </p>
-                  {dateStr ? (
-                    <p className="text-muted-foreground text-xs italic">{dateStr}</p>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  const renderActiveList = (items: CustomOrderPayment[]) => {
-    if (isActiveLoading) {
-      return renderSkeletonList();
-    }
-
-    if (isActiveError) {
-      return (
-        <div className="border-border bg-card mx-auto flex w-full max-w-xl flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12 lg:max-w-full">
-          <p className="text-sm font-medium">Failed to load payment data</p>
-          <p className="text-muted-foreground text-sm">
-            Please refresh this page and try again.
-          </p>
-        </div>
-      );
-    }
-
-    if (items.length === 0) {
-      return (
-        <div className="border-border bg-card mx-auto flex w-full max-w-xl flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center sm:py-12 lg:max-w-full">
-          <ReceiptText className="text-muted-foreground/40 mb-3 h-12 w-12" />
-          <h3 className="text-foreground mb-2 text-lg font-medium">
-            No payment data
-          </h3>
-          <p className="text-muted-foreground text-sm">
-            There are no active payments in this tab.
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-4">
-        {items.map((payment) => {
-          const PaymentStatusIcon = getPaymentStatusIcon(payment.status);
-          const orderId = payment.orderId ?? payment.order?.id;
-          const orderRef = payment.order?.orderNumber?.trim() || "-";
-          const dateStr = formatHistoryDate(payment.paidAt ?? payment.createdAt);
-
-          return (
-            <div
-              key={payment.id}
-              className="bg-card hover:bg-muted/35 hover:border-border cursor-pointer rounded-lg border p-4 shadow-sm transition"
-              onClick={() => {
-                if (!orderId) return;
-                router.push(`/dashboard/billing/${orderId}?paymentId=${payment.id}`);
-              }}
-            >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-foreground truncate text-sm font-semibold sm:text-base">
-                    {payment.phase} payment - {formatPrice(Number(payment.amount ?? 0))}
-                  </p>
-                  <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
-                    Order: {orderRef}
-                  </p>
-                  <p className="text-muted-foreground text-xs sm:text-sm">
-                    Payment ID: {payment.id}
-                  </p>
-                  <p className="text-muted-foreground text-xs sm:text-sm">
-                    Date: {dateStr || "-"}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-end">
-                  <span className={getPaymentStatusBadgeClass(payment.status)}>
-                    <PaymentStatusIcon className="h-3.5 w-3.5" />
-                    {getPaymentStatusLabel(payment.status)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   return (
-    <section>
-      <div className="bg-muted/60 mb-8 rounded-lg px-4 py-6 sm:px-6 sm:py-8">
-        <h1 className="text-foreground text-2xl font-semibold tracking-tight md:text-3xl">
-          Billing
-        </h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          Track active payments and payment history.
-        </p>
-      </div>
-
-      <div className="bg-muted/50 rounded-md p-3 sm:p-4">
-        <div className="mx-auto px-1 py-3 sm:px-4 sm:py-4 lg:px-2 lg:py-2">
-          <Tabs
-            value={currentTab}
-            onValueChange={(value) => {
-              if (value === "active-payment" || value === "payment-history") {
-                setTabParam(value);
-              }
-            }}
-            className="w-full"
-          >
-            <TabsList className="mb-4 grid w-full grid-cols-2 sm:mb-6">
-              <TabsTrigger value="active-payment">
-                Active Payment ({activePayments.length})
-              </TabsTrigger>
-              <TabsTrigger value="payment-history">
-                Payment History ({sortedHistoryPayments.length})
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="active-payment">
-              {renderActiveList(activePayments)}
-            </TabsContent>
-            <TabsContent value="payment-history">
-              {renderHistoryList(sortedHistoryPayments)}
-            </TabsContent>
-          </Tabs>
+    <section className="space-y-6">
+      {/* ── Page header ── */}
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <div className="mb-1 flex items-center gap-2.5">
+            <div className="bg-primary/10 rounded-lg p-2">
+              <WalletCards className="text-primary h-5 w-5" />
+            </div>
+            <h1 className="text-foreground text-2xl font-bold tracking-tight">
+              Billing
+            </h1>
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Track active payments and payment history.
+          </p>
         </div>
       </div>
+
+      {/* ── Tabs ── */}
+      <Tabs
+        value={currentTab}
+        onValueChange={(value) => {
+          if (value === "active-payment" || value === "payment-history") {
+            setTabParam(value);
+          }
+        }}
+        className="w-full"
+      >
+        <TabsList className="mb-5 grid w-full grid-cols-2">
+          <TabsTrigger value="active-payment">
+            Active Payment
+            {activePayments.length > 0 && (
+              <span className="bg-primary text-primary-foreground ml-2 rounded-full px-1.5 py-0.5 text-[10px] leading-none font-bold">
+                {activePayments.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="payment-history">
+            Payment History
+            {sortedHistoryPayments.length > 0 && (
+              <span className="bg-muted text-muted-foreground ml-2 rounded-full px-1.5 py-0.5 text-[10px] leading-none font-semibold">
+                {sortedHistoryPayments.length}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="active-payment" className="space-y-3">
+          {isActiveLoading ? (
+            renderSkeletonList()
+          ) : isActiveError ? (
+            <ErrorState />
+          ) : activePayments.length === 0 ? (
+            <EmptyState message="There are no active payments right now." />
+          ) : (
+            activePayments.map((payment) => (
+              <ActiveCard
+                key={payment.id}
+                payment={payment}
+                onClick={() => {
+                  const orderId = payment.orderId ?? payment.order?.id;
+                  if (!orderId) return;
+                  router.push(
+                    `/dashboard/billing/${orderId}?paymentId=${payment.id}`,
+                  );
+                }}
+              />
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="payment-history" className="space-y-3">
+          {isHistoryLoading ? (
+            renderSkeletonList()
+          ) : isHistoryError ? (
+            <ErrorState />
+          ) : sortedHistoryPayments.length === 0 ? (
+            <EmptyState message="There are no payment history logs yet." />
+          ) : (
+            sortedHistoryPayments.map((payment) => (
+              <HistoryCard
+                key={payment.attemptId}
+                payment={payment}
+                onClick={() => {
+                  const orderId = payment.orderId ?? payment.order?.id;
+                  if (!orderId) return;
+                  router.push(
+                    `/dashboard/billing/${orderId}?paymentId=${payment.id}&attemptId=${payment.attemptId}`,
+                  );
+                }}
+              />
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
     </section>
   );
 };

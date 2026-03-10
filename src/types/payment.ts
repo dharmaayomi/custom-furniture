@@ -20,6 +20,7 @@ export interface PaymentAttempt {
   id: string;
   paymentId: string;
   midtransOrderId?: string | null;
+  progressPercentageSnapshot?: number | null;
   status: PaymentStatus | string;
   paymentUrl?: string | null;
   paymentType?: string | null;

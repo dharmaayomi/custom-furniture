@@ -1,4 +1,5 @@
 import { BillingDetail } from "@/features/dashboard/billing/BillingDetail";
+import { PaymentHistoryDetail } from "@/features/dashboard/billing/PaymentHistoryDetail";
 import { auth } from "@/lib/auth";
 import { normalizeRole } from "@/lib/dashboard-access";
 import { redirect } from "next/navigation";
@@ -27,11 +28,18 @@ const BillingDetailPage = async ({
 
   return (
     <div>
-      <BillingDetail
-        orderId={orderId}
-        paymentId={paymentId}
-        paymentAttemptId={attemptId}
-      />
+      {attemptId ? (
+        <PaymentHistoryDetail
+          orderId={orderId}
+          paymentAttemptId={attemptId}
+        />
+      ) : (
+        <BillingDetail
+          orderId={orderId}
+          paymentId={paymentId}
+          paymentAttemptId={attemptId}
+        />
+      )}
     </div>
   );
 };

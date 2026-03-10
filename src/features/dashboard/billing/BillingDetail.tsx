@@ -6,10 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Stepper } from "@/components/ui/stepper";
+import {
+  PaymentInstruction,
+  PaymentInstructionValue,
+} from "@/features/dashboard/billing/components/PaymentInstruction";
 import useCreateSnapPayment from "@/hooks/api/payment/useCreateSnapPayment";
-import useGetPaymentAttemptDetail from "@/hooks/api/payment/useGetPaymentAttemptDetail";
+import useGetAttemptDetail from "@/hooks/api/payment/useGetAttemptDetail";
 import useGetOrder from "@/hooks/api/order/useGetOrder";
 import { getApiErrorMessage } from "@/lib/api-error";
+import { PaymentInstructionMethod } from "@/lib/bankInstruction";
 import { formatPrice } from "@/lib/price";
 import {
   getOrderStatusBadgeClass,
@@ -36,26 +42,34 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useQueryState } from "nuqs";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type StepState = "completed" | "current" | "upcoming";
+const useGetPaymentAttemptByPayment = useGetAttemptDetail;
 
-type PhaseStep = {
+export type StepState = "completed" | "current" | "upcoming";
+
+export type PhaseStep = {
   phase: PaymentPhase;
   label: string;
   amount: number;
   state: StepState;
 };
 
-const PHASE_LABEL: Record<PaymentPhase, string> = {
+export const PHASE_LABEL: Record<PaymentPhase, string> = {
   DP: "DP",
   PROGRESS_1: "Progress 1",
   PROGRESS_2: "Progress 2",
   FINAL: "Final",
 };
 
-const phaseOrder: PaymentPhase[] = ["DP", "PROGRESS_1", "PROGRESS_2", "FINAL"];
+export const phaseOrder: PaymentPhase[] = [
+  "DP",
+  "PROGRESS_1",
+  "PROGRESS_2",
+  "FINAL",
+];
 
 const isRetryActivePaymentStatus = (status?: string | null) => {
   const normalized = String(status ?? "").toUpperCase();
@@ -71,7 +85,7 @@ const isLivePendingPaymentStatus = (status?: string | null) => {
   return normalized === "WAITING_FOR_PAYMENT" || normalized === "CHALLENGE";
 };
 
-const inferPhaseFromStatus = (status: OrderStatus): PaymentPhase => {
+export const inferPhaseFromStatus = (status: OrderStatus): PaymentPhase => {
   if (status === "PENDING_PAYMENT") return "DP";
   if (status === "AWAITING_PRODUCTION") return "PROGRESS_1";
   if (status === "IN_PRODUCTION") return "PROGRESS_1";
@@ -79,7 +93,7 @@ const inferPhaseFromStatus = (status: OrderStatus): PaymentPhase => {
   return "FINAL";
 };
 
-const getDefaultPhaseAmounts = (totalPrice: number) => {
+export const getDefaultPhaseAmounts = (totalPrice: number) => {
   const normalizedTotal = Math.max(0, Math.ceil(totalPrice));
   const quarter = Math.floor(normalizedTotal / 4);
   const finalPortion = normalizedTotal - quarter * 3;
@@ -92,7 +106,7 @@ const getDefaultPhaseAmounts = (totalPrice: number) => {
   } satisfies Record<PaymentPhase, number>;
 };
 
-const buildPhaseSteps = (params: {
+export const buildPhaseSteps = (params: {
   amountsByPhase: Record<PaymentPhase, number>;
   paidPhaseSet: Set<PaymentPhase>;
   currentPhase: PaymentPhase;
@@ -115,16 +129,6 @@ const buildPhaseSteps = (params: {
     };
   });
 };
-
-const stepCircleClass = (state: StepState) => {
-  if (state === "completed") return "bg-primary text-primary-foreground";
-  if (state === "current")
-    return "ring-primary text-primary bg-background ring-2";
-  return "bg-muted text-muted-foreground";
-};
-
-const stepLineClass = (state: StepState) =>
-  state === "completed" ? "bg-primary" : "bg-border";
 
 type CorePaymentMethod =
   | "qris"
@@ -191,6 +195,33 @@ const buildCorePayload = (method: CorePaymentMethod) => {
   }
 };
 
+const inferInstructionMethodFromPayment = (
+  payment?: Pick<
+    CustomOrderPayment,
+    "paymentType" | "midtransPaymentType" | "midtransBank"
+  > | null,
+): PaymentInstructionMethod => {
+  const bank = String(payment?.midtransBank ?? "").toLowerCase();
+  if (bank === "bca") return "bca_va";
+  if (bank === "bni") return "bni_va";
+  if (bank === "bri") return "bri_va";
+  if (bank === "permata") return "permata_va";
+  if (bank === "cimb") return "cimb_va";
+  if (bank === "mandiri") return "mandiri_bill";
+
+  const midtransType = String(payment?.midtransPaymentType ?? "").toLowerCase();
+  if (midtransType === "qris") return "qris";
+  if (midtransType === "gopay") return "gopay";
+  if (midtransType === "echannel") return "mandiri_bill";
+
+  const paymentType = String(payment?.paymentType ?? "").toLowerCase();
+  if (paymentType.includes("qris")) return "qris";
+  if (paymentType.includes("gopay")) return "gopay";
+  if (paymentType.includes("echannel")) return "mandiri_bill";
+
+  return "qris";
+};
+
 const PAYMENT_FALLBACK: Record<
   string,
   { label: string; color: string; bg: string; iconPath?: string }
@@ -252,7 +283,7 @@ const PAYMENT_FALLBACK: Record<
   },
 };
 
-const PAYMENT_PHASE_LABEL: Record<PaymentPhase, string> = {
+export const PAYMENT_PHASE_LABEL: Record<PaymentPhase, string> = {
   DP: "Down Payment",
   PROGRESS_1: "Progress 1",
   PROGRESS_2: "Progress 2",
@@ -295,6 +326,7 @@ type ParsedPaymentReference = {
   permata_va_number?: string;
   bill_key?: string;
   biller_code?: string;
+  qr_string?: string;
 };
 
 const parsePaymentReference = (value?: string | null) => {
@@ -306,6 +338,38 @@ const parsePaymentReference = (value?: string | null) => {
   } catch {
     return null;
   }
+};
+
+const buildInstructionFromPayment = (
+  payment: CustomOrderPayment,
+): PaymentInstructionValue | null => {
+  const parsedReference = parsePaymentReference(payment.midtransReference);
+  const vaNumbers = Array.isArray(parsedReference?.va_numbers)
+    ? parsedReference.va_numbers
+        .filter((item) => item?.va_number)
+        .map((item) => ({
+          bank: String(item.bank ?? payment.midtransBank ?? "bank"),
+          va_number: String(item.va_number),
+        }))
+    : [];
+
+  const next: PaymentInstructionValue = {
+    method: inferInstructionMethodFromPayment(payment),
+    vaNumbers,
+    permataVaNumber: parsedReference?.permata_va_number ?? null,
+    qrString: parsedReference?.qr_string ?? null,
+    billerCode: parsedReference?.biller_code ?? null,
+    billKey: parsedReference?.bill_key ?? null,
+  };
+
+  const hasInstruction =
+    next.vaNumbers.length > 0 ||
+    Boolean(next.permataVaNumber) ||
+    Boolean(next.qrString) ||
+    Boolean(next.billKey) ||
+    Boolean(next.billerCode);
+
+  return hasInstruction ? next : null;
 };
 
 const copyToClipboard = async (value: string, label: string) => {
@@ -597,6 +661,12 @@ function PaymentHistoryCard({ payment }: { payment: CustomOrderPayment }) {
         ) : null}
       </div>
 
+      <div className="px-4 pb-3.5">
+        <h4 className="text-sm leading-6 font-medium text-zinc-900 dark:text-zinc-100">
+          Pembayaran
+        </h4>
+      </div>
+
       {payment.paymentUrl ? (
         <div className="px-4 pb-3.5">
           <a
@@ -770,16 +840,16 @@ export const BillingDetail = ({
   paymentAttemptId,
 }: BillingDetailProps) => {
   const router = useRouter();
+  const [waitingPaymentParam, setWaitingPaymentParam] =
+    useQueryState("waiting-payment");
   const { data: order, isLoading, isError } = useGetOrder(orderId);
-  const { data: paymentAttempts = [] } = useGetPaymentAttemptDetail(paymentId);
+  const { data: selectedAttemptDetail } =
+    useGetPaymentAttemptByPayment(paymentAttemptId);
   const { mutateAsync: createSnapPayment, isPending: isCreatingSnapPayment } =
     useCreateSnapPayment();
   const [paymentMethod, setPaymentMethod] = useState<CorePaymentMethod>("qris");
-  const [paymentInstruction, setPaymentInstruction] = useState<{
-    vaNumbers: Array<{ bank: string; va_number: string }>;
-    permataVaNumber: string | null;
-    qrString: string | null;
-  } | null>(null);
+  const [paymentInstruction, setPaymentInstruction] =
+    useState<PaymentInstructionValue | null>(null);
   const [paymentRedirectUrl, setPaymentRedirectUrl] = useState<string | null>(
     null,
   );
@@ -925,16 +995,11 @@ export const BillingDetail = ({
         : null,
     [paymentHistory, paymentId],
   );
-  const selectedAttemptPayment = useMemo(() => {
-    if (!paymentId) return null;
-    const selectedAttempt = paymentAttemptId
-      ? (paymentAttempts.find((attempt) => attempt.id === paymentAttemptId) ??
-        null)
-      : (paymentAttempts[0] ?? null);
-
-    if (!selectedAttempt) return null;
-    return mapAttemptToPayment(selectedAttempt);
-  }, [paymentAttemptId, paymentAttempts, paymentId]);
+  const selectedAttemptPayment = useMemo(
+    () =>
+      selectedAttemptDetail ? mapAttemptToPayment(selectedAttemptDetail) : null,
+    [selectedAttemptDetail],
+  );
   const selectedHistoryPayment = selectedAttemptPayment ?? selectedPaymentById;
   const currentPaymentDetail =
     selectedHistoryPayment ??
@@ -1005,6 +1070,63 @@ export const BillingDetail = ({
             : ("upcoming" as StepState),
     }));
   }, [historyFocusPhase, isHistoryView, phaseAmounts, steps]);
+  const paymentStepperItems = useMemo(
+    () =>
+      stepsToRender.map((step) => ({
+        id: step.phase,
+        title: step.label,
+        description:
+          step.state === "completed" || step.state === "current"
+            ? formatPrice(step.amount)
+            : "Upcoming",
+      })),
+    [stepsToRender],
+  );
+  const currentStepperPhase = useMemo<PaymentPhase>(() => {
+    const current = stepsToRender.find((step) => step.state === "current");
+    if (current) {
+      return current.phase;
+    }
+    const lastCompleted = [...stepsToRender]
+      .reverse()
+      .find((step) => step.state === "completed");
+    if (lastCompleted) {
+      return lastCompleted.phase;
+    }
+    return stepsToRender[0]?.phase ?? "DP";
+  }, [stepsToRender]);
+
+  useEffect(() => {
+    if (!paymentInstruction && waitingPaymentParam !== "true") return;
+    if (allPaymentsDone || currentPaymentDetail?.status === "PAID") {
+      setPaymentInstruction(null);
+      void setWaitingPaymentParam(null);
+    }
+  }, [
+    allPaymentsDone,
+    currentPaymentDetail?.status,
+    paymentInstruction,
+    setWaitingPaymentParam,
+    waitingPaymentParam,
+  ]);
+
+  useEffect(() => {
+    if (paymentInstruction) return;
+    if (waitingPaymentParam !== "true" && !livePendingPayment) return;
+    const nextInstruction = livePendingPayment
+      ? buildInstructionFromPayment(livePendingPayment)
+      : null;
+    if (!nextInstruction) return;
+    setPaymentInstruction(nextInstruction);
+    if (waitingPaymentParam !== "true") {
+      void setWaitingPaymentParam("true");
+    }
+  }, [
+    livePendingPayment,
+    paymentInstruction,
+    setWaitingPaymentParam,
+    waitingPaymentParam,
+  ]);
 
   useEffect(() => {
     const pendingUrl = livePendingPayment?.paymentUrl?.trim() || "";
@@ -1077,7 +1199,9 @@ export const BillingDetail = ({
         const hasInstruction =
           (payment?.vaNumbers?.length ?? 0) > 0 ||
           Boolean(payment?.permataVaNumber) ||
-          Boolean(payment?.qrString);
+          Boolean(payment?.qrString) ||
+          Boolean(payment?.billKey) ||
+          Boolean(payment?.billerCode);
 
         if (!hasInstruction) {
           toast.error("Payment URL is missing.");
@@ -1085,14 +1209,28 @@ export const BillingDetail = ({
         }
 
         setPaymentInstruction({
+          method: paymentMethod,
           vaNumbers: payment?.vaNumbers ?? [],
           permataVaNumber: payment?.permataVaNumber ?? null,
           qrString: payment?.qrString ?? null,
+          billKey: payment?.billKey ?? null,
+          billerCode: payment?.billerCode ?? null,
         });
+        void setWaitingPaymentParam("true");
         toast.success("Payment instruction generated.");
         return;
       }
-      setPaymentInstruction(null);
+      if ((payment?.vaNumbers?.length ?? 0) > 0 || payment?.qrString) {
+        setPaymentInstruction({
+          method: paymentMethod,
+          vaNumbers: payment?.vaNumbers ?? [],
+          permataVaNumber: payment?.permataVaNumber ?? null,
+          qrString: payment?.qrString ?? null,
+          billKey: payment?.billKey ?? null,
+          billerCode: payment?.billerCode ?? null,
+        });
+        void setWaitingPaymentParam("true");
+      }
       toast.info("Redirecting to payment gateway...");
       window.location.assign(paymentUrl);
     } catch (error) {
@@ -1139,7 +1277,7 @@ export const BillingDetail = ({
       {/* Order Summary */}
       <Card className="py-4">
         <CardHeader className="space-y-4">
-          <CardTitle>Order #{orderRef}</CardTitle>
+          <CardTitle>Order {orderRef}</CardTitle>
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="bg-muted/40 rounded-lg p-3 text-sm">
               <p className="text-muted-foreground">Grand Total</p>
@@ -1164,30 +1302,11 @@ export const BillingDetail = ({
           {/* Payment Stepper */}
           <div className="space-y-3">
             <p className="text-sm font-semibold">Payment Stepper</p>
-            <div className="grid grid-cols-4 gap-2">
-              {stepsToRender.map((step, index) => (
-                <div key={step.phase}>
-                  <div className="flex items-center">
-                    <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${stepCircleClass(step.state)}`}
-                    >
-                      {index + 1}
-                    </div>
-                    {index < steps.length - 1 ? (
-                      <div
-                        className={`mx-1 h-1 flex-1 rounded ${stepLineClass(step.state)}`}
-                      />
-                    ) : null}
-                  </div>
-                  <p className="mt-2 text-xs font-medium">{step.label}</p>
-                  <p className="text-muted-foreground text-[11px]">
-                    {step.state === "completed" || step.state === "current"
-                      ? formatPrice(step.amount)
-                      : "Upcoming"}
-                  </p>
-                </div>
-              ))}
-            </div>
+            <Stepper
+              steps={paymentStepperItems}
+              currentStep={currentStepperPhase}
+              orientation="horizontal"
+            />
             {historyViewMeta ? (
               <div
                 className={cn(
@@ -1207,7 +1326,6 @@ export const BillingDetail = ({
           {!isHistoryView ? (
             <>
               <div className="space-y-3">
-                <p className="text-sm font-semibold">Payment Method</p>
                 {allPaymentsDone ? (
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                     <p className="text-sm font-semibold text-emerald-700">
@@ -1219,141 +1337,117 @@ export const BillingDetail = ({
                     </p>
                   </div>
                 ) : (
-                  <PaymentMethodSelector
-                    value={paymentMethod}
-                    onChange={(v) => {
-                      setPaymentInstruction(null);
-                      setPaymentMethod(v);
-                    }}
-                    disabled={isCreatingSnapPayment}
-                  />
-                )}
-              </div>
-
-              <Separator />
-            </>
-          ) : null}
-
-          {/* Current Payment Detail */}
-          <div className="space-y-3">
-            <p className="text-sm font-semibold">Current Payment Detail</p>
-            {!currentPaymentDetail ? (
-              <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 py-10 text-center dark:border-zinc-700 dark:bg-zinc-900/50">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
-                  <Clock
-                    size={20}
-                    className="text-zinc-400 dark:text-zinc-500"
-                  />
-                </div>
-                <p className="text-sm font-medium text-zinc-500 dark:text-zinc-300">
-                  No payment detail yet
-                </p>
-                <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                  Payment detail will appear here once an invoice is created.
-                </p>
-              </div>
-            ) : (
-              <PaymentHistoryCard payment={currentPaymentDetail} />
-            )}
-          </div>
-
-          {!isHistoryView ? (
-            <>
-              <Separator />
-
-              {/* Pay Button */}
-              <div className="space-y-3">
-                {/* Summary row */}
-                {isPayable && (
-                  <div className="bg-muted/40 flex items-center justify-between rounded-lg px-3 py-2 text-sm">
-                    <span className="text-muted-foreground">
-                      {PHASE_LABEL[currentPhase]} via{" "}
-                      {corePaymentMethodLabel[paymentMethod]}
-                    </span>
-                    <span className="font-semibold">
-                      {formatPrice(payableAmount)}
-                    </span>
-                  </div>
-                )}
-
-                {allPaymentsDone ? (
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-sm font-medium text-emerald-700">
-                    All payments are done. Thank you, please kindly await the
-                    next process.
-                  </div>
-                ) : (
-                  <>
-                    <Button
-                      className="w-full"
-                      onClick={handlePayNow}
-                      disabled={!isPayable || isCreatingSnapPayment}
-                    >
-                      {isCreatingSnapPayment ? (
-                        "Redirecting..."
+                  <div className="flex flex-row justify-between gap-4">
+                    <div className="basis-1/3 space-y-3">
+                      <p className="text-sm font-semibold">
+                        Current Payment Detail
+                      </p>
+                      {!currentPaymentDetail ? (
+                        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 py-10 text-center dark:border-zinc-700 dark:bg-zinc-900/50">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
+                            <Clock
+                              size={20}
+                              className="text-zinc-400 dark:text-zinc-500"
+                            />
+                          </div>
+                          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-300">
+                            No payment detail yet
+                          </p>
+                          <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                            Payment detail will appear here once an invoice is
+                            created.
+                          </p>
+                        </div>
                       ) : (
-                        <>
-                          <CreditCard className="mr-2 h-4 w-4" />
-                          Pay Now
-                        </>
+                        <PaymentHistoryCard payment={currentPaymentDetail} />
                       )}
-                    </Button>
+                    </div>
 
-                    {!isPayable && (
-                      <p className="text-muted-foreground text-center text-xs">
-                        This order is no longer payable.
+                    {/* payment method field and instruction */}
+                    <div className="basis-2/3 space-y-3">
+                      <p className="pb-2 text-sm font-semibold">
+                        Payment Method
                       </p>
-                    )}
-                  </>
+                      <PaymentMethodSelector
+                        value={paymentMethod}
+                        onChange={(v) => {
+                          setPaymentMethod(v);
+                        }}
+                        disabled={isCreatingSnapPayment}
+                      />
+
+                      <div>
+                        {!isHistoryView ? (
+                          <>
+                            {/* Payment Instruction (VA / QR result) */}
+                            {paymentInstruction && (
+                              <PaymentInstruction value={paymentInstruction} />
+                            )}
+
+                            {paymentRedirectUrl ? (
+                              <Button
+                                variant="outline"
+                                className="w-full"
+                                onClick={() =>
+                                  window.open(paymentRedirectUrl, "_blank")
+                                }
+                              >
+                                Open Existing Payment Page
+                              </Button>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </div>
+                      <div className="space-y-3">
+                        {/* Summary row */}
+                        {isPayable && (
+                          <div className="bg-muted/40 flex items-center justify-between rounded-lg px-3 py-2 text-sm">
+                            <span className="text-muted-foreground">
+                              {PHASE_LABEL[currentPhase]} via{" "}
+                              {corePaymentMethodLabel[paymentMethod]}
+                            </span>
+                            <span className="font-semibold">
+                              {formatPrice(payableAmount)}
+                            </span>
+                          </div>
+                        )}
+
+                        {allPaymentsDone ? (
+                          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-sm font-medium text-emerald-700">
+                            All payments are done. Thank you, please kindly
+                            await the next process.
+                          </div>
+                        ) : (
+                          <>
+                            <Button
+                              className="w-full"
+                              onClick={handlePayNow}
+                              disabled={!isPayable || isCreatingSnapPayment}
+                            >
+                              {isCreatingSnapPayment ? (
+                                "Redirecting..."
+                              ) : (
+                                <>
+                                  <CreditCard className="mr-2 h-4 w-4" />
+                                  Pay Now
+                                </>
+                              )}
+                            </Button>
+
+                            {!isPayable && (
+                              <p className="text-muted-foreground text-center text-xs">
+                                This order is no longer payable.
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
 
-              {/* Payment Instruction (VA / QR result) */}
-              {paymentInstruction && (
-                <div className="bg-muted/40 space-y-2 rounded-xl border p-4 text-sm">
-                  <p className="font-semibold">Payment Instructions</p>
-                  {paymentInstruction.vaNumbers.map((item) => (
-                    <div
-                      key={`${item.bank}-${item.va_number}`}
-                      className="flex items-center justify-between"
-                    >
-                      <span className="text-muted-foreground">
-                        {item.bank.toUpperCase()} VA
-                      </span>
-                      <span className="font-mono font-semibold tracking-wide">
-                        {item.va_number}
-                      </span>
-                    </div>
-                  ))}
-                  {paymentInstruction.permataVaNumber && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Permata VA</span>
-                      <span className="font-mono font-semibold tracking-wide">
-                        {paymentInstruction.permataVaNumber}
-                      </span>
-                    </div>
-                  )}
-                  {paymentInstruction.qrString && (
-                    <div className="space-y-1">
-                      <span className="text-muted-foreground text-xs">
-                        QR String
-                      </span>
-                      <p className="font-mono text-xs break-all">
-                        {paymentInstruction.qrString}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {paymentRedirectUrl ? (
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => window.open(paymentRedirectUrl, "_blank")}
-                >
-                  Open Existing Payment Page
-                </Button>
-              ) : null}
+              <Separator />
             </>
           ) : null}
         </CardContent>

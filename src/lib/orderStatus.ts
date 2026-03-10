@@ -1,4 +1,4 @@
-import { getStatusBadgeClass, type StatusTone } from "@/lib/statusStyles";
+import { type StatusTone } from "@/lib/statusStyles";
 import { cn } from "@/lib/utils";
 import { type OrderStatus } from "@/types/customOrder";
 

@@ -1,10 +1,7 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { useQueries } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -14,18 +11,40 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Stepper } from "@/components/ui/stepper";
 import useGetOrder from "@/hooks/api/order/useGetOrder";
+import useGetProductionProgress from "@/hooks/api/production/useGetProductionProgress";
 import useAxios from "@/hooks/useAxios";
 import { formatPrice } from "@/lib/price";
 import { getStatusBadgeClass, StatusTone } from "@/lib/statusStyles";
-import { OrderStatus } from "@/types/customOrder";
 import { ProductComponent } from "@/types/componentProduct";
-import { ProductBase } from "@/types/product";
+import { OrderStatus, PaymentPhase } from "@/types/customOrder";
 import { ProductMaterial } from "@/types/materialProduct";
-import { ArrowLeft, Box, Download, MapPin, Package, Ruler, Truck } from "lucide-react";
+import { ProductBase } from "@/types/product";
 import { downloadOrderInvoice } from "@/utils/generateInvoice";
+import { useQueries } from "@tanstack/react-query";
+import {
+  ArrowLeft,
+  Calendar,
+  CreditCard,
+  Download,
+  MapPin,
+  Package,
+  Ruler,
+  Scroll,
+  Truck,
+  Weight,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
+import {
+  getDefaultPhaseAmounts,
+  PHASE_LABEL,
+  phaseOrder,
+} from "../billing/BillingDetail";
+import { ProductionLog, ProductionLogCard } from "./admin/detail";
 
-// ─── Constants ──────────────────────────────────────────────────────────────
+type OrderDetailPageProps = { orderId: string };
 
 const statusLabel: Record<OrderStatus, string> = {
   PENDING_PAYMENT: "Waiting for Payment",
@@ -47,565 +66,705 @@ const statusTone: Record<OrderStatus, StatusTone> = {
   CANCELLED: "danger",
 };
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+const orderStatusFlow: OrderStatus[] = [
+  "PENDING_PAYMENT",
+  "AWAITING_PRODUCTION",
+  "IN_PRODUCTION",
+  "READY_TO_SHIP",
+  "SHIPPED",
+  "COMPLETED",
+];
 
-type OrderDetailPageProps = {
-  orderId: string;
+const orderStatusDescription: Record<OrderStatus, string> = {
+  PENDING_PAYMENT: "Waiting payment confirmation",
+  AWAITING_PRODUCTION: "Queued for production",
+  IN_PRODUCTION: "Furniture is being built",
+  READY_TO_SHIP: "Packed and ready to hand over",
+  SHIPPED: "On delivery to destination",
+  COMPLETED: "Order finished successfully",
+  CANCELLED: "Order has been cancelled",
 };
 
-// ─── Component ───────────────────────────────────────────────────────────────
+const paymentPhaseByStatus: Record<OrderStatus, PaymentPhase> = {
+  PENDING_PAYMENT: "DP",
+  AWAITING_PRODUCTION: "PROGRESS_1",
+  IN_PRODUCTION: "PROGRESS_1",
+  READY_TO_SHIP: "PROGRESS_2",
+  SHIPPED: "FINAL",
+  COMPLETED: "FINAL",
+  CANCELLED: "DP",
+};
 
 export const OrderDetailPage = ({ orderId }: OrderDetailPageProps) => {
   const router = useRouter();
   const axiosInstance = useAxios();
   const { data: order, isLoading, isError } = useGetOrder(orderId);
+  const {
+    data: productionProgress = [],
+    isLoading: isProductionProgressLoading,
+  } = useGetProductionProgress(orderId);
 
-  // ── Derived IDs ──────────────────────────────────────────────────────────
+  // --- Logic (Unchanged) -----------------------------------------------------
+  const grandTotalAmount = Number(order?.grandTotalPrice ?? 0);
+  const totalPaidAmount = Number(order?.totalPaid ?? 0);
+  const remainingAmount = Number(order?.remaining ?? 0);
+  const defaultPhaseAmounts = getDefaultPhaseAmounts(grandTotalAmount);
+
+  const statusStepperItems = useMemo(() => {
+    if (order?.status === "CANCELLED") {
+      return [
+        {
+          id: "CANCELLED",
+          title: statusLabel.CANCELLED,
+          description: orderStatusDescription.CANCELLED,
+        },
+      ];
+    }
+
+    return orderStatusFlow.map((status) => ({
+      id: status,
+      title: statusLabel[status],
+      description: orderStatusDescription[status],
+    }));
+  }, [order?.status]);
+
+  const currentStatusStep = useMemo(
+    () =>
+      order?.status === "CANCELLED"
+        ? "CANCELLED"
+        : (order?.status ?? "PENDING_PAYMENT"),
+    [order?.status],
+  );
+
+  const latestPaymentByPhase = useMemo(() => {
+    const map = new Map<
+      PaymentPhase,
+      { amount: number; status: string; createdAt: number }
+    >();
+    for (const payment of order?.payments ?? []) {
+      const phase = payment.phase;
+      if (!phaseOrder.includes(phase)) continue;
+      const createdAtTs = new Date(payment.createdAt).getTime();
+      const existing = map.get(phase);
+      if (!existing || createdAtTs > existing.createdAt) {
+        map.set(phase, {
+          amount: Number(payment.amount ?? 0),
+          status: String(payment.status ?? ""),
+          createdAt: createdAtTs,
+        });
+      }
+    }
+    return map;
+  }, [order?.payments]);
+
+  const phaseAmounts = useMemo(() => {
+    const next = { ...defaultPhaseAmounts };
+    for (const phase of phaseOrder) {
+      const latest = latestPaymentByPhase.get(phase);
+      if (latest && Number.isFinite(latest.amount) && latest.amount > 0) {
+        next[phase] = latest.amount;
+      }
+    }
+    return next;
+  }, [defaultPhaseAmounts, latestPaymentByPhase]);
+
+  const paidPhaseSet = useMemo(() => {
+    const set = new Set<PaymentPhase>();
+    for (const phase of phaseOrder) {
+      if (latestPaymentByPhase.get(phase)?.status.toUpperCase() === "PAID") {
+        set.add(phase);
+      }
+    }
+    return set;
+  }, [latestPaymentByPhase]);
+
+  const currentPaymentStep = useMemo<PaymentPhase>(() => {
+    const statusPhase =
+      paymentPhaseByStatus[order?.status ?? "PENDING_PAYMENT"];
+    const statusIndex = phaseOrder.indexOf(statusPhase);
+
+    const nextUnpaid = phaseOrder.find((phase) => !paidPhaseSet.has(phase));
+    const unpaidIndex = nextUnpaid ? phaseOrder.indexOf(nextUnpaid) : -1;
+
+    const isSettledByAmount =
+      remainingAmount <= 0 ||
+      (grandTotalAmount > 0 && totalPaidAmount >= grandTotalAmount);
+    const isSettledByStatus =
+      order?.status === "SHIPPED" || order?.status === "COMPLETED";
+    if (isSettledByAmount || isSettledByStatus) return "FINAL";
+
+    if (order?.status === "CANCELLED") {
+      return order.currentPaymentPhase ?? statusPhase;
+    }
+
+    const activeIndex = Math.max(
+      statusIndex,
+      unpaidIndex >= 0 ? unpaidIndex : statusIndex,
+    );
+    return phaseOrder[activeIndex] ?? "DP";
+  }, [
+    grandTotalAmount,
+    order?.currentPaymentPhase,
+    order?.status,
+    paidPhaseSet,
+    remainingAmount,
+    totalPaidAmount,
+  ]);
+
+  const paymentStepperItems = useMemo(
+    () =>
+      phaseOrder.map((phase) => ({
+        id: phase,
+        title: PHASE_LABEL[phase],
+        description:
+          paidPhaseSet.has(phase) || phase === currentPaymentStep
+            ? formatPrice(phaseAmounts[phase])
+            : "Planned",
+      })),
+    [currentPaymentStep, paidPhaseSet, phaseAmounts],
+  );
 
   const componentIds = useMemo(
     () =>
       Array.from(
         new Set(
-          (order?.items ?? []).flatMap((item) =>
-            (item.components ?? []).map((c) => c.componentId),
+          (order?.items ?? []).flatMap((i) =>
+            (i.components ?? []).map((c) => c.componentId),
           ),
         ),
       ),
     [order?.items],
   );
-
   const productIds = useMemo(
-    () =>
-      Array.from(
-        new Set((order?.items ?? []).map((item) => item.productBaseId)),
-      ),
+    () => Array.from(new Set((order?.items ?? []).map((i) => i.productBaseId))),
     [order?.items],
   );
-
   const materialIds = useMemo(
     () =>
       Array.from(
-        new Set(
-          (order?.items ?? [])
-            .map((item) => item.materialId)
-            .filter((id): id is string => Boolean(id)),
-        ),
+        new Set((order?.items ?? []).map((i) => i.materialId).filter(Boolean)),
       ),
     [order?.items],
   );
-
-  // ── Queries ──────────────────────────────────────────────────────────────
 
   const productQueries = useQueries({
     queries: productIds.map((id) => ({
       queryKey: ["product", id],
-      queryFn: async () => {
-        const { data } = await axiosInstance.get(`/product/${id}`);
-        return ((data as { data?: ProductBase })?.data ?? data) as ProductBase;
-      },
-      enabled: Boolean(id),
-      staleTime: 5 * 60 * 1000,
+      queryFn: async () =>
+        (await axiosInstance.get(`/product/${id}`)).data?.data ??
+        (await axiosInstance.get(`/product/${id}`)).data,
+      enabled: !!id,
+      staleTime: 300000,
     })),
   });
-
   const materialQueries = useQueries({
     queries: materialIds.map((id) => ({
       queryKey: ["material", id],
-      queryFn: async () => {
-        const { data } = await axiosInstance.get(`/product/material/${id}`);
-        return ((data as { data?: ProductMaterial })?.data ??
-          data) as ProductMaterial;
-      },
-      enabled: Boolean(id),
-      staleTime: 5 * 60 * 1000,
+      queryFn: async () =>
+        (await axiosInstance.get(`/product/material/${id}`)).data?.data ??
+        (await axiosInstance.get(`/product/material/${id}`)).data,
+      enabled: !!id,
+      staleTime: 300000,
     })),
   });
-
   const componentQueries = useQueries({
     queries: componentIds.map((id) => ({
       queryKey: ["component", id],
-      queryFn: async () => {
-        const { data } = await axiosInstance.get(`/product/component/${id}`);
-        return ((data as { data?: ProductComponent })?.data ??
-          data) as ProductComponent;
-      },
-      enabled: Boolean(id),
-      staleTime: 5 * 60 * 1000,
+      queryFn: async () =>
+        (await axiosInstance.get(`/product/component/${id}`)).data?.data ??
+        (await axiosInstance.get(`/product/component/${id}`)).data,
+      enabled: !!id,
+      staleTime: 300000,
     })),
   });
 
-  // ── Lookup Maps ──────────────────────────────────────────────────────────
-
-  const componentById = useMemo(() => {
-    const map = new Map<string, ProductComponent>();
-    componentQueries.forEach((q) => {
-      if (q.data?.id) map.set(q.data.id, q.data);
-    });
-    return map;
-  }, [componentQueries]);
+  // -- Lookup Maps (Fixed TypeScript Errors) ------------------------------------
 
   const productById = useMemo(() => {
-    const map = new Map<string, ProductBase>();
-    productQueries.forEach((q) => {
-      if (q.data?.id) map.set(q.data.id, q.data);
-    });
-    return map;
+    const entries = productQueries
+      .map((q) => (q.data?.id ? ([q.data.id, q.data] as const) : null))
+      .filter((entry): entry is [string, ProductBase] => entry !== null);
+    return new Map<string, ProductBase>(entries);
   }, [productQueries]);
 
   const materialById = useMemo(() => {
-    const map = new Map<string, ProductMaterial>();
-    materialQueries.forEach((q) => {
-      if (q.data?.id) map.set(q.data.id, q.data);
-    });
-    return map;
+    const entries = materialQueries
+      .map((q) => (q.data?.id ? ([q.data.id, q.data] as const) : null))
+      .filter((entry): entry is [string, ProductMaterial] => entry !== null);
+    return new Map<string, ProductMaterial>(entries);
   }, [materialQueries]);
 
-  // ── Side-effects ─────────────────────────────────────────────────────────
+  const componentById = useMemo(() => {
+    const entries = componentQueries
+      .map((q) => (q.data?.id ? ([q.data.id, q.data] as const) : null))
+      .filter((entry): entry is [string, ProductComponent] => entry !== null);
+    return new Map<string, ProductComponent>(entries);
+  }, [componentQueries]);
+
+  const productionLogs = useMemo<ProductionLog[]>(
+    () =>
+      productionProgress.map((p) => ({
+        id: p.id,
+        progressPercent: p.percentage,
+        description: p.description,
+        createdAt: p.createdAt,
+        photos: p.photoUrls ?? [],
+      })),
+    [productionProgress],
+  );
 
   useEffect(() => {
-    if (order?.status !== "PENDING_PAYMENT") return;
-    router.replace(`/dashboard/billing?orderId=${order.id}`);
+    if (order?.status === "PENDING_PAYMENT")
+      router.replace(`/dashboard/billing?orderId=${order.id}`);
   }, [order?.id, order?.status, router]);
 
-  // ── States ───────────────────────────────────────────────────────────────
-
+  // --- Loading State (Fixed Width Sync) --------------------------------------
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-28 w-full rounded-xl" />
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Skeleton className="h-44 w-full rounded-xl" />
-          <Skeleton className="h-44 w-full rounded-xl" />
+      <div className="mx-auto w-full px-4 pb-20">
+        {/* --- Breadcrumb & Actions Skeleton --- */}
+        <div className="flex flex-col gap-6">
+          <div className="py-2">
+            <Skeleton className="h-5 w-28" />
+          </div>
+
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <Skeleton className="h-16 w-16 rounded-xl" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-48 sm:w-64" />
+                  <Skeleton className="h-6 w-24 rounded-full" />
+                </div>
+                <Skeleton className="h-4 w-40" />
+              </div>
+            </div>
+            <Skeleton className="h-10 w-full rounded-md sm:w-32" />
+          </div>
         </div>
-        <Skeleton className="h-72 w-full rounded-xl" />
+
+        <Separator className="my-8" />
+
+        {/* --- Order Timeline Skeleton --- */}
+        <section className="mb-10">
+          <div className="mb-6 flex items-center gap-2">
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <div className="bg-card/50 rounded-2xl border p-6">
+            <Skeleton className="h-24 w-full rounded-xl" />
+          </div>
+        </section>
+
+        {/* --- Payment Timeline Skeleton --- */}
+        <section className="mb-10">
+          <div className="mb-6 flex items-center gap-2">
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <div className="bg-card/50 rounded-2xl border p-6">
+            <Skeleton className="h-24 w-full rounded-xl" />
+          </div>
+        </section>
+
+        {/* --- Financial Grid Skeleton --- */}
+        <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
+        </div>
+
+        {/* --- Main Content Grid (Two Columns) --- */}
+        <div className="grid gap-8 lg:grid-cols-5">
+          {/* Left: Items */}
+          <div className="space-y-8 lg:col-span-3">
+            <section>
+              <div className="mb-4 flex justify-between">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <div className="space-y-3">
+                <Skeleton className="h-40 w-full rounded-2xl" />
+                <Skeleton className="h-40 w-full rounded-2xl" />
+              </div>
+            </section>
+          </div>
+
+          {/* Right: Specs & Shipping */}
+          <div className="space-y-6 lg:col-span-2">
+            <section className="space-y-4">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-48 w-full rounded-2xl" />
+            </section>
+            <section className="space-y-4">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-32 w-full rounded-2xl" />
+            </section>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (isError || !order) {
     return (
-      <Card className="border-destructive/30 bg-destructive/5">
-        <CardHeader>
-          <CardTitle className="text-destructive">Order not found</CardTitle>
-          <CardDescription>
-            We couldn&apos;t load this order. Please try again.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            variant="outline"
-            onClick={() => router.push("/dashboard/orders")}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Orders
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="mx-auto max-w-4xl px-4 py-12 text-center">
+        <div className="bg-destructive/10 mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full">
+          <Package className="text-destructive h-8 w-8" />
+        </div>
+        <h2 className="text-xl font-bold">Order Not Found</h2>
+        <p className="text-muted-foreground mt-2 mb-6">
+          We couldn't retrieve the details for this order.
+        </p>
+        <Button
+          onClick={() => router.push("/dashboard/orders")}
+          variant="outline"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Orders
+        </Button>
+      </div>
     );
   }
 
-  if (order.status === "PENDING_PAYMENT") {
-    return (
-      <Card className="border-yellow-200/60 bg-yellow-50/60 dark:border-yellow-900/30 dark:bg-yellow-950/20">
-        <CardHeader>
-          <CardTitle>Redirecting to Billing…</CardTitle>
-          <CardDescription>
-            Pending-payment orders are handled in Billing.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
-  // ── Derived display values ────────────────────────────────────────────────
-
+  const address = order.snapShotAddress;
+  const deliveryDistance = Number(
+    order.deliveryDistance ?? order.deliveryDistancce ?? 0,
+  );
+  const totalWeightKg = Number(order.totalWeight ?? 0) / 1000;
   const displayOrderNumber = order.orderNumber?.trim() || order.id;
-
   const previewImage =
-    (order as unknown as { previewImage?: string; previewUrl?: string })
-      ?.previewImage ||
-    (order as unknown as { previewImage?: string; previewUrl?: string })
-      ?.previewUrl ||
+    (order as any)?.previewImage ||
+    (order as any)?.previewUrl ||
     order.designSnapShot?.previewImage ||
     order.designSnapShot?.previewUrl;
 
   const handleDownloadInvoice = async () => {
-    await downloadOrderInvoice({
-      id: order.id,
-      orderNumber: order.orderNumber,
-      status: order.status,
-      createdAt: order.createdAt,
-      deliveryType: order.deliveryType,
-      trackNumber: order.trackNumber ?? null,
-      totalWeight: order.totalWeight ?? 0,
-      deliveryDistance: order.deliveryDistance ?? 0,
-      deliveryDistancce: order.deliveryDistancce ?? 0,
-      subtotalPrice: order.subtotalPrice ?? 0,
-      deliveryFee: order.deliveryFee ?? 0,
-      grandTotalPrice: order.grandTotalPrice ?? 0,
-      snapShotAddress: order.snapShotAddress ?? null,
-      items: (order.items ?? []).map((item) => ({
-        id: item.id,
-        productBaseId: item.productBaseId,
-        materialId: item.materialId ?? null,
-        itemTotalPrice: item.itemTotalPrice,
-        lockedBasePrice: item.lockedBasePrice,
-        lockedMaterialPrice: item.lockedMaterialPrice,
-        components: (item.components ?? []).map((component) => ({
-          id: component.id,
-          componentId: component.componentId,
-          quantity: component.quantity,
-          lockedSubTotal: component.lockedSubTotal,
-        })),
-      })),
-    });
+    await downloadOrderInvoice({ ...order, items: order.items ?? [] });
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
-    <div className="space-y-6">
-      {/* ── Back Nav ──────────────────────────────────────────────────────── */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-muted-foreground hover:text-foreground -ml-1 gap-1.5"
-        onClick={() => router.push("/dashboard/orders")}
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Orders
-      </Button>
+    <div className="mx-auto px-4 pb-20">
+      {/* --- Breadcrumb & Actions --- */}
+      <div className="flex flex-col gap-6">
+        <button
+          onClick={() => router.push("/dashboard/orders")}
+          className="group text-muted-foreground hover:text-foreground flex w-fit items-center gap-2 text-sm font-medium transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          Back to Orders
+        </button>
 
-      {/* ── Header ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-muted-foreground mb-1 text-sm font-medium tracking-wide uppercase">
-            Order
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            #{displayOrderNumber}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {new Date(order.createdAt).toLocaleString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </p>
-        </div>
-
-        <div className="flex items-start gap-3">
-          <Button variant="outline" size="sm" onClick={handleDownloadInvoice}>
-            <Download className="mr-1.5 h-4 w-4" />
-            Download Invoice
-          </Button>
-          <Badge
-            className={`h-fit px-3 py-1.5 text-sm font-semibold ${getStatusBadgeClass(statusTone[order.status])}`}
-          >
-            {statusLabel[order.status]}
-          </Badge>
-          {previewImage && (
-            <div className="overflow-hidden rounded-lg border shadow-sm">
-              <img
-                src={previewImage}
-                alt="Design preview"
-                className="h-16 w-24 object-cover"
-              />
-            </div>
-          )}
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* ── Shipping + Summary Grid ───────────────────────────────────────── */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Shipping & Logistics */}
-        <Card className="border py-3">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <div className="bg-muted flex h-8 w-8 items-center justify-center rounded-md">
-                <Truck className="text-muted-foreground h-4 w-4" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            {previewImage && (
+              <div className="bg-muted relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border shadow-inner">
+                <img
+                  src={previewImage}
+                  alt="Order Preview"
+                  className="h-full w-full object-cover"
+                />
               </div>
-              <CardTitle className="text-base font-semibold">
-                Shipping & Logistics
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <dl className="space-y-3 text-sm">
-              <ShippingRow
-                icon={<Truck className="h-3.5 w-3.5" />}
-                label="Delivery Type"
-                value={order.deliveryType}
-              />
-              <ShippingRow
-                icon={<Package className="h-3.5 w-3.5" />}
-                label="Track Number"
-                value={order.trackNumber ?? "—"}
-              />
-              <ShippingRow
-                icon={<Box className="h-3.5 w-3.5" />}
-                label="Total Weight"
-                value={`${(Number(order.totalWeight ?? 0) / 1000).toFixed(2)} kg`}
-              />
-              <ShippingRow
-                icon={<Ruler className="h-3.5 w-3.5" />}
-                label="Delivery Distance"
-                value={`${Number(order.deliveryDistance ?? order.deliveryDistancce ?? 0)} km`}
-              />
-            </dl>
-          </CardContent>
-        </Card>
-
-        {/* Order Summary */}
-        <Card className="bg-primary/3 dark:bg-primary/6 border py-3">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-md">
-                <Package className="text-primary h-4 w-4" />
+            )}
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-extrabold tracking-tight">
+                  #{displayOrderNumber}
+                </h1>
+                <Badge
+                  className={`px-2.5 py-0.5 shadow-sm ${getStatusBadgeClass(statusTone[order.status])}`}
+                >
+                  {statusLabel[order.status]}
+                </Badge>
               </div>
-              <CardTitle className="text-base font-semibold">
-                Order Summary
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium">
-                  {formatPrice(Number(order.subtotalPrice ?? 0))}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Delivery Fee</span>
-                <span className="font-medium">
-                  {formatPrice(Number(order.deliveryFee ?? 0))}
-                </span>
-              </div>
-              <Separator className="my-3" />
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">Grand Total</span>
-                <span className="text-primary text-lg font-bold">
-                  {formatPrice(Number(order.grandTotalPrice ?? 0))}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── Delivery Address ──────────────────────────────────────────────── */}
-      {order.deliveryType === "DELIVERY" && order.snapShotAddress && (
-        <Card className="border py-3">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <div className="bg-muted flex h-8 w-8 items-center justify-center rounded-md">
-                <MapPin className="text-muted-foreground h-4 w-4" />
-              </div>
-              <CardTitle className="text-base font-semibold">
-                Delivery Address
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm">
-              <p className="font-semibold">
-                {order.snapShotAddress.recipientName ?? "—"}
-              </p>
-              <p className="text-muted-foreground mt-0.5">
-                {order.snapShotAddress.phoneNumber ?? "—"}
-              </p>
-
-              <Separator className="my-3" />
-
-              <p className="text-foreground">
-                {order.snapShotAddress.line1 ?? "—"}
-              </p>
-              {order.snapShotAddress.line2 && (
-                <p className="text-foreground">{order.snapShotAddress.line2}</p>
-              )}
-              <p className="text-muted-foreground mt-0.5">
-                {[
-                  order.snapShotAddress.subdistrict,
-                  order.snapShotAddress.district,
-                  order.snapShotAddress.city,
-                  order.snapShotAddress.province,
-                ]
-                  .filter(Boolean)
-                  .join(", ")}
-              </p>
-              <p className="text-muted-foreground">
-                {order.snapShotAddress.country ?? "—"}{" "}
-                {order.snapShotAddress.postalCode ?? "—"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ── Order Items ───────────────────────────────────────────────────── */}
-      <Card className="border py-3">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2">
-              <div className="bg-muted flex h-8 w-8 items-center justify-center rounded-md">
-                <Box className="text-muted-foreground h-4 w-4" />
-              </div>
-              <div>
-                <CardTitle className="text-base font-semibold">
-                  Order Items
-                </CardTitle>
-                <CardDescription className="mt-0.5 text-xs">
-                  {order.items.length} item{order.items.length !== 1 ? "s" : ""}
-                </CardDescription>
+              <div className="text-muted-foreground mt-1 flex items-center gap-2 text-sm">
+                <Calendar className="h-3.5 w-3.5" />
+                {new Date(order.createdAt).toLocaleDateString("en-US", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </div>
             </div>
           </div>
-        </CardHeader>
+          <Button
+            onClick={handleDownloadInvoice}
+            variant="secondary"
+            className="w-full shadow-sm sm:w-auto"
+          >
+            <Download className="mr-2 h-4 w-4" /> Invoice
+          </Button>
+        </div>
+      </div>
 
-        <CardContent className="space-y-3">
-          {order.items.map((item, index) => {
-            const product = productById.get(item.productBaseId);
-            const material = item.materialId
-              ? materialById.get(item.materialId)
-              : undefined;
+      <Separator className="my-8" />
 
-            return (
+      {/* --- Order Status Stepper --- */}
+      <section className="mb-10">
+        <div className="mb-6 flex items-center gap-2">
+          <div className="bg-primary h-1.5 w-1.5 rounded-full" />
+          <h2 className="text-muted-foreground text-xs font-bold tracking-[0.2em] uppercase">
+            Order Timeline
+          </h2>
+        </div>
+        <div className="bg-card/50 rounded-2xl border p-6 shadow-sm backdrop-blur-sm">
+          <Stepper
+            steps={statusStepperItems}
+            currentStep={currentStatusStep}
+            orientation="horizontal"
+          />
+        </div>
+      </section>
+
+      {/* --- Payment Stepper --- */}
+      <section className="mb-10">
+        <div className="mb-6 flex items-center gap-2">
+          <div className="bg-primary h-1.5 w-1.5 rounded-full" />
+          <h2 className="text-muted-foreground text-xs font-bold tracking-[0.2em] uppercase">
+            Payment Timeline
+          </h2>
+        </div>
+        <div className="bg-card/50 rounded-2xl border p-6 shadow-sm backdrop-blur-sm">
+          <Stepper
+            steps={paymentStepperItems}
+            currentStep={currentPaymentStep}
+            orientation="horizontal"
+          />
+        </div>
+      </section>
+
+      {/* --- Financial Grid --- */}
+      <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {[
+          {
+            label: "Grand Total",
+            value: grandTotalAmount,
+            color: "text-foreground",
+          },
+          {
+            label: "Total Paid",
+            value: totalPaidAmount,
+            color: "text-emerald-600 dark:text-emerald-400",
+          },
+          {
+            label: "Remaining",
+            value: remainingAmount,
+            color:
+              remainingAmount > 0 ? "text-orange-600" : "text-muted-foreground",
+            highlight: remainingAmount > 0,
+          },
+        ].map((item, i) => (
+          <Card
+            key={i}
+            className={`overflow-hidden border-none shadow-sm ${item.highlight ? "bg-orange-50/30 ring-1 ring-orange-200 dark:bg-orange-950/10 dark:ring-orange-900/20" : "bg-muted/30"}`}
+          >
+            <CardHeader className="p-5 pb-2">
+              <CardDescription className="text-xs font-bold tracking-wider uppercase">
+                {item.label}
+              </CardDescription>
+              <CardTitle className={`text-xl font-black ${item.color}`}>
+                {formatPrice(item.value)}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-5 pt-0">
               <div
-                key={item.id}
-                className="bg-card rounded-lg border p-4 transition-colors"
-              >
-                {/* Item header */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    {product?.images?.[0] && (
-                      <div className="bg-muted shrink-0 overflow-hidden rounded-md border">
+                className={`h-1 w-full rounded-full bg-current opacity-10 ${item.color}`}
+              />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-8 lg:grid-cols-5">
+        {/* --- Left Column: Items --- */}
+        <div className="space-y-8 lg:col-span-3">
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-muted-foreground text-sm font-bold tracking-widest uppercase">
+                Ordered Items
+              </h2>
+              <Badge variant="outline" className="rounded-full">
+                {order.items.length} Units
+              </Badge>
+            </div>
+
+            <div className="space-y-3">
+              {order.items.map((item, idx) => {
+                const product = productById.get(item.productBaseId);
+                const material = item.materialId
+                  ? materialById.get(item.materialId)
+                  : null;
+                return (
+                  <div
+                    key={item.id}
+                    className="group bg-card overflow-hidden rounded-2xl border transition-all hover:shadow-md"
+                  >
+                    <div className="flex gap-4 p-4">
+                      <div className="bg-muted h-16 w-16 shrink-0 overflow-hidden rounded-lg border">
                         <img
-                          src={product.images[0]}
-                          alt={product.productName ?? "Product"}
-                          className="h-12 w-12 object-cover"
+                          src={product?.images?.[0] || undefined}
+                          alt={product?.productName ?? "Product image"}
+                          className="h-full w-full object-cover"
                         />
                       </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-foreground text-sm font-semibold">
-                        {product?.productName ?? `Item ${index + 1}`}
-                      </p>
-                      {material && (
-                        <div className="mt-1 flex items-center gap-1.5">
-                          {material.materialUrl && (
-                            <img
-                              src={material.materialUrl}
-                              alt={material.materialName}
-                              className="h-4 w-4 rounded-sm object-cover"
-                            />
-                          )}
-                          <span className="text-muted-foreground text-xs">
-                            {material.materialName}
-                            {material.materialSku && (
-                              <span className="ml-1 opacity-60">
-                                · {material.materialSku}
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <p className="text-primary shrink-0 text-base font-bold">
-                    {formatPrice(item.itemTotalPrice)}
-                  </p>
-                </div>
-
-                {/* Price breakdown */}
-                <div className="bg-muted/40 mt-3 grid grid-cols-2 gap-x-4 rounded-md px-3 py-2.5 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Base Price</span>
-                    <span className="font-medium">
-                      {formatPrice(item.lockedBasePrice)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      Material Price
-                    </span>
-                    <span className="font-medium">
-                      {formatPrice(item.lockedMaterialPrice)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Components */}
-                {item.components.length > 0 && (
-                  <div className="mt-3">
-                    <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
-                      Components ({item.components.length})
-                    </p>
-                    <div className="divide-border/60 divide-y rounded-md border">
-                      {item.components.map((component) => {
-                        const comp = componentById.get(component.componentId);
-                        return (
-                          <div
-                            key={component.id}
-                            className="hover:bg-muted/30 flex items-center justify-between gap-2 px-3 py-2 text-sm transition-colors"
-                          >
-                            <div className="flex min-w-0 items-center gap-2">
-                              {comp?.componentImageUrls?.[0] && (
-                                <img
-                                  src={comp.componentImageUrls[0]}
-                                  alt={comp.componentName ?? "Component"}
-                                  className="h-7 w-7 shrink-0 rounded-sm object-cover"
-                                />
-                              )}
-                              <span className="text-muted-foreground truncate text-xs">
-                                {comp?.componentName ?? component.componentId}
-                              </span>
-                              <span className="text-muted-foreground/60 text-xs">
-                                × {component.quantity}
-                              </span>
+                      <div className="flex flex-1 flex-col justify-between py-0.5">
+                        <div>
+                          <h3 className="group-hover:text-primary text-sm leading-tight font-bold transition-colors">
+                            {product?.productName || "Product Item"}
+                          </h3>
+                          {material && (
+                            <div className="text-muted-foreground mt-1 flex items-center gap-1.5 text-xs">
+                              <span className="bg-primary/40 inline-block h-2 w-2 rounded-full" />
+                              {material.materialName}
                             </div>
-                            <span className="text-foreground shrink-0 text-xs font-medium">
-                              {formatPrice(component.lockedSubTotal)}
-                            </span>
-                          </div>
-                        );
-                      })}
+                          )}
+                        </div>
+                        <p className="text-sm font-black">
+                          {formatPrice(item.itemTotalPrice)}
+                        </p>
+                      </div>
                     </div>
+
+                    {item.components?.length > 0 && (
+                      <div className="bg-muted/20 border-t p-3 px-4">
+                        <div className="space-y-1.5">
+                          {item.components.map((compRef) => {
+                            const cData = componentById.get(
+                              compRef.componentId,
+                            );
+                            return (
+                              <div
+                                key={compRef.id}
+                                className="flex items-center justify-between text-[11px]"
+                              >
+                                <span className="text-muted-foreground flex items-center gap-2">
+                                  <Package className="h-3 w-3" />
+                                  {cData?.componentName || "Component"}
+                                  <span className="font-bold">
+                                    ×{compRef.quantity}
+                                  </span>
+                                </span>
+                                <span className="font-medium">
+                                  {formatPrice(compRef.lockedSubTotal)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-muted-foreground mb-4 text-sm font-bold tracking-widest uppercase">
+              Production Log
+            </h2>
+            <Card className="overflow-hidden border-dashed shadow-sm">
+              <CardContent className="p-6">
+                {isProductionProgressLoading ? (
+                  <div className="space-y-6">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                ) : productionLogs.length === 0 ? (
+                  <div className="flex flex-col items-center py-8 text-center">
+                    <Scroll className="text-muted-foreground/20 mb-3 h-10 w-10" />
+                    <p className="text-muted-foreground text-sm font-medium">
+                      No logs recorded yet
+                    </p>
+                  </div>
+                ) : (
+                  <div className="relative space-y-0 pl-2">
+                    <div className="bg-muted absolute top-2 bottom-2 left-[1.3rem] w-0.5" />
+                    {productionLogs.map((log, i) => (
+                      <ProductionLogCard key={log.id} log={log} index={i} />
+                    ))}
                   </div>
                 )}
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+          </section>
+        </div>
+
+        {/* --- Right Column: Metadata & Address --- */}
+        <div className="space-y-6 lg:col-span-2">
+          <section className="space-y-4">
+            <h2 className="text-muted-foreground text-sm font-bold tracking-widest uppercase">
+              Specifications
+            </h2>
+            <Card className="bg-muted/30 border-none shadow-none">
+              <CardContent className="space-y-4 p-5">
+                {[
+                  { icon: Truck, label: "Delivery", value: order.deliveryType },
+                  {
+                    icon: Weight,
+                    label: "Weight",
+                    value: `${totalWeightKg.toFixed(2)} kg`,
+                  },
+                  {
+                    icon: Ruler,
+                    label: "Distance",
+                    value: `${deliveryDistance} km`,
+                  },
+                  {
+                    icon: CreditCard,
+                    label: "Current Phase",
+                    value: order.currentPaymentPhase || "N/A",
+                  },
+                ].map((spec, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="text-muted-foreground flex items-center gap-3 text-sm">
+                      <spec.icon className="h-4 w-4" />
+                      {spec.label}
+                    </div>
+                    <span className="text-sm font-bold">{spec.value}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </section>
+
+          {order.deliveryType === "DELIVERY" && address && (
+            <section className="space-y-4">
+              <h2 className="text-muted-foreground text-sm font-bold tracking-widest uppercase">
+                Shipping To
+              </h2>
+              <Card className="bg-primary/3 ring-primary/10 overflow-hidden border-none shadow-sm ring-1">
+                <CardContent className="p-5">
+                  <div className="flex gap-4">
+                    <div className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">
+                        {address.recipientName}
+                      </p>
+                      <p className="text-muted-foreground mb-3 text-xs">
+                        {address.phoneNumber}
+                      </p>
+                      <div className="text-muted-foreground space-y-1 text-xs leading-relaxed">
+                        <p>
+                          {address.line1}
+                          {address.line2 ? `, ${address.line2}` : ""}
+                        </p>
+                        <p>
+                          {address.district}, {address.city}
+                        </p>
+                        <p>
+                          {address.province}, {address.postalCode}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function ShippingRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <div className="text-muted-foreground flex items-center gap-1.5">
-        {icon}
-        <span>{label}</span>
-      </div>
-      <span className="font-medium">{value}</span>
-    </div>
-  );
-}

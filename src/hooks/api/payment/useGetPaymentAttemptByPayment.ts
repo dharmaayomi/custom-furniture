@@ -16,7 +16,7 @@ const normalizePaymentAttempts = (payload: unknown): PaymentAttempt[] => {
   return [];
 };
 
-const useGetPaymentAttemptDetail = (paymentId?: string) => {
+const useGetPaymentAttemptByPayment = (paymentId?: string) => {
   const axiosInstance = useAxios();
   const normalizedPaymentId = paymentId?.trim() ?? "";
 
@@ -33,4 +33,4 @@ const useGetPaymentAttemptDetail = (paymentId?: string) => {
   });
 };
 
-export default useGetPaymentAttemptDetail;
+export default useGetPaymentAttemptByPayment;

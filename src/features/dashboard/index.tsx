@@ -44,80 +44,11 @@ const DashboardPage = () => {
     }
   };
 
-  const handleVerticalNext = () => {
-    const currentIndex = steps.findIndex((s) => s.id === verticalStep);
-    if (currentIndex < steps.length - 1) {
-      setVerticalStep(steps[currentIndex + 1].id);
-    }
-  };
-
-  const handleVerticalPrev = () => {
-    const currentIndex = steps.findIndex((s) => s.id === verticalStep);
-    if (currentIndex > 0) {
-      setVerticalStep(steps[currentIndex - 1].id);
-    }
-  };
-
   return (
     <main className="bg-background min-h-screen p-8">
       <div className="mx-auto max-w-6xl space-y-12">
         {/* Horizontal Stepper */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Horizontal Stepper</CardTitle>
-            <CardDescription>
-              Linear progression through steps from left to right
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <Stepper
-              steps={steps}
-              currentStep={horizontalStep}
-              onStepChange={setHorizontalStep}
-              orientation="horizontal"
-            />
-            <div className="flex justify-center gap-3">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  const currentIndex = steps.findIndex(
-                    (s) => s.id === horizontalStep,
-                  );
-                  if (currentIndex > 0) {
-                    setHorizontalStep(steps[currentIndex - 1].id);
-                  }
-                }}
-              >
-                Previous
-              </Button>
-              <Button onClick={handleHorizontalNext}>Next</Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Vertical Stepper */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Vertical Stepper</CardTitle>
-            <CardDescription>
-              Linear progression through steps from top to bottom
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <Stepper
-              steps={steps}
-              currentStep={verticalStep}
-              onStepChange={setVerticalStep}
-              orientation="vertical"
-            />
-            <div className="flex justify-center gap-3">
-              <Button variant="outline" onClick={handleVerticalPrev}>
-                Previous
-              </Button>
-              <Button onClick={handleVerticalNext}>Next</Button>
-            </div>
-          </CardContent>
-        </Card>
+        ini punya user
       </div>
     </main>
   );

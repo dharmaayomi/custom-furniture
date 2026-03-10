@@ -40,7 +40,7 @@ type AdminOrderDetailPageProps = {
   orderId: string;
 };
 
-type ProductionLog = {
+export type ProductionLog = {
   id: string;
   progressPercent: number;
   description: string;
@@ -48,7 +48,7 @@ type ProductionLog = {
   photos: string[];
 };
 
-function formatLogDate(isoString: string) {
+export function formatLogDate(isoString: string) {
   const date = new Date(isoString);
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
@@ -173,7 +173,7 @@ function PhotoLightbox({
   );
 }
 
-function ProductionLogCard({
+export function ProductionLogCard({
   log,
   index,
 }: {
