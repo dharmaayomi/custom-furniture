@@ -21,6 +21,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Bell, CheckCheck, Moon, Sun } from "lucide-react";
 import { useUser } from "@/providers/UserProvider";
 import { NavUser } from "./NavUser";
@@ -66,7 +67,8 @@ const HeaderDashboard = () => {
   const filteredSegments = segments.filter((segment, index) => {
     const isNumeric = /^\d+$/.test(segment);
     const prevSegment = index > 0 ? segments[index - 1] : null;
-    const nextSegment = index < segments.length - 1 ? segments[index + 1] : null;
+    const nextSegment =
+      index < segments.length - 1 ? segments[index + 1] : null;
 
     if (isNumeric && prevSegment === "address") {
       return false;
@@ -84,18 +86,27 @@ const HeaderDashboard = () => {
     return true;
   });
   const { navUser } = useUser();
-  const { data, isLoading: isLoadingNotifications } = useGetNotifications({
-    page: 1,
-    perPage: 4,
-    sortBy: "createdAt",
-    orderBy: "desc",
-  });
+  const { data: session, status } = useSession();
+  const canFetchNotifications =
+    status === "authenticated" &&
+    Boolean(session?.user?.accessToken || (session as any)?.backendToken);
+  const { data, isLoading: isLoadingNotifications } = useGetNotifications(
+    {
+      page: 1,
+      perPage: 4,
+      sortBy: "createdAt",
+      orderBy: "desc",
+    },
+    canFetchNotifications,
+  );
   const { mutate: markAsRead } = useMarkAsRead();
   const { mutate: markAllAsRead, isPending: isMarkingAllAsRead } =
     useMarkAllAsRead();
 
   const notifications = data?.data ?? [];
-  const unreadCountFromItems = notifications.filter((item) => !item.isRead).length;
+  const unreadCountFromItems = notifications.filter(
+    (item) => !item.isRead,
+  ).length;
   const unreadCount = Math.max(data?.unreadCount ?? 0, unreadCountFromItems);
   const previewNotifications = notifications.slice(0, 4);
 
@@ -115,7 +126,7 @@ const HeaderDashboard = () => {
   }, []);
 
   return (
-    <header className="bg-background/95 supports-backdrop-filter:bg-background/75 sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b backdrop-blur sm:h-16">
+    <header className="bg-muted/50 supports-backdrop-filter:bg-bg-muted/50 sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b backdrop-blur sm:h-16">
       <div className="flex w-full items-center gap-2 px-2 sm:px-4">
         <SidebarTrigger className="ml-1 sm:ml-2" />
         <Separator
@@ -258,4 +269,3 @@ const HeaderDashboard = () => {
 };
 
 export default HeaderDashboard;
-

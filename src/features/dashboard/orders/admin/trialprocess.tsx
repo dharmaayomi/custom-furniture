@@ -13,7 +13,9 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
@@ -44,13 +46,22 @@ type AdminOrderProcessPageTrialProps = {
   orderNumber?: string;
 };
 
+const processLoadingStates = [
+  { text: "Loading order details" },
+  { text: "Checking payment phase" },
+  { text: "Fetching production history" },
+  { text: "Preparing progress form" },
+];
+
 export default function AdminOrderProcessPage({
   orderId,
   orderNumber,
 }: AdminOrderProcessPageTrialProps) {
   const router = useRouter();
   const safeOrderId = orderId?.trim() ?? "";
-  const { data: order } = useGetAdminOrder(safeOrderId || undefined);
+  const { data: order, isLoading: isOrderLoading } = useGetAdminOrder(
+    safeOrderId || undefined,
+  );
 
   const [uploadedImageItems, setUploadedImageItems] = useState<
     UploadedProductImage[]
@@ -148,6 +159,9 @@ export default function AdminOrderProcessPage({
       setUploadedImageItems([]);
       setNotes("");
       toast.success("Progress submitted");
+      setTimeout(() => {
+        router.push("/dashboard/admin/orders");
+      }, 800);
     } catch (error) {
       const message =
         (error as { response?: { data?: { message?: string } } })?.response
@@ -157,12 +171,20 @@ export default function AdminOrderProcessPage({
   };
 
   const percentage = progressValue[0] ?? 0;
+  const canSubmitProgress = order?.currentPaymentStatus === "PAID";
+  const showLoader = submitting;
   const orderRef =
     order?.orderNumber?.trim() || orderNumber || safeOrderId || "ORD-12345";
   const nowLabel = new Date().toLocaleString("id-ID");
 
   return (
     <section className="mx-auto w-full space-y-6">
+      <MultiStepLoader
+        loadingStates={processLoadingStates}
+        loading={showLoader}
+        duration={1500}
+      />
+
       <header className="space-y-4">
         <div className="bg-primary/4 relative overflow-hidden rounded-2xl border shadow-sm">
           <div className="from-primary/60 via-primary to-primary/60 absolute inset-x-0 top-0 h-1 bg-linear-to-r" />
@@ -222,6 +244,16 @@ export default function AdminOrderProcessPage({
             <p className="text-sm font-medium">Payment Progress</p>
             <Badge variant="outline">{paymentPhase ?? "-"}</Badge>
           </div>
+          {!canSubmitProgress && (
+            <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+              <Clock3 className="h-4 w-4" />
+              <AlertTitle>Payment not settled</AlertTitle>
+              <AlertDescription>
+                Progress cannot be submitted until current payment status is{" "}
+                <strong>PAID</strong>
+              </AlertDescription>
+            </Alert>
+          )}
           <PaymentPhaseStepper paymentPhase={paymentPhase} />
         </div>
       </header>
@@ -302,7 +334,7 @@ export default function AdminOrderProcessPage({
             <Button
               className="w-full"
               onClick={handleSubmitProgress}
-              disabled={submitting}
+              disabled={submitting || !canSubmitProgress}
             >
               {submitting ? (
                 "Menyimpan..."

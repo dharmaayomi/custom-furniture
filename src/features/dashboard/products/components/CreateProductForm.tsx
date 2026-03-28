@@ -10,6 +10,7 @@ import { UploadedProductImage } from "@/types/product";
 import { useEffect, useState } from "react";
 import { FormPreview } from "./FormPreview";
 import { ImageUpload } from "./ImageUpload";
+import { useRouter } from "next/navigation";
 
 interface ProductFormData {
   productName: string;
@@ -44,6 +45,7 @@ const INITIAL_FORM_DATA: ProductFormData = {
 };
 
 export function CreateProductForm() {
+  const router = useRouter();
   const [formData, setFormData] = useState<ProductFormData>(INITIAL_FORM_DATA);
   const [productFile, setProductFile] = useState<File | null>(null);
   const [imageItems, setImageItems] = useState<UploadedProductImage[]>([]);
@@ -167,6 +169,7 @@ export function CreateProductForm() {
       setSubmitMessage("Product created successfully!");
       setTimeout(() => {
         resetForm();
+        router.push("/dashboard/products");
       }, 1200);
     } catch (error) {
       const message =
@@ -181,7 +184,7 @@ export function CreateProductForm() {
       <div className="md:col-span-2">
         <div className="space-y-6 md:space-y-8">
           <div>
-            <h1 className="text-foreground text-2xl font-bold md:text-3xl">
+            <h1 className="text-foreground text-2xl font-bold tracking-tight">
               Create New Product
             </h1>
             <p className="text-muted-foreground mt-2 text-sm">

@@ -21,11 +21,11 @@ function ComponentListSkeleton({ viewMode }: { viewMode: "grid" | "list" }) {
     <div
       className={
         viewMode === "grid"
-          ? "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+          ? "grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
           : "space-y-4"
       }
     >
-      {Array.from({ length: 6 }).map((_, index) => (
+      {Array.from({ length: 12 }).map((_, index) => (
         <div key={index} className="bg-card overflow-hidden rounded-lg border shadow-sm">
           <div className="bg-muted aspect-4/3 w-full animate-pulse" />
           <div className="space-y-2 p-3">
@@ -106,7 +106,7 @@ export function ComponentListContent({
         <div
           className={
             viewMode === "grid"
-              ? "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+              ? "grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
               : "space-y-4"
           }
         >

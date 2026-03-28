@@ -176,7 +176,7 @@ export const EditMaterialProductPage = ({
       <div className="md:col-span-2">
         <div className="space-y-6 md:space-y-8">
           <div>
-            <h1 className="text-foreground text-2xl font-bold md:text-3xl">
+            <h1 className="text-foreground text-2xl font-bold tracking-tight">
               Edit Material
             </h1>
             <p className="text-muted-foreground mt-2 text-sm">

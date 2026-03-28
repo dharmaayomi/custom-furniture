@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useQueries } from "@tanstack/react-query";
 import { toast } from "sonner";
 import useAxios from "@/hooks/useAxios";
-import useCreateSnapPayment from "@/hooks/api/order/useCreateSnapPayment";
+import useCreateSnapPayment from "@/hooks/api/payment/useCreateSnapPayment";
 import useGetOrder from "@/hooks/api/order/useGetOrder";
 import { formatPrice } from "@/lib/price";
 import { getApiErrorMessage } from "@/lib/api-error";
@@ -223,8 +223,7 @@ export const CheckoutPage = () => {
   const deliveryDistance = Number(
     order?.deliveryDistance ?? order?.deliveryDistancce ?? 0,
   );
-  const totalWeightGrams = Number(order?.totalWeight ?? 0);
-  const totalWeightKg = totalWeightGrams / 1000;
+  const totalWeightKg = Number(order?.totalWeight ?? 0);
   const grandTotal = Number(
     order?.grandTotalPrice ?? snapshot?.grandTotal ?? 0,
   );
@@ -241,8 +240,15 @@ export const CheckoutPage = () => {
       return;
     }
     try {
-      const payment = await createSnapPayment({ orderId });
-      const paymentUrl = payment?.paymentUrl?.trim();
+      const payment = await createSnapPayment({
+        orderId,
+        channel: "CORE",
+        corePayload: { payment_type: "qris" },
+      });
+      const paymentUrl =
+        payment?.paymentUrl?.trim() ??
+        payment?.actions?.find((item) => item?.url)?.url?.trim() ??
+        "";
       if (!paymentUrl) {
         toast.error("Payment URL is missing.");
         return;
@@ -250,9 +256,17 @@ export const CheckoutPage = () => {
       toast.info("Redirecting to payment gateway...");
       window.location.assign(paymentUrl);
     } catch (error) {
-      toast.error(
-        getApiErrorMessage(error, "Failed to create payment transaction."),
+      const message = getApiErrorMessage(
+        error,
+        "Failed to create payment transaction.",
       );
+      if (message.includes("No invoice available for this phase yet")) {
+        toast.error(
+          "Invoice tahap ini belum tersedia. Tunggu update progress produksi dari admin.",
+        );
+        return;
+      }
+      toast.error(message);
     }
   };
 

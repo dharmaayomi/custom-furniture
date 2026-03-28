@@ -30,14 +30,20 @@ export function DashboardSidebar({
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const { navUser } = useUser();
-  const { data: session } = useSession();
-  const { data: unreadData } = useGetUnreadCount();
-  const { data: notificationsData } = useGetNotifications({
-    page: 1,
-    perPage: 20,
-    sortBy: "createdAt",
-    orderBy: "desc",
-  });
+  const { data: session, status } = useSession();
+  const canFetchNotifications =
+    status === "authenticated" &&
+    Boolean(session?.user?.accessToken || (session as any)?.backendToken);
+  const { data: unreadData } = useGetUnreadCount(canFetchNotifications);
+  const { data: notificationsData } = useGetNotifications(
+    {
+      page: 1,
+      perPage: 20,
+      sortBy: "createdAt",
+      orderBy: "desc",
+    },
+    canFetchNotifications,
+  );
   const unreadCountFromItems =
     notificationsData?.data?.filter((item) => !item.isRead).length ?? 0;
   const unreadNotificationCount = Math.max(

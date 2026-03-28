@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useQueries } from "@tanstack/react-query";
 import { toast } from "sonner";
 import useAxios from "@/hooks/useAxios";
-import useCreateSnapPayment from "@/hooks/api/order/useCreateSnapPayment";
+import useCreateSnapPayment from "@/hooks/api/payment/useCreateSnapPayment";
 import useGetOrder from "@/hooks/api/order/useGetOrder";
 import { formatPrice } from "@/lib/price";
 import { getApiErrorMessage } from "@/lib/api-error";
@@ -26,6 +26,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import {
   Package,
   MapPin,
@@ -39,6 +40,8 @@ import {
   Store,
   Box,
   Layers,
+  CheckCircle2,
+  Copy,
 } from "lucide-react";
 
 const getDeliveryTypeLabel = (
@@ -90,12 +93,269 @@ const formatDateTimeDDMMYYYY = (value?: string | Date | null) => {
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
 
+type CorePaymentMethod =
+  | "qris"
+  | "gopay"
+  | "bca_va"
+  | "bni_va"
+  | "bri_va"
+  | "mandiri_bill"
+  | "permata_va"
+  | "cimb_va";
+
+const corePaymentMethodLabel: Record<CorePaymentMethod, string> = {
+  qris: "QRIS",
+  gopay: "GoPay",
+  bca_va: "BCA Virtual Account",
+  bni_va: "BNI Virtual Account",
+  bri_va: "BRI Virtual Account",
+  mandiri_bill: "Mandiri Bill Payment",
+  permata_va: "Permata Virtual Account",
+  cimb_va: "CIMB Virtual Account",
+};
+
+const paymentMethodOptions: Array<{
+  value: CorePaymentMethod;
+  label: string;
+  iconPath: string;
+  iconAlt: string;
+}> = [
+  {
+    value: "qris",
+    label: "QRIS",
+    iconPath: "/assets/payment-icons/qris.png",
+    iconAlt: "QRIS logo",
+  },
+  {
+    value: "gopay",
+    label: "GoPay",
+    iconPath: "/assets/payment-icons/gopay.png",
+    iconAlt: "GoPay logo",
+  },
+  {
+    value: "bca_va",
+    label: "BCA Virtual Account",
+    iconPath: "/assets/payment-icons/bca.svg",
+    iconAlt: "BCA logo",
+  },
+  {
+    value: "bni_va",
+    label: "BNI Virtual Account",
+    iconPath: "/assets/payment-icons/bni.png",
+    iconAlt: "BNI logo",
+  },
+  {
+    value: "bri_va",
+    label: "BRI Virtual Account",
+    iconPath: "/assets/payment-icons/bri.svg",
+    iconAlt: "BRI logo",
+  },
+  {
+    value: "mandiri_bill",
+    label: "Mandiri Bill Payment",
+    iconPath: "/assets/payment-icons/mandiri.webp",
+    iconAlt: "Bank Mandiri logo",
+  },
+  {
+    value: "permata_va",
+    label: "Permata Virtual Account",
+    iconPath: "/assets/payment-icons/permata.png",
+    iconAlt: "Permata Bank logo",
+  },
+  {
+    value: "cimb_va",
+    label: "CIMB Virtual Account",
+    iconPath: "/assets/payment-icons/cimb.png",
+    iconAlt: "CIMB logo",
+  },
+];
+
+type PaymentGroup = {
+  label: string;
+  methods: {
+    code: CorePaymentMethod;
+    displayName: string;
+    iconPath: string;
+    iconAlt: string;
+  }[];
+};
+
+const paymentMethodGroups: PaymentGroup[] = [
+  {
+    label: "E-Wallet",
+    methods: paymentMethodOptions
+      .filter((item) => item.value === "qris" || item.value === "gopay")
+      .map((item) => ({
+        code: item.value,
+        displayName: item.label,
+        iconPath: item.iconPath,
+        iconAlt: item.iconAlt,
+      })),
+  },
+  {
+    label: "Virtual Account",
+    methods: paymentMethodOptions
+      .filter((item) => item.value !== "qris" && item.value !== "gopay")
+      .map((item) => ({
+        code: item.value,
+        displayName: item.label,
+        iconPath: item.iconPath,
+        iconAlt: item.iconAlt,
+      })),
+  },
+];
+
+function PaymentMethodSelector({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: CorePaymentMethod;
+  onChange: (value: CorePaymentMethod) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="space-y-3">
+      {paymentMethodGroups.map((group) => (
+        <div key={group.label} className="space-y-1.5">
+          <p className="text-muted-foreground text-[11px] font-semibold tracking-widest uppercase">
+            {group.label}
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {group.methods.map((method) => {
+              const isSelected = value === method.code;
+              return (
+                <button
+                  key={method.code}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onChange(method.code)}
+                  className={cn(
+                    "relative flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-sm transition-all",
+                    "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none",
+                    "disabled:pointer-events-none disabled:opacity-50",
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-border bg-background hover:border-primary/40 hover:bg-muted/40",
+                  )}
+                >
+                  {isSelected ? (
+                    <span className="text-primary absolute top-1.5 right-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    </span>
+                  ) : null}
+                  <img
+                    src={method.iconPath}
+                    alt={method.iconAlt}
+                    className="h-5 w-12 shrink-0 object-contain"
+                    loading="lazy"
+                  />
+                  <span
+                    className={cn(
+                      "truncate leading-none font-medium",
+                      isSelected ? "text-primary" : "text-foreground",
+                    )}
+                  >
+                    {method.displayName}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const buildCorePayload = (method: CorePaymentMethod) => {
+  switch (method) {
+    case "gopay":
+      return { payment_type: "gopay" };
+    case "qris":
+      return { payment_type: "qris" };
+    case "permata_va":
+      return {
+        payment_type: "bank_transfer",
+        bank_transfer: { bank: "permata" },
+      };
+    case "mandiri_bill":
+      return {
+        payment_type: "echannel",
+        echannel: {
+          bill_info1: "Payment:",
+          bill_info2: "Order",
+        },
+      };
+    case "cimb_va":
+      return {
+        payment_type: "bank_transfer",
+        bank_transfer: { bank: "cimb" },
+      };
+    case "bca_va":
+      return {
+        payment_type: "bank_transfer",
+        bank_transfer: { bank: "bca" },
+      };
+    case "bni_va":
+      return {
+        payment_type: "bank_transfer",
+        bank_transfer: { bank: "bni" },
+      };
+    case "bri_va":
+      return {
+        payment_type: "bank_transfer",
+        bank_transfer: { bank: "bri" },
+      };
+    default:
+      return { payment_type: "qris" };
+  }
+};
+
+type ParsedPaymentReference = {
+  va_numbers?: Array<{ va_number?: string; bank?: string }>;
+  permata_va_number?: string;
+  bill_key?: string;
+  biller_code?: string;
+};
+
+const parsePaymentReference = (value?: string | null) => {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value) as ParsedPaymentReference;
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const copyToClipboard = async (value: string, label: string) => {
+  try {
+    await navigator.clipboard.writeText(value);
+    toast.success(`${label} copied`);
+  } catch {
+    toast.error(`Failed to copy ${label}`);
+  }
+};
+
 export const CheckoutPageNew = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const axiosInstance = useAxios();
   const { mutateAsync: createSnapPayment, isPending: isCreatingSnapPayment } =
     useCreateSnapPayment();
+  const [paymentMethod, setPaymentMethod] = useState<CorePaymentMethod>("qris");
+  const [paymentInstruction, setPaymentInstruction] = useState<{
+    vaNumbers: Array<{ bank: string; va_number: string }>;
+    permataVaNumber: string | null;
+    qrString: string | null;
+    billKey: string | null;
+    billerCode: string | null;
+  } | null>(null);
+  const [paymentRedirectUrl, setPaymentRedirectUrl] = useState<string | null>(
+    null,
+  );
   const [snapshot, setSnapshot] = useState<CheckoutOrderSnapshot | null>(null);
 
   useEffect(() => {
@@ -199,6 +459,37 @@ export const CheckoutPageNew = () => {
     if (order?.items?.length) return order.items.length;
     return fallbackItems.reduce((sum, item) => sum + item.quantity, 0);
   }, [order?.items, fallbackItems]);
+  const activePendingPayment = useMemo(() => {
+    const sorted = [...(order?.payments ?? [])].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    return sorted.find((payment) => {
+      const status = String(payment.status ?? "").toUpperCase();
+      return status === "WAITING_FOR_PAYMENT" || status === "CHALLENGE";
+    });
+  }, [order?.payments]);
+  const activePendingReference = useMemo(
+    () => parsePaymentReference(activePendingPayment?.midtransReference),
+    [activePendingPayment?.midtransReference],
+  );
+  const activePendingVaNumbers = Array.isArray(
+    activePendingReference?.va_numbers,
+  )
+    ? activePendingReference.va_numbers.filter((item) => item?.va_number)
+    : [];
+  const activePendingPermataVa = activePendingReference?.permata_va_number;
+  const activePendingBillerCode = activePendingReference?.biller_code;
+  const activePendingBillKey = activePendingReference?.bill_key;
+  const activePendingFallbackReference =
+    activePendingPayment?.midtransReference ?? activePendingPayment?.id ?? null;
+
+  useEffect(() => {
+    const pendingUrl = activePendingPayment?.paymentUrl?.trim() || "";
+    if (!pendingUrl) return;
+    if (paymentRedirectUrl) return;
+    setPaymentRedirectUrl(pendingUrl);
+  }, [activePendingPayment?.paymentUrl, paymentRedirectUrl]);
 
   if (!snapshot && !orderId) {
     return (
@@ -232,8 +523,7 @@ export const CheckoutPageNew = () => {
   const deliveryDistance = Number(
     order?.deliveryDistance ?? order?.deliveryDistancce ?? 0,
   );
-  const totalWeightGrams = Number(order?.totalWeight ?? 0);
-  const totalWeightKg = totalWeightGrams / 1000;
+  const totalWeightKg = Number(order?.totalWeight ?? 0);
   const grandTotal = Number(
     order?.grandTotalPrice ?? snapshot?.grandTotal ?? 0,
   );
@@ -249,19 +539,71 @@ export const CheckoutPageNew = () => {
       toast.info("This order can no longer receive payment.");
       return;
     }
+    const pendingUrl = activePendingPayment?.paymentUrl?.trim() || "";
+    if (pendingUrl) {
+      setPaymentRedirectUrl(pendingUrl);
+      toast.info(
+        "You already have an active payment invoice. Complete it first.",
+      );
+      return;
+    }
     try {
-      const payment = await createSnapPayment({ orderId });
-      const paymentUrl = payment?.paymentUrl?.trim();
-      if (!paymentUrl) {
-        toast.error("Payment URL is missing.");
+      const payment = await createSnapPayment({
+        orderId,
+        channel: "CORE",
+        corePayload: buildCorePayload(paymentMethod),
+      });
+      const paymentUrl =
+        payment?.paymentUrl?.trim() ??
+        payment?.actions?.find((item) => item?.url)?.url?.trim() ??
+        "";
+      const hasInstruction =
+        (payment?.vaNumbers?.length ?? 0) > 0 ||
+        Boolean(payment?.permataVaNumber) ||
+        Boolean(payment?.qrString) ||
+        Boolean(payment?.billKey) ||
+        Boolean(payment?.billerCode);
+
+      setPaymentInstruction(
+        hasInstruction
+          ? {
+              vaNumbers: payment?.vaNumbers ?? [],
+              permataVaNumber: payment?.permataVaNumber ?? null,
+              qrString: payment?.qrString ?? null,
+              billKey: payment?.billKey ?? null,
+              billerCode: payment?.billerCode ?? null,
+            }
+          : null,
+      );
+      setPaymentRedirectUrl(paymentUrl || null);
+
+      if (!paymentUrl && !hasInstruction) {
+        toast.error("Payment data is missing.");
         return;
       }
-      toast.info("Redirecting to payment gateway...");
-      window.location.assign(paymentUrl);
+
+      toast.success("Payment created. Continue with the details below.");
     } catch (error) {
-      toast.error(
-        getApiErrorMessage(error, "Failed to create payment transaction."),
+      const message = getApiErrorMessage(
+        error,
+        "Failed to create payment transaction.",
       );
+      if (message.includes("No invoice available for this phase yet")) {
+        toast.error(
+          "Invoice tahap ini belum tersedia. Tunggu update progress produksi dari admin.",
+        );
+        return;
+      }
+      if (
+        message.includes("status code: 406") ||
+        message.toLowerCase().includes("conflict with the current state")
+      ) {
+        toast.error(
+          "Active payment invoice already exists. Please continue the existing payment first.",
+        );
+        return;
+      }
+      toast.error(message);
     }
   };
 
@@ -541,6 +883,21 @@ export const CheckoutPageNew = () => {
                 </span>
               </div>
 
+              <div className="space-y-1.5">
+                <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                  Payment Method
+                </p>
+                <PaymentMethodSelector
+                  value={paymentMethod}
+                  onChange={(value) => {
+                    setPaymentInstruction(null);
+                    setPaymentRedirectUrl(null);
+                    setPaymentMethod(value);
+                  }}
+                  disabled={isCreatingSnapPayment}
+                />
+              </div>
+
               <Button
                 className="w-full gap-2 font-semibold"
                 size="lg"
@@ -555,10 +912,261 @@ export const CheckoutPageNew = () => {
                 ) : (
                   <>
                     <CreditCard className="h-4 w-4" />
-                    Pay Now
+                    Pay Now ({corePaymentMethodLabel[paymentMethod]})
                   </>
                 )}
               </Button>
+
+              {paymentInstruction ? (
+                <div className="bg-muted/40 space-y-2 rounded-xl p-3 text-xs">
+                  {paymentInstruction.vaNumbers.map((item) => (
+                    <p
+                      key={`${item.bank}-${item.va_number}`}
+                      className="flex items-center gap-2"
+                    >
+                      <span>
+                        {item.bank.toUpperCase()} VA:{" "}
+                        <span className="font-semibold">{item.va_number}</span>
+                      </span>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground inline-flex"
+                        onClick={() =>
+                          copyToClipboard(
+                            item.va_number,
+                            `${item.bank.toUpperCase()} VA`,
+                          )
+                        }
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </p>
+                  ))}
+                  {paymentInstruction.permataVaNumber ? (
+                    <p className="flex items-center gap-2">
+                      <span>
+                        Permata VA:{" "}
+                        <span className="font-semibold">
+                          {paymentInstruction.permataVaNumber}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground inline-flex"
+                        onClick={() =>
+                          copyToClipboard(
+                            paymentInstruction.permataVaNumber!,
+                            "Permata VA",
+                          )
+                        }
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </p>
+                  ) : null}
+                  {paymentInstruction.qrString ? (
+                    <p className="break-all">
+                      QR String:{" "}
+                      <span className="font-semibold">
+                        {paymentInstruction.qrString}
+                      </span>
+                    </p>
+                  ) : null}
+                  {paymentInstruction.billerCode ? (
+                    <p className="flex items-center gap-2">
+                      <span>
+                        Biller Code:{" "}
+                        <span className="font-semibold">
+                          {paymentInstruction.billerCode}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground inline-flex"
+                        onClick={() =>
+                          copyToClipboard(
+                            paymentInstruction.billerCode!,
+                            "Mandiri Biller Code",
+                          )
+                        }
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </p>
+                  ) : null}
+                  {paymentInstruction.billKey ? (
+                    <p className="flex items-center gap-2">
+                      <span>
+                        Bill Key:{" "}
+                        <span className="font-semibold">
+                          {paymentInstruction.billKey}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground inline-flex"
+                        onClick={() =>
+                          copyToClipboard(
+                            paymentInstruction.billKey!,
+                            "Mandiri Bill Key",
+                          )
+                        }
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {activePendingPayment ? (
+                <div className="bg-muted/40 space-y-1 rounded-xl p-3 text-xs">
+                  <p className="font-semibold">Active Payment Invoice</p>
+                  <p>
+                    Phase:{" "}
+                    <span className="font-medium">
+                      {activePendingPayment.phase}
+                    </span>
+                  </p>
+                  {activePendingVaNumbers.length > 0 ? (
+                    <div className="space-y-1">
+                      {activePendingVaNumbers.map((item, index) => (
+                        <p
+                          key={`active-va-${index}`}
+                          className="flex items-center gap-2"
+                        >
+                          <span>
+                            {String(item.bank ?? "bank").toUpperCase()} VA:{" "}
+                            <span className="font-mono font-semibold">
+                              {item.va_number}
+                            </span>
+                          </span>
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-foreground inline-flex"
+                            onClick={() =>
+                              copyToClipboard(
+                                String(item.va_number),
+                                `${String(item.bank ?? "bank").toUpperCase()} VA`,
+                              )
+                            }
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </button>
+                        </p>
+                      ))}
+                    </div>
+                  ) : null}
+                  {activePendingPermataVa ? (
+                    <p className="flex items-center gap-2">
+                      <span>
+                        Permata VA:{" "}
+                        <span className="font-mono font-semibold">
+                          {activePendingPermataVa}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground inline-flex"
+                        onClick={() =>
+                          copyToClipboard(
+                            String(activePendingPermataVa),
+                            "Permata VA",
+                          )
+                        }
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </p>
+                  ) : null}
+                  {activePendingBillerCode ? (
+                    <p className="flex items-center gap-2">
+                      <span>
+                        Biller Code:{" "}
+                        <span className="font-mono font-semibold">
+                          {activePendingBillerCode}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground inline-flex"
+                        onClick={() =>
+                          copyToClipboard(
+                            String(activePendingBillerCode),
+                            "Mandiri Biller Code",
+                          )
+                        }
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </p>
+                  ) : null}
+                  {activePendingBillKey ? (
+                    <p className="flex items-center gap-2">
+                      <span>
+                        Bill Key:{" "}
+                        <span className="font-mono font-semibold">
+                          {activePendingBillKey}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground inline-flex"
+                        onClick={() =>
+                          copyToClipboard(
+                            String(activePendingBillKey),
+                            "Mandiri Bill Key",
+                          )
+                        }
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </p>
+                  ) : null}
+                  {!activePendingVaNumbers.length &&
+                  !activePendingPermataVa &&
+                  !activePendingBillerCode &&
+                  !activePendingBillKey &&
+                  activePendingFallbackReference ? (
+                    <p className="flex items-center gap-2">
+                      <span className="font-mono font-semibold">
+                        Ref: {activePendingFallbackReference}
+                      </span>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground inline-flex"
+                        onClick={() =>
+                          copyToClipboard(
+                            String(activePendingFallbackReference),
+                            "Reference",
+                          )
+                        }
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </p>
+                  ) : null}
+                  <p>
+                    Method:{" "}
+                    <span className="font-medium">
+                      {activePendingPayment.midtransBank ??
+                        activePendingPayment.midtransPaymentType ??
+                        activePendingPayment.paymentType ??
+                        "-"}
+                    </span>
+                  </p>
+                </div>
+              ) : null}
+
+              {paymentRedirectUrl ? (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => window.location.assign(paymentRedirectUrl)}
+                >
+                  Open Payment Page
+                </Button>
+              ) : null}
 
               {!isPayable && (
                 <p className="text-muted-foreground text-center text-xs">

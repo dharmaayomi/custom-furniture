@@ -38,13 +38,13 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-dvh w-full">
+    <div className="bg-muted min-h-dvh w-full">
       <UserProvider>
         <SidebarProvider>
           <DashboardSidebar />
           <SidebarInset className="flex h-[calc(100dvh-1rem)] flex-col overflow-hidden dark:border">
             <HeaderDashboard />
-            <main className="flex-1 overflow-y-auto">
+            <main className="bg-muted/50 flex-1 overflow-y-auto">
               <div className="flex flex-1 flex-col">
                 <div className="@container/main m-3 flex flex-1 flex-col gap-2 sm:m-5">
                   {children}
