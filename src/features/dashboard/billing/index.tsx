@@ -450,34 +450,36 @@ export const BillingPage = () => {
             setTabParam(value);
           }
         }}
-        className="bg-muted/50 w-full rounded-full p-1 lg:w-auto"
+        className="w-full"
       >
-        <TabsList className="no-scrollbar mb-5 h-auto w-full justify-start gap-2 overflow-x-auto bg-transparent p-0">
-          <TabsTrigger
-            value="active-payment"
-            className="group data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-background rounded-full border px-4 py-2 text-xs font-bold whitespace-nowrap transition-all"
-          >
-            <span>Active Payment</span>
-            {activePayments.length > 0 && (
-              <span className="bg-chart-2 text-card group-data-[state=active]:bg-background group-data-[state=active]:text-card ml-2 rounded-full px-1.5 py-0.5 text-[10px]">
-                {activePayments.length}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger
-            value="payment-history"
-            className="group data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-background rounded-full border px-4 py-2 text-xs font-bold whitespace-nowrap transition-all"
-          >
-            <span>Payment History</span>
-            {sortedHistoryPayments.length > 0 && (
-              <span className="bg-chart-2 text-card group-data-[state=active]:bg-chart-2 group-data-[state=active]:text-background ml-2 rounded-full px-1.5 py-0.5 text-[10px]">
-                {sortedHistoryPayments.length}
-              </span>
-            )}
-          </TabsTrigger>
-        </TabsList>
+        <div className="bg-card mb-6 flex items-center justify-between overflow-hidden rounded-full p-1.5 shadow-2xl/5">
+          <TabsList className="no-scrollbar h-auto w-full justify-start gap-2 overflow-x-auto bg-transparent p-0">
+            <TabsTrigger
+              value="active-payment"
+              className="group data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-background rounded-full border px-4 py-2 text-xs font-bold whitespace-nowrap transition-all"
+            >
+              <span>Active Payment</span>
+              {activePayments.length > 0 && (
+                <span className="bg-chart-2 text-card group-data-[state=active]:bg-background group-data-[state=active]:text-background ml-2 rounded-full px-1.5 py-0.5 text-[10px]">
+                  {activePayments.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="payment-history"
+              className="group data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-background rounded-full border px-4 py-2 text-xs font-bold whitespace-nowrap transition-all"
+            >
+              <span>Payment History</span>
+              {sortedHistoryPayments.length > 0 && (
+                <span className="bg-primary text-card group-data-[state=active]:bg-chart-2 group-data-[state=active]:text-card ml-2 rounded-full px-1.5 py-0.5 text-[10px]">
+                  {sortedHistoryPayments.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="active-payment" className="space-y-3">
+        <TabsContent value="active-payment" className="mt-2 space-y-3">
           {isActiveLoading ? (
             renderSkeletonList()
           ) : isActiveError ? (
@@ -501,7 +503,7 @@ export const BillingPage = () => {
           )}
         </TabsContent>
 
-        <TabsContent value="payment-history" className="space-y-3">
+        <TabsContent value="payment-history" className="mt-2 space-y-3">
           {isHistoryLoading ? (
             renderSkeletonList()
           ) : isHistoryError ? (

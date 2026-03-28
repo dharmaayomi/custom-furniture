@@ -406,7 +406,7 @@ export const OrderDetailPage = ({ orderId }: OrderDetailPageProps) => {
 
   if (isError || !order) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-12 text-center">
+      <div className="mx-auto px-4 py-12 text-center">
         <div className="bg-destructive/10 mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full">
           <Package className="text-destructive h-8 w-8" />
         </div>
@@ -441,7 +441,7 @@ export const OrderDetailPage = ({ orderId }: OrderDetailPageProps) => {
   };
 
   return (
-    <div className="mx-auto px-4 pb-20">
+    <div className="mx-auto w-full px-4 pb-20">
       {/* --- Breadcrumb & Actions --- */}
       <div className="flex flex-col gap-6">
         <button

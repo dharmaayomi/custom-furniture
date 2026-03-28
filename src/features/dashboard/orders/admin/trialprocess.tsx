@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
@@ -45,13 +46,22 @@ type AdminOrderProcessPageTrialProps = {
   orderNumber?: string;
 };
 
+const processLoadingStates = [
+  { text: "Loading order details" },
+  { text: "Checking payment phase" },
+  { text: "Fetching production history" },
+  { text: "Preparing progress form" },
+];
+
 export default function AdminOrderProcessPage({
   orderId,
   orderNumber,
 }: AdminOrderProcessPageTrialProps) {
   const router = useRouter();
   const safeOrderId = orderId?.trim() ?? "";
-  const { data: order } = useGetAdminOrder(safeOrderId || undefined);
+  const { data: order, isLoading: isOrderLoading } = useGetAdminOrder(
+    safeOrderId || undefined,
+  );
 
   const [uploadedImageItems, setUploadedImageItems] = useState<
     UploadedProductImage[]
@@ -162,12 +172,19 @@ export default function AdminOrderProcessPage({
 
   const percentage = progressValue[0] ?? 0;
   const canSubmitProgress = order?.currentPaymentStatus === "PAID";
+  const showLoader = submitting;
   const orderRef =
     order?.orderNumber?.trim() || orderNumber || safeOrderId || "ORD-12345";
   const nowLabel = new Date().toLocaleString("id-ID");
 
   return (
     <section className="mx-auto w-full space-y-6">
+      <MultiStepLoader
+        loadingStates={processLoadingStates}
+        loading={showLoader}
+        duration={1500}
+      />
+
       <header className="space-y-4">
         <div className="bg-primary/4 relative overflow-hidden rounded-2xl border shadow-sm">
           <div className="from-primary/60 via-primary to-primary/60 absolute inset-x-0 top-0 h-1 bg-linear-to-r" />
