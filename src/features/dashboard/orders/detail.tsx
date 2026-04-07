@@ -466,7 +466,7 @@ export const OrderDetailPage = ({ orderId }: OrderDetailPageProps) => {
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-extrabold tracking-tight">
-                  #{displayOrderNumber}
+                  {displayOrderNumber}
                 </h1>
                 <Badge
                   className={`px-2.5 py-0.5 shadow-sm ${getStatusBadgeClass(statusTone[order.status])}`}

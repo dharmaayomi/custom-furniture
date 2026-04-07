@@ -19,9 +19,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import AddressForm, {
-  AddressFormData,
-} from "@/features/dashboard/address/components/AddressForm";
 import useCreateCustomOrder from "@/hooks/api/order/useCreateCustomOrder";
 import useCreateNewAddress, {
   CreateAddressInput,
@@ -53,6 +50,10 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+
+import SummaryAddressForm, {
+  SummaryAddressFormData,
+} from "./components/SummaryAddressForm";
 
 const getAddressOptionLabel = (address: Address) =>
   `${address.label} - ${address.recipientName}`;
@@ -126,7 +127,7 @@ export default function SummaryDesignPage() {
   const { mutateAsync: createCustomOrder, isPending: isCreatingOrder } =
     useCreateCustomOrder();
 
-  const handleCreateAddress = async (data: AddressFormData) => {
+  const handleCreateAddress = async (data: SummaryAddressFormData) => {
     if (!userId) {
       toast.error("Please log in to add address.");
       return;
@@ -682,7 +683,7 @@ export default function SummaryDesignPage() {
               Add your delivery address to continue checkout.
             </DialogDescription>
           </DialogHeader>
-          <AddressForm
+          <SummaryAddressForm
             title="Add New Address"
             description="Fill in your delivery address details"
             submitLabel={isCreatingAddress ? "Saving..." : "Save Address"}

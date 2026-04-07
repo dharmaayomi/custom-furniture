@@ -43,16 +43,18 @@ export default function Porfolio() {
                 variant="outline"
                 className="text-primary bg-primary/5 mb-4 block w-fit rounded-full border-transparent px-4 py-1.5 text-[10px] font-black tracking-[0.2em] uppercase"
               >
-                Recent Projects
+                PROYEK TERBARU
               </Badge>
             </motion.div>
             <h2 className="mb-4 text-3xl leading-none font-black tracking-tight md:text-5xl">
-              Crafted for <span className="text-primary italic">real spaces.</span>
+              Dibuat untuk{" "}
+              <span className="text-primary italic">ruang nyata.</span>
             </h2>
           </div>
           <p className="text-muted-foreground max-w-sm text-sm italic">
-            Explore custom furniture outcomes, from built-in storage to complete
-            room solutions tailored to each client layout.
+            Jelajahi hasil furnitur kustom kami, mulai dari lemari built-in
+            hingga solusi ruangan lengkap yang disesuaikan dengan tata letak
+            setiap klien.
           </p>
         </div>
 

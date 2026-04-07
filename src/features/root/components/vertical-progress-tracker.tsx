@@ -4,24 +4,26 @@ import { motion } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
+import { useRouter } from "next/navigation";
 
 export default function Step02() {
+  const router = useRouter();
   const steps = [
     {
-      title: "Measure",
-      desc: "Share your room dimensions and layout so every cabinet and panel fits your real space.",
+      title: "Ukur ",
+      desc: "Bagikan dimensi dan tata letak ruangan Anda agar setiap kabinet dan panel pas di ruang nyata Anda.",
     },
     {
-      title: "Customize",
-      desc: "Choose base furniture, add components, and apply materials to match your style and budget.",
+      title: "Kustomisasi",
+      desc: "Pilih furnitur dasar, tambahkan komponen, dan terapkan material yang sesuai dengan gaya dan anggaran Anda",
     },
     {
-      title: "Review",
-      desc: "See your design in preview, check item details, and confirm delivery requirements before checkout.",
+      title: "Tinjau",
+      desc: "Lihat desain Anda dalam pratinjau, periksa detail item, dan konfirmasi kebutuhan pengiriman sebelum checkout.",
     },
     {
       title: "Checkout",
-      desc: "Place your order securely, track status updates, and move from concept to installation with confidence.",
+      desc: "Lakukan pemesanan dengan aman, pantau pembaruan status, dan wujudkan konsep menjadi instalasi dengan penuh keyakinan.",
     },
   ];
 
@@ -42,15 +44,19 @@ export default function Step02() {
               </Badge>
             </motion.div>
             <h2 className="mb-6 text-4xl leading-[1.1] font-black tracking-tight lg:text-5xl">
-              Design your custom furniture in{" "}
-              <span className="text-primary italic">four clear steps.</span>
+              Desain furnitur kustom Anda dalam{" "}
+              <span className="text-primary italic">empat langkah mudah.</span>
             </h2>
             <p className="text-muted-foreground mb-10 text-lg leading-relaxed italic">
-              From room measurement to final payment, our workflow helps you
-              build fitted furniture faster without losing control of details.
+              Dari pengukuran ruangan hingga pembayaran akhir, alur kerja kami
+              membantu Anda membangun furnitur yang pas lebih cepat tanpa
+              kehilangan kendali atas detailnya.
             </p>
 
-            <Button className="bg-foreground text-background h-auto rounded-xl px-8 py-6 text-sm font-black tracking-[0.2em] uppercase shadow-xl transition-all hover:opacity-90">
+            <Button
+              className="bg-foreground text-background h-auto rounded-xl px-8 py-6 text-sm font-black tracking-[0.2em] uppercase shadow-xl transition-all hover:opacity-90"
+              onClick={() => router.push("/custom")}
+            >
               Start Customizing
             </Button>
           </div>

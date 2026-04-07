@@ -14,8 +14,10 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 const CTA06 = () => {
+  const router = useRouter();
   return (
     <section className="relative flex w-full items-center justify-center overflow-hidden px-6 py-24">
       {/* Dynamic Background Atmosphere */}
@@ -46,33 +48,36 @@ const CTA06 = () => {
                   </Badge>
 
                   <h2 className="text-foreground text-4xl leading-tight font-black tracking-tighter md:text-6xl">
-                    Ready to design your{" "}
-                    <span className="text-primary italic">dream furniture?</span>
+                    Siap mendesain{" "}
+                    <span className="text-primary italic">
+                      furnitur impian Anda?
+                    </span>
                   </h2>
 
                   <p className="text-muted-foreground mx-auto max-w-xl text-lg leading-relaxed md:text-xl lg:mx-0">
-                    Choose base products, combine components, apply materials,
-                    and review your order progress from payment to production
-                    in one seamless platform.
+                    Pilih produk dasar, kombinasikan komponen, terapkan
+                    material, dan pantau progres pesanan Anda dari pembayaran
+                    hingga produksi dalam satu platform yang terintegrasi.
                   </p>
 
                   <div className="flex flex-col items-center justify-center gap-4 pt-4 sm:flex-row lg:justify-start">
                     <Button
                       size="lg"
                       className="bg-primary text-primary-foreground shadow-primary/30 group/btn relative h-16 overflow-hidden rounded-2xl px-10 text-lg font-black shadow-2xl"
+                      onClick={() => router.push("/custom")}
                     >
                       <span className="relative z-10 flex items-center gap-2">
                         Start Customizing{" "}
                         <ArrowRight className="h-5 w-5 transition-transform group-hover/btn:translate-x-1" />
                       </span>
-                      <div className="absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 transform bg-white/20 transition-transform group-hover/btn:scale-x-100" />
+                      <div className="absolute inset-x-0 bottom-0 h-full origin-left scale-x-0 transform bg-white/20 transition-transform group-hover/btn:scale-x-100" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="lg"
                       className="decoration-primary/30 h-16 rounded-2xl px-8 text-lg font-bold hover:bg-white/10 hover:underline"
                     >
-                      Talk to Our Team
+                      Hubungi Tim Kami
                     </Button>
                   </div>
 
@@ -80,14 +85,14 @@ const CTA06 = () => {
                   <div className="flex flex-wrap items-center justify-center gap-6 pt-6 opacity-60 grayscale transition-all duration-500 hover:grayscale-0 lg:justify-start">
                     <div className="flex items-center gap-1.5 text-sm font-semibold">
                       <CheckCircle2 className="h-4 w-4 text-emerald-500" />{" "}
-                      Transparent Pricing
+                      Harga Transparan
                     </div>
                     <div className="flex items-center gap-1.5 text-sm font-semibold">
-                      <Zap className="h-4 w-4 text-amber-500" /> Fast Production
+                      <Zap className="h-4 w-4 text-amber-500" /> Produksi Cepat
                     </div>
                     <div className="flex items-center gap-1.5 text-sm font-semibold">
-                      <MousePointer2 className="h-4 w-4 text-blue-500" /> Live
-                      Order Tracking
+                      <MousePointer2 className="h-4 w-4 text-blue-500" />{" "}
+                      Pelacakan Pesanan Langsung
                     </div>
                   </div>
                 </div>
@@ -131,12 +136,14 @@ const CTA06 = () => {
                             />
                           </div>
                           <div className="flex justify-between text-[10px] font-bold tracking-wider uppercase opacity-50">
-                            <span>Production Progress</span>
+                            <span>PROGRES PRODUKSI</span>
                             <span>85% Complete</span>
                           </div>
                         </div>
                         <div className="flex items-center justify-between border-t border-white/5 pt-2">
-                          <span className="text-xs font-bold">Updated Today</span>
+                          <span className="text-xs font-bold">
+                            Diperbarui Hari Ini
+                          </span>
                           <Badge
                             variant="secondary"
                             className="border-none bg-emerald-500/20 text-emerald-500"

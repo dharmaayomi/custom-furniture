@@ -13,8 +13,10 @@ import {
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 const Hero03 = () => {
+  const router = useRouter();
   return (
     <section className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden">
       {/* Background Decor */}
@@ -38,23 +40,26 @@ const Hero03 = () => {
             </Badge>
 
             <h1 className="text-foreground mb-8 text-5xl leading-[1.1] font-black tracking-tight md:text-6xl">
-              Design Furniture That{" "}
+              Desain Furnitur yang{" "}
               <span className="from-primary text-primary bg-linear-to-r via-indigo-500 to-purple-600 bg-clip-text">
-                Fits Your Space
+                Pas di Ruangan
               </span>{" "}
-              Perfectly.
+              Anda.
             </h1>
 
             <p className="text-muted-foreground/80 mx-auto mb-10 max-w-2xl text-xl leading-relaxed lg:mx-0">
-              Build custom cabinets and room furniture from real dimensions,
-              preview every detail in 3D, and checkout with clear delivery and
-              pricing information.
+              Buat kabinet dan furnitur ruangan dari dimensi nyata, pratinjau
+              setiap detail dalam 3D, dan selesaikan pembelian dengan informasi
+              pengiriman dan harga yang transparan.
             </p>
 
             <div className="mb-12 flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start">
               <Button
                 size="lg"
                 className="shadow-primary/20 flex h-16 items-center gap-2 rounded-2xl px-10 text-lg font-bold shadow-2xl transition-transform hover:scale-[1.02]"
+                onClick={() => {
+                  router.push("/custom");
+                }}
               >
                 Start Customizing <ArrowRight className="h-5 w-5" />
               </Button>
@@ -102,16 +107,16 @@ const Hero03 = () => {
                       <Star key={s} className="h-3.5 w-3.5 fill-current" />
                     ))}
                   </div>
-                  <span className="font-semibold">Loved by Homeowners</span>
+                  <span className="font-semibold">Dipercaya Pemilik Rumah</span>
                 </div>
               </div>
               <div className="bg-border hidden h-4 w-px sm:block" />
               <div className="flex items-center gap-2 text-sm font-medium">
-                <ShieldCheck className="h-5 w-5 text-emerald-500" /> Secure
-                Checkout
+                <ShieldCheck className="h-5 w-5 text-emerald-500" /> Pembayaran
+                Aman
               </div>
               <div className="flex items-center gap-2 text-sm font-medium">
-                <Zap className="h-5 w-5 text-amber-500" /> Fast Design Workflow
+                <Zap className="h-5 w-5 text-amber-500" /> Alur Desain Cepat
               </div>
             </div>
           </motion.div>
@@ -136,64 +141,64 @@ const Hero03 = () => {
                   className="h-full w-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-110"
                 />
 
-                {/* Overlay Floating Elements */}
-                <motion.div
-                  animate={{ y: [10, -10, 10] }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 4,
-                    ease: "easeInOut",
-                  }}
-                  className="absolute top-10 -right-8 hidden rounded-2xl border border-white/20 bg-white/10 p-4 shadow-2xl backdrop-blur-xl md:block"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary/20 flex h-10 w-10 items-center justify-center rounded-lg">
-                      <Zap className="text-primary fill-primary h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold tracking-widest text-white/50 uppercase">
-                        Design Accuracy
-                      </div>
-                      <div className="text-lg font-black text-white">98%</div>
-                    </div>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  animate={{ y: [-10, 10, -10] }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 5,
-                    ease: "easeInOut",
-                  }}
-                  className="absolute bottom-12 -left-8 hidden rounded-2xl border border-white/10 bg-slate-900/80 p-5 shadow-2xl backdrop-blur-2xl md:block"
-                >
-                  <div className="mb-2 text-sm font-bold text-white italic">
-                    Project Status
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex -space-x-2">
-                      {[1, 2, 3].map((i) => (
-                        <div
-                          key={i}
-                          className="bg-primary/50 h-6 w-6 rounded-full border border-slate-900"
-                        />
-                      ))}
-                    </div>
-                    <div className="text-primary animate-pulse text-xs font-bold">
-                      Ready to Build
-                    </div>
-                  </div>
-                </motion.div>
-
                 {/* Center Play Button Overlay */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
                   <div className="bg-primary shadow-3xl shadow-primary/50 flex h-20 w-20 cursor-pointer items-center justify-center rounded-full transition-transform hover:scale-110">
                     <Play className="h-8 w-8 translate-x-1 fill-current text-white" />
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Overlay Floating Elements */}
+            <motion.div
+              animate={{ y: [10, -10, 10] }}
+              transition={{
+                repeat: Infinity,
+                duration: 4,
+                ease: "easeInOut",
+              }}
+              className="absolute top-10 -right-8 z-20 hidden rounded-2xl border border-white/20 bg-white/10 p-4 shadow-2xl backdrop-blur-xl md:block"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/20 flex h-10 w-10 items-center justify-center rounded-lg">
+                  <Zap className="text-primary fill-primary h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold tracking-widest text-white/50 uppercase">
+                    Design Accuracy
+                  </div>
+                  <div className="text-lg font-black text-white">98%</div>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              animate={{ y: [-10, 10, -10] }}
+              transition={{
+                repeat: Infinity,
+                duration: 5,
+                ease: "easeInOut",
+              }}
+              className="absolute bottom-12 -left-8 z-20 hidden rounded-2xl border border-white/10 bg-slate-900/80 p-5 shadow-2xl backdrop-blur-2xl md:block"
+            >
+              <div className="mb-2 text-sm font-bold text-white italic">
+                Project Status
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-2">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="bg-primary/50 h-6 w-6 rounded-full border border-slate-900"
+                    />
+                  ))}
+                </div>
+                <div className="text-primary animate-pulse text-xs font-bold">
+                  Ready to Build
+                </div>
+              </div>
+            </motion.div>
 
             {/* decorative rings */}
             <div className="border-primary/20 animate-spin-slow pointer-events-none absolute -top-12 -left-12 h-32 w-32 rounded-full border opacity-20" />
