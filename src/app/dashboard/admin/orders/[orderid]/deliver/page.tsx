@@ -1,3 +1,4 @@
+import { AdminOrderDeliverPage } from "@/features/dashboard/orders/admin/deliver";
 import AdminOrderProcessPage from "@/features/dashboard/orders/admin/trialprocess";
 import { auth } from "@/lib/auth";
 import { normalizeRole } from "@/lib/dashboard-access";
@@ -20,7 +21,11 @@ const DeliverOrderRoute = async ({ params }: DeliverOrderRouteProps) => {
 
   const { orderid } = await params;
 
-  return <div>halo</div>;
+  return (
+    <div>
+      <AdminOrderDeliverPage />
+    </div>
+  );
 };
 
 export default DeliverOrderRoute;
