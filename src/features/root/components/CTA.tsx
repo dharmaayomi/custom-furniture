@@ -75,6 +75,7 @@ const CTA06 = () => {
                     <Button
                       variant="ghost"
                       size="lg"
+                      onClick={() => router.push("/contact")}
                       className="decoration-primary/30 h-16 rounded-2xl px-8 text-lg font-bold hover:bg-white/10 hover:underline"
                     >
                       Hubungi Tim Kami

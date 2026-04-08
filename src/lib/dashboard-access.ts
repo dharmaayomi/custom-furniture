@@ -61,6 +61,6 @@ export const canAccessDashboardPath = (
 };
 
 export const getDashboardFallbackPath = (role: Role): string => {
-  if (role === Role.ADMIN) return "/dashboard/orders";
-  return "/dashboard/profile";
+  if (role === Role.ADMIN) return "/dashboard/admin";
+  return "/dashboard";
 };
