@@ -7,13 +7,23 @@ import { toast } from "sonner";
 import useAxios from "@/hooks/useAxios";
 import useCreateSnapPayment from "@/hooks/api/payment/useCreateSnapPayment";
 import useGetOrder from "@/hooks/api/order/useGetOrder";
+import {
+  PaymentInstruction,
+  PaymentInstructionValue,
+} from "@/features/dashboard/billing/components/PaymentInstruction";
 import { formatPrice } from "@/lib/price";
 import { getApiErrorMessage } from "@/lib/api-error";
+import { PaymentInstructionMethod } from "@/lib/bankInstruction";
 import {
   CheckoutOrderSnapshot,
   loadCheckoutSnapshot,
 } from "@/lib/checkoutStorage";
-import { SnapshotAddress } from "@/types/customOrder";
+import {
+  deliveryTypeUsesAddress,
+  formatDeliveryDistance,
+  getDeliveryTypeLabel,
+} from "@/lib/deliveryType";
+import { CustomOrderPayment, SnapshotAddress } from "@/types/customOrder";
 import { ProductBase } from "@/types/product";
 import { ProductComponent } from "@/types/componentProduct";
 import { Button } from "@/components/ui/button";
@@ -41,12 +51,7 @@ import {
   Box,
   Layers,
   CheckCircle2,
-  Copy,
 } from "lucide-react";
-
-const getDeliveryTypeLabel = (
-  value: CheckoutOrderSnapshot["deliveryType"] | "DELIVERY" | "PICKUP",
-) => (value === "PICKUP" ? "Pickup" : "Delivery");
 
 const getStatusBadgeClassName = (status: string) => {
   switch (status) {
@@ -317,6 +322,7 @@ type ParsedPaymentReference = {
   permata_va_number?: string;
   bill_key?: string;
   biller_code?: string;
+  qr_string?: string;
 };
 
 const parsePaymentReference = (value?: string | null) => {
@@ -330,13 +336,65 @@ const parsePaymentReference = (value?: string | null) => {
   }
 };
 
-const copyToClipboard = async (value: string, label: string) => {
-  try {
-    await navigator.clipboard.writeText(value);
-    toast.success(`${label} copied`);
-  } catch {
-    toast.error(`Failed to copy ${label}`);
-  }
+const inferInstructionMethodFromPayment = (
+  payment?: Pick<
+    CustomOrderPayment,
+    "paymentType" | "midtransPaymentType" | "midtransBank"
+  > | null,
+): PaymentInstructionMethod => {
+  const bank = String(payment?.midtransBank ?? "").toLowerCase();
+  if (bank === "bca") return "bca_va";
+  if (bank === "bni") return "bni_va";
+  if (bank === "bri") return "bri_va";
+  if (bank === "permata") return "permata_va";
+  if (bank === "cimb") return "cimb_va";
+  if (bank === "mandiri") return "mandiri_bill";
+
+  const midtransType = String(payment?.midtransPaymentType ?? "").toLowerCase();
+  if (midtransType === "qris") return "qris";
+  if (midtransType === "gopay") return "gopay";
+  if (midtransType === "echannel") return "mandiri_bill";
+
+  const paymentType = String(payment?.paymentType ?? "").toLowerCase();
+  if (paymentType.includes("qris")) return "qris";
+  if (paymentType.includes("gopay")) return "gopay";
+  if (paymentType.includes("echannel")) return "mandiri_bill";
+
+  return "qris";
+};
+
+const buildInstructionFromPayment = (
+  payment?: CustomOrderPayment | null,
+): PaymentInstructionValue | null => {
+  if (!payment) return null;
+
+  const parsedReference = parsePaymentReference(payment.midtransReference);
+  const vaNumbers = Array.isArray(parsedReference?.va_numbers)
+    ? parsedReference.va_numbers
+        .filter((item) => item?.va_number)
+        .map((item) => ({
+          bank: String(item.bank ?? payment.midtransBank ?? "bank"),
+          va_number: String(item.va_number),
+        }))
+    : [];
+
+  const next: PaymentInstructionValue = {
+    method: inferInstructionMethodFromPayment(payment),
+    vaNumbers,
+    permataVaNumber: parsedReference?.permata_va_number ?? null,
+    qrString: parsedReference?.qr_string ?? null,
+    billKey: parsedReference?.bill_key ?? null,
+    billerCode: parsedReference?.biller_code ?? null,
+  };
+
+  const hasInstruction =
+    next.vaNumbers.length > 0 ||
+    Boolean(next.permataVaNumber) ||
+    Boolean(next.qrString) ||
+    Boolean(next.billKey) ||
+    Boolean(next.billerCode);
+
+  return hasInstruction ? next : null;
 };
 
 export const CheckoutPageNew = () => {
@@ -346,13 +404,8 @@ export const CheckoutPageNew = () => {
   const { mutateAsync: createSnapPayment, isPending: isCreatingSnapPayment } =
     useCreateSnapPayment();
   const [paymentMethod, setPaymentMethod] = useState<CorePaymentMethod>("qris");
-  const [paymentInstruction, setPaymentInstruction] = useState<{
-    vaNumbers: Array<{ bank: string; va_number: string }>;
-    permataVaNumber: string | null;
-    qrString: string | null;
-    billKey: string | null;
-    billerCode: string | null;
-  } | null>(null);
+  const [paymentInstruction, setPaymentInstruction] =
+    useState<PaymentInstructionValue | null>(null);
   const [paymentRedirectUrl, setPaymentRedirectUrl] = useState<string | null>(
     null,
   );
@@ -469,20 +522,13 @@ export const CheckoutPageNew = () => {
       return status === "WAITING_FOR_PAYMENT" || status === "CHALLENGE";
     });
   }, [order?.payments]);
-  const activePendingReference = useMemo(
-    () => parsePaymentReference(activePendingPayment?.midtransReference),
-    [activePendingPayment?.midtransReference],
+  const activePendingInstruction = useMemo(
+    () => buildInstructionFromPayment(activePendingPayment),
+    [activePendingPayment],
   );
-  const activePendingVaNumbers = Array.isArray(
-    activePendingReference?.va_numbers,
-  )
-    ? activePendingReference.va_numbers.filter((item) => item?.va_number)
-    : [];
-  const activePendingPermataVa = activePendingReference?.permata_va_number;
-  const activePendingBillerCode = activePendingReference?.biller_code;
-  const activePendingBillKey = activePendingReference?.bill_key;
   const activePendingFallbackReference =
     activePendingPayment?.midtransReference ?? activePendingPayment?.id ?? null;
+  const displayedInstruction = activePendingInstruction ?? paymentInstruction;
 
   useEffect(() => {
     const pendingUrl = activePendingPayment?.paymentUrl?.trim() || "";
@@ -527,6 +573,7 @@ export const CheckoutPageNew = () => {
   const grandTotal = Number(
     order?.grandTotalPrice ?? snapshot?.grandTotal ?? 0,
   );
+  const usesAddress = deliveryTypeUsesAddress(deliveryType);
   const isPayable =
     Boolean(orderId) && status !== "CANCELLED" && status !== "COMPLETED";
 
@@ -567,6 +614,7 @@ export const CheckoutPageNew = () => {
       setPaymentInstruction(
         hasInstruction
           ? {
+              method: paymentMethod,
               vaNumbers: payment?.vaNumbers ?? [],
               permataVaNumber: payment?.permataVaNumber ?? null,
               qrString: payment?.qrString ?? null,
@@ -821,14 +869,12 @@ export const CheckoutPageNew = () => {
                     Distance
                   </span>
                   <span className="text-sm font-semibold">
-                    {deliveryType === "DELIVERY"
-                      ? `${deliveryDistance} km`
-                      : "-"}
+                    {formatDeliveryDistance(deliveryType, deliveryDistance)}
                   </span>
                 </div>
               </div>
 
-              {deliveryType === "DELIVERY" && address ? (
+              {usesAddress && address ? (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-semibold">
                     <MapPin className="text-primary h-4 w-4" />
@@ -917,233 +963,47 @@ export const CheckoutPageNew = () => {
                 )}
               </Button>
 
-              {paymentInstruction ? (
-                <div className="bg-muted/40 space-y-2 rounded-xl p-3 text-xs">
-                  {paymentInstruction.vaNumbers.map((item) => (
-                    <p
-                      key={`${item.bank}-${item.va_number}`}
-                      className="flex items-center gap-2"
-                    >
-                      <span>
-                        {item.bank.toUpperCase()} VA:{" "}
-                        <span className="font-semibold">{item.va_number}</span>
-                      </span>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground inline-flex"
-                        onClick={() =>
-                          copyToClipboard(
-                            item.va_number,
-                            `${item.bank.toUpperCase()} VA`,
-                          )
-                        }
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                    </p>
-                  ))}
-                  {paymentInstruction.permataVaNumber ? (
-                    <p className="flex items-center gap-2">
-                      <span>
-                        Permata VA:{" "}
-                        <span className="font-semibold">
-                          {paymentInstruction.permataVaNumber}
+              {displayedInstruction ? (
+                <div className="space-y-2">
+                  {activePendingPayment ? (
+                    <div className="bg-muted/40 space-y-1 rounded-xl p-3 text-xs">
+                      <p className="font-semibold">Active Payment Invoice</p>
+                      <p>
+                        Phase:{" "}
+                        <span className="font-medium">
+                          {activePendingPayment.phase}
                         </span>
-                      </span>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground inline-flex"
-                        onClick={() =>
-                          copyToClipboard(
-                            paymentInstruction.permataVaNumber!,
-                            "Permata VA",
-                          )
-                        }
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                    </p>
-                  ) : null}
-                  {paymentInstruction.qrString ? (
-                    <p className="break-all">
-                      QR String:{" "}
-                      <span className="font-semibold">
-                        {paymentInstruction.qrString}
-                      </span>
-                    </p>
-                  ) : null}
-                  {paymentInstruction.billerCode ? (
-                    <p className="flex items-center gap-2">
-                      <span>
-                        Biller Code:{" "}
-                        <span className="font-semibold">
-                          {paymentInstruction.billerCode}
+                      </p>
+                      <p>
+                        Method:{" "}
+                        <span className="font-medium">
+                          {activePendingPayment.midtransBank ??
+                            activePendingPayment.midtransPaymentType ??
+                            activePendingPayment.paymentType ??
+                            corePaymentMethodLabel[paymentMethod]}
                         </span>
-                      </span>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground inline-flex"
-                        onClick={() =>
-                          copyToClipboard(
-                            paymentInstruction.billerCode!,
-                            "Mandiri Biller Code",
-                          )
-                        }
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                    </p>
+                      </p>
+                    </div>
                   ) : null}
-                  {paymentInstruction.billKey ? (
-                    <p className="flex items-center gap-2">
-                      <span>
-                        Bill Key:{" "}
-                        <span className="font-semibold">
-                          {paymentInstruction.billKey}
-                        </span>
-                      </span>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground inline-flex"
-                        onClick={() =>
-                          copyToClipboard(
-                            paymentInstruction.billKey!,
-                            "Mandiri Bill Key",
-                          )
-                        }
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                    </p>
-                  ) : null}
+                  <PaymentInstruction value={displayedInstruction} />
                 </div>
               ) : null}
 
-              {activePendingPayment ? (
+              {activePendingPayment && !activePendingInstruction ? (
                 <div className="bg-muted/40 space-y-1 rounded-xl p-3 text-xs">
                   <p className="font-semibold">Active Payment Invoice</p>
                   <p>
                     Phase:{" "}
-                    <span className="font-medium">
-                      {activePendingPayment.phase}
-                    </span>
-                  </p>
-                  {activePendingVaNumbers.length > 0 ? (
-                    <div className="space-y-1">
-                      {activePendingVaNumbers.map((item, index) => (
-                        <p
-                          key={`active-va-${index}`}
-                          className="flex items-center gap-2"
-                        >
-                          <span>
-                            {String(item.bank ?? "bank").toUpperCase()} VA:{" "}
-                            <span className="font-mono font-semibold">
-                              {item.va_number}
-                            </span>
-                          </span>
-                          <button
-                            type="button"
-                            className="text-muted-foreground hover:text-foreground inline-flex"
-                            onClick={() =>
-                              copyToClipboard(
-                                String(item.va_number),
-                                `${String(item.bank ?? "bank").toUpperCase()} VA`,
-                              )
-                            }
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                          </button>
-                        </p>
-                      ))}
-                    </div>
-                  ) : null}
-                  {activePendingPermataVa ? (
-                    <p className="flex items-center gap-2">
-                      <span>
-                        Permata VA:{" "}
-                        <span className="font-mono font-semibold">
-                          {activePendingPermataVa}
+                        <span className="font-medium">
+                          {activePendingPayment.phase}
                         </span>
-                      </span>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground inline-flex"
-                        onClick={() =>
-                          copyToClipboard(
-                            String(activePendingPermataVa),
-                            "Permata VA",
-                          )
-                        }
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                    </p>
-                  ) : null}
-                  {activePendingBillerCode ? (
-                    <p className="flex items-center gap-2">
-                      <span>
-                        Biller Code:{" "}
-                        <span className="font-mono font-semibold">
-                          {activePendingBillerCode}
-                        </span>
-                      </span>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground inline-flex"
-                        onClick={() =>
-                          copyToClipboard(
-                            String(activePendingBillerCode),
-                            "Mandiri Biller Code",
-                          )
-                        }
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                    </p>
-                  ) : null}
-                  {activePendingBillKey ? (
-                    <p className="flex items-center gap-2">
-                      <span>
-                        Bill Key:{" "}
-                        <span className="font-mono font-semibold">
-                          {activePendingBillKey}
-                        </span>
-                      </span>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground inline-flex"
-                        onClick={() =>
-                          copyToClipboard(
-                            String(activePendingBillKey),
-                            "Mandiri Bill Key",
-                          )
-                        }
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                    </p>
-                  ) : null}
-                  {!activePendingVaNumbers.length &&
-                  !activePendingPermataVa &&
-                  !activePendingBillerCode &&
-                  !activePendingBillKey &&
-                  activePendingFallbackReference ? (
-                    <p className="flex items-center gap-2">
+                      </p>
+                  {activePendingFallbackReference ? (
+                    <p>
+                      Ref:{" "}
                       <span className="font-mono font-semibold">
-                        Ref: {activePendingFallbackReference}
+                        {activePendingFallbackReference}
                       </span>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground inline-flex"
-                        onClick={() =>
-                          copyToClipboard(
-                            String(activePendingFallbackReference),
-                            "Reference",
-                          )
-                        }
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
                     </p>
                   ) : null}
                   <p>

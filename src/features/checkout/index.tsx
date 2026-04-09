@@ -13,6 +13,11 @@ import {
   CheckoutOrderSnapshot,
   loadCheckoutSnapshot,
 } from "@/lib/checkoutStorage";
+import {
+  deliveryTypeUsesAddress,
+  formatDeliveryDistance,
+  getDeliveryTypeLabel,
+} from "@/lib/deliveryType";
 import { SnapshotAddress } from "@/types/customOrder";
 import { ProductBase } from "@/types/product";
 import { ProductComponent } from "@/types/componentProduct";
@@ -41,10 +46,6 @@ import {
   Box,
   Layers,
 } from "lucide-react";
-
-const getDeliveryTypeLabel = (
-  value: CheckoutOrderSnapshot["deliveryType"] | "DELIVERY" | "PICKUP",
-) => (value === "PICKUP" ? "Pickup" : "Delivery");
 
 const getStatusBadgeClassName = (status: string) => {
   switch (status) {
@@ -227,6 +228,7 @@ export const CheckoutPage = () => {
   const grandTotal = Number(
     order?.grandTotalPrice ?? snapshot?.grandTotal ?? 0,
   );
+  const usesAddress = deliveryTypeUsesAddress(deliveryType);
   const isPayable =
     Boolean(orderId) && status !== "CANCELLED" && status !== "COMPLETED";
 
@@ -380,14 +382,14 @@ export const CheckoutPage = () => {
                   </div>
 
                   {/* Distance – only for delivery */}
-                  {deliveryType === "DELIVERY" && (
+                  {usesAddress && (
                     <div className="bg-muted/40 flex flex-col gap-1 rounded-xl p-3">
                       <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] tracking-wide uppercase">
                         <Ruler className="h-3 w-3" />
                         Distance
                       </span>
                       <span className="text-sm font-semibold">
-                        {deliveryDistance} km
+                        {formatDeliveryDistance(deliveryType, deliveryDistance)}
                       </span>
                     </div>
                   )}
@@ -397,7 +399,7 @@ export const CheckoutPage = () => {
           </Card>
 
           {/* Delivery Address Card */}
-          {deliveryType === "DELIVERY" && address && (
+          {usesAddress && address && (
             <Card className="ring-border/60 border-0 shadow-sm ring-1">
               <CardHeader className="pt-4 pb-2">
                 <CardTitle className="flex items-center gap-2 text-sm font-semibold">

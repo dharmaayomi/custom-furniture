@@ -35,14 +35,14 @@ export const Footer = () => {
               target="_blank"
               className="hover:text-foreground transition-colors"
             >
-              About
+              Tentang Kami
             </Link>
             <Link
               href="https://bbpersona.com/spesialisasi/"
               target="_blank"
               className="hover:text-foreground transition-colors"
             >
-              Services
+              Spesialisasi
             </Link>
             <Link
               href="https://bbpersona.com/portofolio/"
@@ -56,7 +56,7 @@ export const Footer = () => {
               target="_blank"
               className="hover:text-foreground transition-colors"
             >
-              Blog
+              Artikel
             </Link>
           </nav>
         </div>

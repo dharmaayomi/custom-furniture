@@ -4,7 +4,7 @@ import { CustomOrder } from "@/types/customOrder";
 import { useMutation } from "@tanstack/react-query";
 import z from "zod";
 
-const deliveryTypeSchema = z.enum(["DELIVERY", "PICKUP"]);
+const deliveryTypeSchema = z.enum(["DELIVERY", "PICKUP", "STORE_DELIVERY"]);
 
 export const createCustomOrderSchema = z
   .object({

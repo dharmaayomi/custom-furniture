@@ -53,7 +53,7 @@ export interface SummaryAddressFormData {
 }
 
 const INITIAL_STATE: SummaryAddressFormData = {
-  label: "Home",
+  label: "Rumah",
   recipientName: "",
   phoneNumber: "",
   line1: "",
@@ -84,9 +84,9 @@ interface SummaryAddressFormProps {
 
 export default function SummaryAddressForm({
   initialData,
-  title = "Add New Address",
-  description = "Fill in your delivery address details",
-  submitLabel = "Save Address",
+  title = "Tambah Alamat Baru",
+  description = "Lengkapi detail alamat pengiriman Anda",
+  submitLabel = "Simpan Alamat",
   onSubmit,
   layout = "default",
 }: SummaryAddressFormProps) {
@@ -294,29 +294,29 @@ export default function SummaryAddressForm({
 
   const handleUseCurrentLocation = () => {
     if (typeof window === "undefined" || !navigator.geolocation) {
-      setLocationNotice("Geolocation is not supported on this browser.");
+      setLocationNotice("Geolocation tidak didukung di browser ini.");
       return;
     }
 
     setIsLocating(true);
-    setLocationNotice("Requesting location access...");
+    setLocationNotice("Meminta akses lokasi...");
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
         handleMapSelect(latitude, longitude);
         setLocationNotice(
-          "Location updated. You can still drag the pin for fine adjustment.",
+          "Lokasi berhasil diperbarui. Anda masih bisa menggeser pin untuk menyesuaikan.",
         );
         setIsLocating(false);
       },
       (error) => {
         const message =
           error.code === error.PERMISSION_DENIED
-            ? "Location permission denied. Please allow location access in your browser."
+            ? "Izin lokasi ditolak. Silakan aktifkan akses lokasi di browser Anda."
             : error.code === error.POSITION_UNAVAILABLE
-              ? "Location unavailable. Please try again."
-              : "Location request timed out. Please try again.";
+              ? "Lokasi tidak tersedia. Silakan coba lagi."
+              : "Permintaan lokasi habis waktu. Silakan coba lagi.";
         setLocationNotice(message);
         setIsLocating(false);
       },
@@ -402,7 +402,7 @@ export default function SummaryAddressForm({
           <>
             <div className="space-y-2">
               <Label htmlFor="provinceCode" className="text-sm font-medium">
-                Province *
+                Provinsi *
               </Label>
               <Select
                 value={formData.provinceCode || fallbackProvinceValue}
@@ -413,8 +413,8 @@ export default function SummaryAddressForm({
                   <SelectValue
                     placeholder={
                       isLoadingProvinces
-                        ? "Loading provinces..."
-                        : "Select province"
+                        ? "Memuat provinsi..."
+                        : "Pilih provinsi"
                     }
                   />
                 </SelectTrigger>
@@ -435,7 +435,7 @@ export default function SummaryAddressForm({
 
             <div className="space-y-2">
               <Label htmlFor="cityCode" className="text-sm font-medium">
-                City *
+                Kota *
               </Label>
               <Select
                 value={formData.cityCode || fallbackCityValue}
@@ -445,7 +445,7 @@ export default function SummaryAddressForm({
                 <SelectTrigger id="cityCode" className="w-full">
                   <SelectValue
                     placeholder={
-                      isLoadingCities ? "Loading cities..." : "Select city"
+                      isLoadingCities ? "Memuat kota..." : "Pilih kota"
                     }
                   />
                 </SelectTrigger>
@@ -466,7 +466,7 @@ export default function SummaryAddressForm({
 
             <div className="space-y-2">
               <Label htmlFor="districtCode" className="text-sm font-medium">
-                District *
+                Kecamatan *
               </Label>
               <Select
                 value={formData.districtCode || fallbackDistrictValue}
@@ -477,8 +477,8 @@ export default function SummaryAddressForm({
                   <SelectValue
                     placeholder={
                       isLoadingDistricts
-                        ? "Loading districts..."
-                        : "Select district"
+                        ? "Memuat kecamatan..."
+                        : "Pilih kecamatan"
                     }
                   />
                 </SelectTrigger>
@@ -499,7 +499,7 @@ export default function SummaryAddressForm({
 
             <div className="space-y-2">
               <Label htmlFor="subdistrictCode" className="text-sm font-medium">
-                Subdistrict
+                Kelurahan
               </Label>
               <Select
                 value={formData.subdistrictCode || fallbackSubdistrictValue}
@@ -510,8 +510,8 @@ export default function SummaryAddressForm({
                   <SelectValue
                     placeholder={
                       isLoadingSubdistricts
-                        ? "Loading subdistricts..."
-                        : "Select subdistrict"
+                        ? "Memuat kelurahan..."
+                        : "Pilih kelurahan"
                     }
                   />
                 </SelectTrigger>
@@ -574,21 +574,21 @@ export default function SummaryAddressForm({
                   name="label"
                   value={formData.label}
                   onChange={handleInputChange}
-                  placeholder="e.g., Home, Office"
+                  placeholder="contoh: Rumah, Kantor"
                   className="h-9"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="recipientName" className="text-sm font-medium">
-                  Recipient Name *
+                  Nama Penerima *
                 </Label>
                 <Input
                   id="recipientName"
                   name="recipientName"
                   value={formData.recipientName}
                   onChange={handleInputChange}
-                  placeholder="Full name"
+                  placeholder="Nama lengkap"
                   required
                   className="h-9"
                 />
@@ -596,7 +596,7 @@ export default function SummaryAddressForm({
 
               <div className="space-y-2">
                 <Label htmlFor="phoneNumber" className="text-sm font-medium">
-                  Phone Number *
+                  Nomor Telepon *
                 </Label>
                 <Input
                   id="phoneNumber"
@@ -611,14 +611,14 @@ export default function SummaryAddressForm({
 
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="line1" className="text-sm font-medium">
-                  Street Address *
+                  Alamat Jalan *
                 </Label>
                 <Input
                   id="line1"
                   name="line1"
                   value={formData.line1}
                   onChange={handleInputChange}
-                  placeholder="Street address"
+                  placeholder="Alamat jalan"
                   required
                   className="h-9"
                 />
@@ -626,14 +626,14 @@ export default function SummaryAddressForm({
 
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="line2" className="text-sm font-medium">
-                  Additional Info
+                  Info Tambahan
                 </Label>
                 <Input
                   id="line2"
                   name="line2"
                   value={formData.line2}
                   onChange={handleInputChange}
-                  placeholder="Apartment, floor, etc."
+                  placeholder="Apartemen, lantai, dll."
                   className="h-9"
                 />
               </div>
@@ -642,7 +642,7 @@ export default function SummaryAddressForm({
 
               <div className="space-y-2">
                 <Label htmlFor="postalCode" className="text-sm font-medium">
-                  Postal Code *
+                  Kode Pos *
                 </Label>
                 <Input
                   id="postalCode"
@@ -660,7 +660,7 @@ export default function SummaryAddressForm({
                   htmlFor="isDefault"
                   className="cursor-pointer text-sm font-medium"
                 >
-                  Set as default address
+                  Jadikan alamat utama
                 </Label>
                 <Switch
                   id="isDefault"
@@ -686,10 +686,10 @@ export default function SummaryAddressForm({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
-              Select Location
+              Pilih Lokasi
             </CardTitle>
             <CardDescription>
-              Click on the map to select delivery location
+              Klik peta untuk memilih lokasi pengiriman
             </CardDescription>
             <div className="pt-2">
               <Button
@@ -702,12 +702,11 @@ export default function SummaryAddressForm({
               >
                 <LocateFixed className="h-4 w-4" />
                 {isLocating
-                  ? "Detecting location..."
-                  : "Use My Current Location"}
+                  ? "Mendeteksi lokasi..."
+                  : "Gunakan Lokasi Saya Saat Ini"}
               </Button>
               <p className="text-muted-foreground mt-2 text-xs">
-                Enable location permission in your browser for accurate pin
-                placement.
+                Aktifkan izin lokasi di browser agar pin lebih akurat.
               </p>
               {locationNotice ? (
                 <p className="text-muted-foreground mt-1 text-xs">
@@ -731,7 +730,7 @@ export default function SummaryAddressForm({
           className="w-full"
         >
           {isSubmitting ? (
-            "Saving..."
+            "Menyimpan..."
           ) : (
             <>
               <Check className="mr-2 h-4 w-4" />
@@ -764,21 +763,21 @@ export default function SummaryAddressForm({
                 name="label"
                 value={formData.label}
                 onChange={handleInputChange}
-                placeholder="e.g., Home, Office"
+                placeholder="contoh: Rumah, Kantor"
                 className="h-9"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="recipientName" className="text-sm font-medium">
-                Recipient Name *
+                Nama Penerima *
               </Label>
               <Input
                 id="recipientName"
                 name="recipientName"
                 value={formData.recipientName}
                 onChange={handleInputChange}
-                placeholder="Full name"
+                placeholder="Nama lengkap"
                 required
                 className="h-9"
               />
@@ -786,7 +785,7 @@ export default function SummaryAddressForm({
 
             <div className="space-y-2">
               <Label htmlFor="phoneNumber" className="text-sm font-medium">
-                Phone Number *
+                Nomor Telepon *
               </Label>
               <Input
                 id="phoneNumber"
@@ -801,14 +800,14 @@ export default function SummaryAddressForm({
 
             <div className="space-y-2">
               <Label htmlFor="line1" className="text-sm font-medium">
-                Street Address *
+                Alamat Jalan *
               </Label>
               <Input
                 id="line1"
                 name="line1"
                 value={formData.line1}
                 onChange={handleInputChange}
-                placeholder="Street address"
+                placeholder="Alamat jalan"
                 required
                 className="h-9"
               />
@@ -816,14 +815,14 @@ export default function SummaryAddressForm({
 
             <div className="space-y-2">
               <Label htmlFor="line2" className="text-sm font-medium">
-                Additional Info
+                Info Tambahan
               </Label>
               <Input
                 id="line2"
                 name="line2"
                 value={formData.line2}
                 onChange={handleInputChange}
-                placeholder="Apartment, floor, etc."
+                placeholder="Apartemen, lantai, dll."
                 className="h-9"
               />
             </div>
@@ -832,7 +831,7 @@ export default function SummaryAddressForm({
 
             <div className="space-y-2">
               <Label htmlFor="postalCode" className="text-sm font-medium">
-                Postal Code *
+                Kode Pos *
               </Label>
               <Input
                 id="postalCode"
@@ -850,7 +849,7 @@ export default function SummaryAddressForm({
                 htmlFor="isDefault"
                 className="cursor-pointer text-sm font-medium"
               >
-                Set as default address
+                Jadikan alamat utama
               </Label>
               <Switch
                 id="isDefault"
@@ -875,7 +874,7 @@ export default function SummaryAddressForm({
               className="w-full"
             >
               {isSubmitting ? (
-                "Saving..."
+                "Menyimpan..."
               ) : (
                 <>
                   <Check className="mr-2 h-4 w-4" />
@@ -892,10 +891,10 @@ export default function SummaryAddressForm({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
-              Select Location
+              Pilih Lokasi
             </CardTitle>
             <CardDescription>
-              Click on the map to select delivery location
+              Klik peta untuk memilih lokasi pengiriman
             </CardDescription>
             <div className="pt-2">
               <Button
@@ -908,12 +907,11 @@ export default function SummaryAddressForm({
               >
                 <LocateFixed className="h-4 w-4" />
                 {isLocating
-                  ? "Detecting location..."
-                  : "Use My Current Location"}
+                  ? "Mendeteksi lokasi..."
+                  : "Gunakan Lokasi Saya Saat Ini"}
               </Button>
               <p className="text-muted-foreground mt-2 text-xs">
-                Enable location permission in your browser for accurate pin
-                placement.
+                Aktifkan izin lokasi di browser agar pin lebih akurat.
               </p>
               {locationNotice ? (
                 <p className="text-muted-foreground mt-1 text-xs">

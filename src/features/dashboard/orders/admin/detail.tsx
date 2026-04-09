@@ -30,6 +30,11 @@ import {
   getOrderStatusLabel,
   getOrderStatusPillClass,
 } from "@/lib/orderStatus";
+import {
+  deliveryTypeUsesAddress,
+  formatDeliveryDistance,
+  getDeliveryTypeLabel,
+} from "@/lib/deliveryType";
 import useAxios from "@/hooks/useAxios";
 import { formatPrice } from "@/lib/price";
 import { ProductComponent } from "@/types/componentProduct";
@@ -497,6 +502,7 @@ export const AdminOrderDetailPage = ({
   const deliveryDistance = Number(
     order.deliveryDistance ?? order.deliveryDistancce ?? 0,
   );
+  const usesAddress = deliveryTypeUsesAddress(order.deliveryType);
   const totalWeightKg = Number(order.totalWeight ?? 0) / 1000;
   return (
     <section className="w-full space-y-5">
@@ -617,7 +623,7 @@ export const AdminOrderDetailPage = ({
 
       {/* ── ORDER META + ADDRESS (side by side on lg) ─────── */}
       <div
-        className={`grid gap-4 ${order.deliveryType === "DELIVERY" && address ? "lg:grid-cols-2" : "lg:grid-cols-1"}`}
+        className={`grid gap-4 ${usesAddress && address ? "lg:grid-cols-2" : "lg:grid-cols-1"}`}
       >
         {/* Order Info */}
         <div className="bg-card rounded-2xl border p-5 shadow-sm">
@@ -633,7 +639,7 @@ export const AdminOrderDetailPage = ({
               },
               {
                 label: "Delivery Type",
-                value: order.deliveryType,
+                value: getDeliveryTypeLabel(order.deliveryType),
                 icon: Truck,
               },
               {
@@ -643,7 +649,10 @@ export const AdminOrderDetailPage = ({
               },
               {
                 label: "Distance",
-                value: `${deliveryDistance} km`,
+                value: formatDeliveryDistance(
+                  order.deliveryType,
+                  deliveryDistance,
+                ),
                 icon: Ruler,
               },
             ].map(({ label, value, icon: Icon }) => (
@@ -666,7 +675,7 @@ export const AdminOrderDetailPage = ({
         </div>
 
         {/* Delivery Address */}
-        {order.deliveryType === "DELIVERY" && address && (
+        {usesAddress && address && (
           <div className="bg-card rounded-2xl border p-5 shadow-sm">
             <p className="text-muted-foreground mb-4 text-xs font-bold tracking-widest uppercase">
               Delivery Address

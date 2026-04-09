@@ -15,6 +15,11 @@ import { Stepper } from "@/components/ui/stepper";
 import useGetOrder from "@/hooks/api/order/useGetOrder";
 import useGetProductionProgress from "@/hooks/api/production/useGetProductionProgress";
 import useAxios from "@/hooks/useAxios";
+import {
+  deliveryTypeUsesAddress,
+  formatDeliveryDistance,
+  getDeliveryTypeLabel,
+} from "@/lib/deliveryType";
 import { formatPrice } from "@/lib/price";
 import { getStatusBadgeClass, StatusTone } from "@/lib/statusStyles";
 import { ProductComponent } from "@/types/componentProduct";
@@ -428,6 +433,7 @@ export const OrderDetailPage = ({ orderId }: OrderDetailPageProps) => {
   const deliveryDistance = Number(
     order.deliveryDistance ?? order.deliveryDistancce ?? 0,
   );
+  const usesAddress = deliveryTypeUsesAddress(order.deliveryType);
   const totalWeightKg = Number(order.totalWeight ?? 0) / 1000;
   const displayOrderNumber = order.orderNumber?.trim() || order.id;
   const previewImage =
@@ -698,7 +704,11 @@ export const OrderDetailPage = ({ orderId }: OrderDetailPageProps) => {
             <Card className="bg-muted/30 border-none shadow-none">
               <CardContent className="space-y-4 p-5">
                 {[
-                  { icon: Truck, label: "Delivery", value: order.deliveryType },
+                  {
+                    icon: Truck,
+                    label: "Delivery",
+                    value: getDeliveryTypeLabel(order.deliveryType),
+                  },
                   {
                     icon: Weight,
                     label: "Weight",
@@ -707,7 +717,10 @@ export const OrderDetailPage = ({ orderId }: OrderDetailPageProps) => {
                   {
                     icon: Ruler,
                     label: "Distance",
-                    value: `${deliveryDistance} km`,
+                    value: formatDeliveryDistance(
+                      order.deliveryType,
+                      deliveryDistance,
+                    ),
                   },
                   {
                     icon: CreditCard,
@@ -727,7 +740,7 @@ export const OrderDetailPage = ({ orderId }: OrderDetailPageProps) => {
             </Card>
           </section>
 
-          {order.deliveryType === "DELIVERY" && address && (
+          {usesAddress && address && (
             <section className="space-y-4">
               <h2 className="text-muted-foreground text-sm font-bold tracking-widest uppercase">
                 Shipping To

@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const CTA06 = () => {
   const router = useRouter();
@@ -72,14 +73,18 @@ const CTA06 = () => {
                       </span>
                       <div className="absolute inset-x-0 bottom-0 h-full origin-left scale-x-0 transform bg-white/20 transition-transform group-hover/btn:scale-x-100" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="lg"
-                      onClick={() => router.push("/contact")}
-                      className="decoration-primary/30 h-16 rounded-2xl px-8 text-lg font-bold hover:bg-white/10 hover:underline"
+                    <Link
+                      href="https://bbpersona.com/kontak-kami/"
+                      target="_blank"
                     >
-                      Hubungi Tim Kami
-                    </Button>
+                      <Button
+                        variant="ghost"
+                        size="lg"
+                        className="decoration-primary/30 h-16 rounded-2xl px-8 text-lg font-bold hover:bg-white/10 hover:underline"
+                      >
+                        Hubungi Tim Kami
+                      </Button>
+                    </Link>
                   </div>
 
                   {/* Mini Indicators */}
