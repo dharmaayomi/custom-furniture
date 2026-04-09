@@ -610,7 +610,7 @@ export const BillingPage = () => {
             >
               <span>Active Payment</span>
               {activeBillingItems.length > 0 && (
-                <span className="bg-chart-2 text-card group-data-[state=active]:bg-background group-data-[state=active]:text-background ml-2 rounded-full px-1.5 py-0.5 text-[10px]">
+                <span className="bg-chart-2 text-card group-data-[state=active]:bg-chart-2 group-data-[state=active]:text-card ml-2 rounded-full px-1.5 py-0.5 text-[10px]">
                   {activeBillingItems.length}
                 </span>
               )}

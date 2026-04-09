@@ -55,6 +55,14 @@ import { toast } from "sonner";
 import SummaryAddressForm, {
   SummaryAddressFormData,
 } from "./components/SummaryAddressForm";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldTitle,
+} from "@/components/ui/field";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const getAddressOptionLabel = (address: Address) =>
   `${address.label} - ${address.recipientName}`;
@@ -238,10 +246,7 @@ export default function SummaryDesignPage() {
       );
       return;
     }
-    if (
-      fulfillmentOption === "STORE_DELIVERY" &&
-      !supportsStoreDelivery
-    ) {
+    if (fulfillmentOption === "STORE_DELIVERY" && !supportsStoreDelivery) {
       toast.error("Store Delivery hanya tersedia untuk alamat Jabodetabek.");
       return;
     }
@@ -258,10 +263,7 @@ export default function SummaryDesignPage() {
       toast.error("Silakan pilih alamat pengiriman terlebih dahulu.");
       return;
     }
-    if (
-      checkoutDeliveryType === "STORE_DELIVERY" &&
-      !supportsStoreDelivery
-    ) {
+    if (checkoutDeliveryType === "STORE_DELIVERY" && !supportsStoreDelivery) {
       toast.error("Store Delivery hanya tersedia untuk alamat Jabodetabek.");
       return;
     }
@@ -329,8 +331,9 @@ export default function SummaryDesignPage() {
           Ringkasan Desain
         </h1>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
-          <div className="space-y-5 lg:col-span-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-8">
+          {/* left section */}
+          <div className="space-y-5 lg:col-span-3">
             <Card className="ring-border/60 overflow-hidden border-0 shadow-sm ring-1">
               <CardContent className="p-3 sm:p-4">
                 <div className="bg-muted overflow-hidden rounded-xl">
@@ -433,8 +436,8 @@ export default function SummaryDesignPage() {
               </CardContent>
             </Card>
           </div>
-
-          <div className="lg:col-span-1">
+          {/* right section */}
+          <div className="lg:col-span-2">
             <div className="space-y-4 lg:sticky lg:top-22">
               <Card className="ring-border/60 border-0 shadow-sm ring-1">
                 <CardHeader className="pt-4 pb-2">
@@ -470,7 +473,7 @@ export default function SummaryDesignPage() {
                           : "text-muted-foreground hover:text-foreground"
                       } ${
                         !supportsStoreDelivery
-                          ? "cursor-not-allowed opacity-50 hover:text-muted-foreground"
+                          ? "hover:text-muted-foreground cursor-not-allowed opacity-50"
                           : ""
                       }`}
                     >
@@ -630,9 +633,60 @@ export default function SummaryDesignPage() {
                     className="w-full"
                     onClick={handleSaveFulfillment}
                   >
-                    Simpan pilihan fulfillment
+                    Hitung Estimasi Ongkir
                   </Button>
                 </CardContent>
+                <div className="px-5 pb-5">
+                  <RadioGroup defaultValue="plus" className="max-w-full">
+                    <FieldLabel htmlFor="plus-plan">
+                      <Field orientation="horizontal">
+                        <FieldContent>
+                          <FieldTitle className="flex gap-2 text-sm">
+                            {" "}
+                            <Truck className="h-3.5 w-3.5" /> Store Delivery
+                          </FieldTitle>
+                          <FieldDescription className="text-xs">
+                            Kurir toko memerlukan alamat aktif. Biaya pengiriman
+                            final dihitung saat checkout.
+                          </FieldDescription>
+                        </FieldContent>
+                        <RadioGroupItem value="plus" id="plus-plan" />
+                      </Field>
+                    </FieldLabel>
+                    <FieldLabel htmlFor="pro-plan">
+                      <Field orientation="horizontal">
+                        <FieldContent>
+                          <FieldTitle className="flex gap-2 text-sm">
+                            <Truck className="h-3.5 w-3.5" />
+                            JNE Kargo
+                          </FieldTitle>
+                          <FieldDescription className="text-xs">
+                            JNE Kargo menggunakan alamat aktif. Ongkir final
+                            dihitung saat checkout.
+                          </FieldDescription>
+                        </FieldContent>
+                        <RadioGroupItem value="pro" id="pro-plan" />
+                      </Field>
+                    </FieldLabel>
+                    <FieldLabel htmlFor="enterprise-plan">
+                      <Field orientation="horizontal">
+                        <FieldContent>
+                          <FieldTitle className="flex gap-2 text-sm">
+                            <Store className="h-3.5 w-3.5" />
+                            Pick Up
+                          </FieldTitle>
+                          <FieldDescription className="text-xs">
+                            For large teams and enterprises.
+                          </FieldDescription>
+                        </FieldContent>
+                        <RadioGroupItem
+                          value="enterprise"
+                          id="enterprise-plan"
+                        />
+                      </Field>
+                    </FieldLabel>
+                  </RadioGroup>
+                </div>
               </Card>
 
               <Card className="ring-border/60 border-0 shadow-sm ring-1">
