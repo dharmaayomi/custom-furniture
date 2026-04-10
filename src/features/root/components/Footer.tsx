@@ -30,17 +30,33 @@ export const Footer = () => {
           </Link>
 
           <nav className="text-muted-foreground flex flex-wrap items-center gap-4 text-sm sm:gap-6">
-            <Link href="#" className="hover:text-foreground transition-colors">
-              About
+            <Link
+              href="https://bbpersona.com/tentang-kami/"
+              target="_blank"
+              className="hover:text-foreground transition-colors"
+            >
+              Tentang Kami
             </Link>
-            <Link href="#" className="hover:text-foreground transition-colors">
-              Services
+            <Link
+              href="https://bbpersona.com/spesialisasi/"
+              target="_blank"
+              className="hover:text-foreground transition-colors"
+            >
+              Spesialisasi
             </Link>
-            <Link href="#" className="hover:text-foreground transition-colors">
-              Projects
+            <Link
+              href="https://bbpersona.com/portofolio/"
+              target="_blank"
+              className="hover:text-foreground transition-colors"
+            >
+              Portfolio
             </Link>
-            <Link href="#" className="hover:text-foreground transition-colors">
-              Blog
+            <Link
+              href="https://bbpersona.com/berita-dan-artikel/"
+              target="_blank"
+              className="hover:text-foreground transition-colors"
+            >
+              Artikel
             </Link>
           </nav>
         </div>

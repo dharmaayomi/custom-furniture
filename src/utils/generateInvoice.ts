@@ -1,5 +1,12 @@
 ﻿import jsPDF from "jspdf";
 
+import {
+  deliveryTypeUsesAddress,
+  formatDeliveryDistance,
+  getDeliveryTypeLabel,
+} from "@/lib/deliveryType";
+import { DeliveryType } from "@/types/customOrder";
+
 interface InvoiceAddress {
   recipientName?: string | null;
   phoneNumber?: string | null;
@@ -35,7 +42,7 @@ interface InvoiceOrder {
   orderNumber?: string | null;
   status: string;
   createdAt: string;
-  deliveryType: string;
+  deliveryType: DeliveryType;
   trackNumber?: string | null;
   totalWeight?: number | string | null;
   deliveryDistance?: number | string | null;
@@ -216,10 +223,16 @@ export async function generateInvoicePdf(order: InvoiceOrder): Promise<jsPDF> {
 
   const infoRows: [string, string][] = [
     ["Order ID", order.id.slice(0, 18) + "..."],
-    ["Delivery", order.deliveryType],
+    ["Delivery", getDeliveryTypeLabel(order.deliveryType)],
     ["Track No.", order.trackNumber ?? "-"],
     ["Weight", `${num(order.totalWeight)} g`],
-    ["Distance", `${num(order.deliveryDistance ?? order.deliveryDistancce)} km`],
+    [
+      "Distance",
+      formatDeliveryDistance(
+        order.deliveryType,
+        num(order.deliveryDistance ?? order.deliveryDistancce),
+      ),
+    ],
   ];
 
   infoRows.forEach(([label, val], i) => {
@@ -232,7 +245,7 @@ export async function generateInvoicePdf(order: InvoiceOrder): Promise<jsPDF> {
     text(val, ML + colW - 4, rowY, { align: "right" });
   });
 
-  if (order.deliveryType === "DELIVERY" && order.snapShotAddress) {
+  if (deliveryTypeUsesAddress(order.deliveryType) && order.snapShotAddress) {
     const addr = order.snapShotAddress;
     const rx = ML + colW + 6;
 
@@ -243,7 +256,7 @@ export async function generateInvoicePdf(order: InvoiceOrder): Promise<jsPDF> {
 
     doc.setTextColor(...C.green);
     setFont("bold", 7);
-    text("DELIVERY ADDRESS", rx + 4, y + 9);
+    text("SHIP TO", rx + 4, y + 9);
 
     doc.setTextColor(...C.black);
     setFont("bold", 8.5);

@@ -59,7 +59,10 @@ const useCreateNewAddress = (
             | undefined,
         ) => {
           if (Array.isArray(previous)) {
-            return [result, ...previous.filter((item) => item.id !== result.id)];
+            return [
+              result,
+              ...previous.filter((item) => item.id !== result.id),
+            ];
           }
 
           if (previous && Array.isArray(previous.data)) {

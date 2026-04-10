@@ -1,3 +1,4 @@
+import { getDeliveryTypeLabel } from "@/lib/deliveryType";
 import { formatPrice } from "@/lib/price";
 import { CustomOrder } from "@/types/customOrder";
 import { Box, CreditCard, NotepadText, Truck, Wallet } from "lucide-react";
@@ -63,7 +64,7 @@ export function ExpandedOrderContent({ order }: { order: CustomOrder }) {
             Delivery Type
           </p>
           <p className="text-foreground text-sm font-semibold">
-            {order.deliveryType}
+            {getDeliveryTypeLabel(order.deliveryType)}
           </p>
         </div>
 

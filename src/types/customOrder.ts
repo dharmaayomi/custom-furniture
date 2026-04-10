@@ -13,6 +13,7 @@ export interface SnapshotAddress {
   province?: string | null;
   provinceCode?: string | null;
   cityCode?: string | null;
+  jneCityCode?: string | null;
   districtCode?: string | null;
   subdistrictCode?: string | null;
   komerceSubdistrictId?: string | null;
@@ -74,7 +75,7 @@ export type OrderStatus =
   | "COMPLETED"
   | "CANCELLED";
 
-export type DeliveryType = "DELIVERY" | "PICKUP";
+export type DeliveryType = "DELIVERY" | "PICKUP" | "STORE_DELIVERY";
 
 export type PaymentPhase = "DP" | "PROGRESS_1" | "PROGRESS_2" | "FINAL";
 

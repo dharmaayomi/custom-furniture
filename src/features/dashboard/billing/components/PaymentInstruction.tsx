@@ -142,7 +142,7 @@ export const PaymentInstruction = ({
           <Wallet className="text-primary h-3.5 w-3.5" />
         </div>
         <p className="text-foreground text-sm font-semibold">
-          Payment Instructions
+          Instruksi Pembayaran
         </p>
       </div>
 
@@ -154,7 +154,7 @@ export const PaymentInstruction = ({
             <div className="flex items-center gap-2">
               <QrCode className="text-muted-foreground h-3.5 w-3.5" />
               <span className="text-muted-foreground text-[11px] font-semibold tracking-widest uppercase">
-                QRIS Code
+                Kode QRIS
               </span>
             </div>
             <Button
@@ -165,7 +165,7 @@ export const PaymentInstruction = ({
               onClick={() => downloadQrImage(qrImageUrl)}
             >
               <Download className="h-3 w-3" />
-              Download
+              Unduh
             </Button>
           </div>
 
@@ -179,7 +179,7 @@ export const PaymentInstruction = ({
               />
             </div>
             <p className="text-muted-foreground/70 text-[11px] font-medium">
-              Scan with any QRIS-supported app
+              Pindai dengan aplikasi yang mendukung QRIS
             </p>
           </div>
         </div>
@@ -191,7 +191,7 @@ export const PaymentInstruction = ({
           {value.vaNumbers.map((item) => (
             <FieldRow
               key={`${item.bank}-${item.va_number}`}
-              label={`${item.bank.toUpperCase()} Virtual Account`}
+              label={`Virtual Account ${item.bank.toUpperCase()}`}
               value={item.va_number}
               accent
             />
@@ -199,19 +199,17 @@ export const PaymentInstruction = ({
 
           {value.permataVaNumber ? (
             <FieldRow
-              label="Permata Virtual Account"
+              label="Virtual Account Permata"
               value={value.permataVaNumber}
               accent
             />
           ) : null}
 
           {value.billerCode ? (
-            <FieldRow label="Biller Code" value={value.billerCode} />
+            <FieldRow label="Kode Biller" value={value.billerCode} />
           ) : null}
 
-          {value.billKey ? (
-            <FieldRow label="Bill Key" value={value.billKey} />
-          ) : null}
+          {value.billKey ? <FieldRow label="Kunci Tagihan" value={value.billKey} /> : null}
         </div>
       ) : null}
 
@@ -225,7 +223,7 @@ export const PaymentInstruction = ({
                 <ListOrdered className="text-primary h-4 w-4" />
               </div>
               <p className="text-foreground text-sm font-semibold">
-                How to Pay
+                Cara Pembayaran
               </p>
             </div>
 
@@ -233,7 +231,7 @@ export const PaymentInstruction = ({
               variant="secondary"
               className="h-5 rounded-md px-2 text-[10px] font-semibold"
             >
-              {channels.length} channel{channels.length > 1 ? "s" : ""}
+              {channels.length} kanal
             </Badge>
           </div>
 

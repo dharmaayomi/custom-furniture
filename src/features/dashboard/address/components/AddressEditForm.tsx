@@ -61,6 +61,8 @@ export default function AddressEditForm({ addressId }: AddressEditFormProps) {
           rawAddress.regencyCode ??
           rawAddress.regency_code ??
           "",
+        jneCityCode:
+          rawAddress.jneCityCode ?? rawAddress.jne_city_code ?? "",
         districtCode: rawAddress.districtCode ?? rawAddress.district_code ?? "",
         subdistrictCode:
           rawAddress.subdistrictCode ??

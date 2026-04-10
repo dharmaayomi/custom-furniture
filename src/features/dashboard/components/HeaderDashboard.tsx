@@ -63,7 +63,8 @@ const HeaderDashboard = () => {
   const segments = pathname
     .split("/")
     .filter(Boolean)
-    .filter((segment) => segment !== "dashboard");
+    // .filter((segment) => segment !== "dashboard");
+    .filter((segment) => segment !== "dashboard" && segment !== "admin");
   const filteredSegments = segments.filter((segment, index) => {
     const isNumeric = /^\d+$/.test(segment);
     const prevSegment = index > 0 ? segments[index - 1] : null;

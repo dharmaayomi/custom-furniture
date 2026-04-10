@@ -2,11 +2,13 @@ import { Role } from "@/types/user";
 import {
   BanknoteArrowUp,
   Bell,
+  Box,
   CreditCard,
   Frame,
   LayoutDashboard,
   LifeBuoy,
   Lock,
+  Logs,
   MapPin,
   Palette,
   Send,
@@ -89,7 +91,7 @@ const adminNavMain: NavMainItem[] = [
   {
     title: "Orders",
     url: "/dashboard/admin/orders",
-    icon: SquareTerminal,
+    icon: Logs,
   },
   {
     title: "Revenue",
@@ -99,7 +101,7 @@ const adminNavMain: NavMainItem[] = [
   {
     title: "Products",
     url: "/dashboard/products",
-    icon: Frame,
+    icon: Box,
     items: [
       {
         title: "Component",

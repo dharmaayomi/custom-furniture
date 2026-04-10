@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import useGetPaymentAttempts from "@/hooks/api/payment/useGetPaymentAttempts";
 import useGetUserPayments from "@/hooks/api/payment/useGetUserPayments";
+import useGetOrders from "@/hooks/api/order/useGetOrders";
 import { useUser } from "@/providers/UserProvider";
 import { useQueryState } from "nuqs";
 import { formatPrice } from "@/lib/price";
@@ -15,13 +16,20 @@ import {
 } from "@/lib/paymentStatus";
 import {
   ArrowRight,
+  CreditCard,
   ExternalLink,
   ReceiptText,
   WalletCards,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { CustomOrderPayment, PaymentStatus } from "@/types/customOrder";
+import {
+  CustomOrder,
+  CustomOrderPayment,
+  PaymentPhase,
+  PaymentStatus,
+} from "@/types/customOrder";
 import { PaymentAttempt } from "@/types/payment";
+import { getDefaultPhaseAmounts, inferPhaseFromStatus } from "./BillingDetail";
 
 const isActivePaymentStatus = (status: PaymentStatus) =>
   status === "WAITING_FOR_PAYMENT" ||
@@ -150,6 +158,25 @@ const formatHistoryDate = (value?: string | null) => {
 };
 
 type BillingPaymentHistoryItem = CustomOrderPayment & { attemptId: string };
+type BillingActiveListItem =
+  | {
+      kind: "payment";
+      id: string;
+      orderId: string;
+      createdAt: string;
+      phase: PaymentPhase;
+      amount: number;
+      payment: CustomOrderPayment;
+    }
+  | {
+      kind: "order";
+      id: string;
+      orderId: string;
+      createdAt: string;
+      phase: PaymentPhase;
+      amount: number;
+      order: CustomOrder;
+    };
 
 const mapAttemptToPaymentHistoryItem = (
   attempt: PaymentAttempt,
@@ -182,6 +209,49 @@ const mapAttemptToPaymentHistoryItem = (
     createdAt: attempt.createdAt,
     updatedAt: attempt.updatedAt,
     attemptId: attempt.id,
+  };
+};
+
+const getSafeRemainingAmount = (order: CustomOrder) => {
+  const grandTotal = Number(order.grandTotalPrice ?? 0);
+  const totalPaid = Number(order.totalPaid ?? 0);
+  const remainingValue = Number(order.remaining ?? grandTotal - totalPaid);
+  return Number.isFinite(remainingValue) ? Math.max(0, remainingValue) : 0;
+};
+
+const isOrderBillable = (order: CustomOrder) => {
+  if (order.status === "CANCELLED" || order.status === "COMPLETED") {
+    return false;
+  }
+
+  return getSafeRemainingAmount(order) > 0;
+};
+
+const shouldShowDpCheckoutFallback = (order: CustomOrder) => {
+  return order.status === "PENDING_PAYMENT" && isOrderBillable(order);
+};
+
+const getPayablePhaseAndAmount = (order: CustomOrder) => {
+  const currentPhase =
+    order.currentPaymentPhase ?? inferPhaseFromStatus(order.status);
+  const defaultPhaseAmounts = getDefaultPhaseAmounts(
+    Number(order.grandTotalPrice ?? 0),
+  );
+  const latestPhasePayment = [...(order.payments ?? [])]
+    .filter((payment) => payment.phase === currentPhase)
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )[0];
+  const remainingAmount = getSafeRemainingAmount(order);
+  const amount =
+    Number(latestPhasePayment?.amount ?? 0) ||
+    defaultPhaseAmounts[currentPhase] ||
+    remainingAmount;
+
+  return {
+    phase: currentPhase,
+    amount: currentPhase === "FINAL" ? remainingAmount || amount : amount,
   };
 };
 
@@ -314,17 +384,23 @@ const HistoryCard = ({
 
 /* ── Active card ──────────────────────────────────────────────── */
 const ActiveCard = ({
-  payment,
+  item,
   onClick,
 }: {
-  payment: CustomOrderPayment;
+  item: BillingActiveListItem;
   onClick: () => void;
 }) => {
-  const PaymentStatusIcon = getPaymentStatusIcon(payment.status);
-  const orderRef = payment.order?.orderNumber?.trim() || "-";
-  const phaseLabel = PHASE_LABEL[payment.phase] ?? `${payment.phase} Payment`;
-  const phaseStep = PHASE_STEP[payment.phase] ?? null;
-  const dateStr = formatHistoryDate(payment.paidAt ?? payment.createdAt);
+  const isPaymentItem = item.kind === "payment";
+  const payment = isPaymentItem ? item.payment : null;
+  const order = item.kind === "order" ? item.order : payment?.order;
+  const status = payment?.status ?? null;
+  const PaymentStatusIcon = status ? getPaymentStatusIcon(status) : CreditCard;
+  const orderRef = order?.orderNumber?.trim() || item.orderId;
+  const phaseLabel = PHASE_LABEL[item.phase] ?? `${item.phase} Payment`;
+  const phaseStep = PHASE_STEP[item.phase] ?? null;
+  const dateStr = formatHistoryDate(
+    payment?.paidAt ?? payment?.createdAt ?? item.createdAt,
+  );
 
   return (
     <div
@@ -350,17 +426,35 @@ const ActiveCard = ({
       <div className="flex items-center justify-between gap-4 px-4 py-3">
         <div className="min-w-0 space-y-1">
           <p className="text-foreground text-sm font-bold">{phaseLabel}</p>
+          {payment ? (
+            <div className="flex items-center gap-1.5">
+              <PaymentLogo payment={payment} size={14} />
+              <span className="text-muted-foreground text-xs">
+                {getPaymentDisplayName(payment)}
+              </span>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              Payment not started yet. Choose a payment method to continue.
+            </p>
+          )}
           {dateStr ? (
             <p className="text-muted-foreground text-xs">{dateStr}</p>
           ) : null}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <span className={getPaymentStatusBadgeClass(payment.status)}>
-            <PaymentStatusIcon className="h-3 w-3" />
-            {getPaymentStatusLabel(payment.status)}
-          </span>
+          {status ? (
+            <span className={getPaymentStatusBadgeClass(status)}>
+              <PaymentStatusIcon className="h-3 w-3" />
+              {getPaymentStatusLabel(status)}
+            </span>
+          ) : (
+            <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+              Payment Not Started
+            </span>
+          )}
           <p className="text-foreground text-sm font-bold tabular-nums">
-            {formatPrice(Number(payment.amount ?? 0))}
+            {formatPrice(Number(item.amount ?? 0))}
           </p>
         </div>
       </div>
@@ -392,6 +486,11 @@ export const BillingPage = () => {
     isLoading: isActiveLoading,
     isError: isActiveError,
   } = useGetUserPayments(userId);
+  const {
+    data: orders = [],
+    isLoading: isOrdersLoading,
+    isError: isOrdersError,
+  } = useGetOrders();
 
   const historyPayments = useMemo<BillingPaymentHistoryItem[]>(() => {
     return paymentAttempts.reduce<BillingPaymentHistoryItem[]>(
@@ -414,6 +513,57 @@ export const BillingPage = () => {
         .filter((item) => isActivePaymentStatus(item.status)),
     [activePaymentsSource],
   );
+  const activeBillingItems = useMemo<BillingActiveListItem[]>(() => {
+    const activePaymentOrderIds = new Set(
+      activePayments
+        .map((payment) => payment.orderId ?? payment.order?.id)
+        .filter((orderId): orderId is string => Boolean(orderId)),
+    );
+
+    const paymentItems = activePayments.reduce<BillingActiveListItem[]>(
+      (acc, payment) => {
+        const orderId = payment.orderId ?? payment.order?.id;
+        if (!orderId) return acc;
+        acc.push({
+          kind: "payment",
+          id: payment.id,
+          orderId,
+          createdAt: payment.createdAt,
+          phase: payment.phase,
+          amount: Number(payment.amount ?? 0),
+          payment,
+        });
+        return acc;
+      },
+      [],
+    );
+
+    const orderItems = orders
+      .filter(
+        (order) =>
+          shouldShowDpCheckoutFallback(order) &&
+          !activePaymentOrderIds.has(order.id),
+      )
+      .map((order) => {
+        const { phase, amount } = getPayablePhaseAndAmount(order);
+        return {
+          kind: "order" as const,
+          id: `order-${order.id}`,
+          orderId: order.id,
+          createdAt: order.createdAt,
+          phase,
+          amount,
+          order,
+        };
+      });
+
+    return [...paymentItems, ...orderItems].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [activePayments, orders]);
+  const isActiveSourceLoading = isActiveLoading || isOrdersLoading;
+  const isActiveSourceError = isActiveError || isOrdersError;
 
   const sortedHistoryPayments = [...historyPayments].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -459,9 +609,9 @@ export const BillingPage = () => {
               className="group data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-background rounded-full border px-4 py-2 text-xs font-bold whitespace-nowrap transition-all"
             >
               <span>Active Payment</span>
-              {activePayments.length > 0 && (
-                <span className="bg-chart-2 text-card group-data-[state=active]:bg-background group-data-[state=active]:text-background ml-2 rounded-full px-1.5 py-0.5 text-[10px]">
-                  {activePayments.length}
+              {activeBillingItems.length > 0 && (
+                <span className="bg-chart-2 text-card group-data-[state=active]:bg-chart-2 group-data-[state=active]:text-card ml-2 rounded-full px-1.5 py-0.5 text-[10px]">
+                  {activeBillingItems.length}
                 </span>
               )}
             </TabsTrigger>
@@ -480,23 +630,25 @@ export const BillingPage = () => {
         </div>
 
         <TabsContent value="active-payment" className="mt-2 space-y-3">
-          {isActiveLoading ? (
+          {isActiveSourceLoading ? (
             renderSkeletonList()
-          ) : isActiveError ? (
+          ) : isActiveSourceError ? (
             <ErrorState />
-          ) : activePayments.length === 0 ? (
+          ) : activeBillingItems.length === 0 ? (
             <EmptyState message="There are no active payments right now." />
           ) : (
-            activePayments.map((payment) => (
+            activeBillingItems.map((item) => (
               <ActiveCard
-                key={payment.id}
-                payment={payment}
+                key={item.id}
+                item={item}
                 onClick={() => {
-                  const orderId = payment.orderId ?? payment.order?.id;
-                  if (!orderId) return;
-                  router.push(
-                    `/dashboard/billing/${orderId}?paymentId=${payment.id}`,
-                  );
+                  if (item.kind === "payment") {
+                    router.push(
+                      `/dashboard/billing/${item.orderId}?paymentId=${item.payment.id}`,
+                    );
+                    return;
+                  }
+                  router.push(`/dashboard/billing/${item.orderId}`);
                 }}
               />
             ))

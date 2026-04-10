@@ -19,16 +19,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import AddressForm, {
-  AddressFormData,
-} from "@/features/dashboard/address/components/AddressForm";
 import useCreateCustomOrder from "@/hooks/api/order/useCreateCustomOrder";
+import useGetDeliveryFeeEstimates, {
+  DeliveryFeeEstimate,
+} from "@/hooks/api/order/useGetDeliveryFeeEstimates";
 import useCreateNewAddress, {
   CreateAddressInput,
 } from "@/hooks/api/user/useCreateNewAddress";
 import useGetUserAddresses from "@/hooks/api/user/useGetUserAddresses";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { saveCheckoutSnapshot } from "@/lib/checkoutStorage";
+import { deliveryTypeUsesAddress } from "@/lib/deliveryType";
 import { loadDesignCodeFromStorage } from "@/lib/designCode";
 import { formatPrice } from "@/lib/price";
 import { loadSummaryPayload } from "@/lib/summaryStorage";
@@ -54,20 +55,99 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import SummaryAddressForm, {
+  SummaryAddressFormData,
+} from "./components/SummaryAddressForm";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldTitle,
+} from "@/components/ui/field";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
 const getAddressOptionLabel = (address: Address) =>
   `${address.label} - ${address.recipientName}`;
 
+type FulfillmentOption = DeliveryType;
+const FULFILLMENT_OPTION_ORDER: FulfillmentOption[] = [
+  "DELIVERY",
+  "STORE_DELIVERY",
+  "PICKUP",
+];
+
+const getFulfillmentLabel = (option: FulfillmentOption) => {
+  if (option === "DELIVERY") return "JNE Kargo";
+  if (option === "STORE_DELIVERY") return "Kurir toko";
+  return "Ambil di toko";
+};
+
+const getFulfillmentDescription = (estimate?: DeliveryFeeEstimate | null) => {
+  if (!estimate) return "Pilih alamat lalu cek opsi fulfillment.";
+  if (!estimate.available) {
+    if (estimate.type === "DELIVERY") {
+      return "JNE Kargo belum tersedia untuk alamat ini.";
+    }
+    if (estimate.type === "STORE_DELIVERY") {
+      return "Kurir toko belum tersedia untuk alamat ini.";
+    }
+  }
+  if (estimate.type === "DELIVERY") {
+    return "Pengiriman reguler ke alamat yang dipilih.";
+  }
+  if (estimate.type === "STORE_DELIVERY") {
+    return "Pengiriman lokal dari toko ke alamat yang dipilih.";
+  }
+  return "Ambil pesanan langsung di toko tanpa ongkir.";
+};
+
+const getFulfillmentNotice = (option: FulfillmentOption) => {
+  if (option === "DELIVERY") {
+    return "JNE Kargo akan dikirim ke alamat yang dipilih.";
+  }
+  if (option === "STORE_DELIVERY") {
+    return "Kurir toko akan mengantar ke alamat yang dipilih.";
+  }
+  return "Ambil langsung di toko sesuai jadwal pickup.";
+};
+
 export default function SummaryDesignPage() {
   const router = useRouter();
+  const { userId } = useUser();
   const [payload, setPayload] = useState<SummaryOrderPayload | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [discountApplied, setDiscountApplied] = useState(false);
-  const [deliveryType, setDeliveryType] = useState<DeliveryType>("DELIVERY");
+  const [fulfillmentOption, setFulfillmentOption] =
+    useState<FulfillmentOption>("DELIVERY");
+  const [hasCalculatedFulfillment, setHasCalculatedFulfillment] =
+    useState(false);
+  const [fulfillmentEstimates, setFulfillmentEstimates] = useState<
+    DeliveryFeeEstimate[]
+  >([]);
   const [selectedAddressValue, setSelectedAddressValue] = useState("");
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-  const { userId } = useUser();
   const { data: addressesData, refetch: refetchAddresses } =
     useGetUserAddresses(userId);
+  const { mutateAsync: createAddress, isPending: isCreatingAddress } =
+    useCreateNewAddress(userId, {
+      onSuccess: (newAddress) => {
+        toast.success("Alamat berhasil ditambahkan.");
+        setSelectedAddressValue(String(newAddress.id));
+        setIsAddressModalOpen(false);
+      },
+      onError: (error) => {
+        toast.error(
+          getApiErrorMessage(error, "Gagal menambahkan alamat baru."),
+        );
+      },
+    });
+  const { mutateAsync: createCustomOrder, isPending: isCreatingOrder } =
+    useCreateCustomOrder();
+  const {
+    mutateAsync: getDeliveryFeeEstimates,
+    isPending: isCalculatingFulfillment,
+  } = useGetDeliveryFeeEstimates();
 
   useEffect(() => {
     setPayload(loadSummaryPayload());
@@ -98,8 +178,7 @@ export default function SummaryDesignPage() {
   );
 
   useEffect(() => {
-    if (!sortedAddresses.length) return;
-    if (selectedAddressValue) return;
+    if (!sortedAddresses.length || selectedAddressValue) return;
     const defaultAddress = sortedAddresses.find((address) => address.isDefault);
     setSelectedAddressValue(String((defaultAddress ?? sortedAddresses[0]).id));
   }, [sortedAddresses, selectedAddressValue]);
@@ -111,27 +190,36 @@ export default function SummaryDesignPage() {
       ) ?? (selectedAddressValue ? sortedAddresses[0] : undefined),
     [sortedAddresses, selectedAddressValue],
   );
+  const requiresAddress = deliveryTypeUsesAddress(fulfillmentOption);
+  const checkoutDeliveryType: DeliveryType = fulfillmentOption;
+  const subtotal = payload?.subtotal ?? 0;
+  const discount =
+    discountApplied && promoCode === "SAVE10" ? subtotal * 0.1 : 0;
+  const totalItems = useMemo(
+    () => payload?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0,
+    [payload],
+  );
+  const selectedFulfillmentEstimate = useMemo(
+    () => fulfillmentEstimates.find((item) => item.type === fulfillmentOption),
+    [fulfillmentEstimates, fulfillmentOption],
+  );
+  const estimatedShippingFee = hasCalculatedFulfillment
+    ? Number(selectedFulfillmentEstimate?.fee ?? 0)
+    : 0;
+  const estimatedTotal = subtotal - discount + estimatedShippingFee;
 
-  const { mutateAsync: createAddress, isPending: isCreatingAddress } =
-    useCreateNewAddress(userId, {
-      onSuccess: (newAddress) => {
-        toast.success("Address created");
-        setSelectedAddressValue(String(newAddress.id));
-        setIsAddressModalOpen(false);
-      },
-      onError: (error) => {
-        toast.error(getApiErrorMessage(error, "Failed to create address."));
-      },
-    });
-  const { mutateAsync: createCustomOrder, isPending: isCreatingOrder } =
-    useCreateCustomOrder();
+  useEffect(() => {
+    setHasCalculatedFulfillment(false);
+    setFulfillmentEstimates([]);
+    setFulfillmentOption("DELIVERY");
+  }, [selectedAddressValue]);
 
-  const handleCreateAddress = async (data: AddressFormData) => {
+  const handleCreateAddress = async (data: SummaryAddressFormData) => {
     if (!userId) {
-      toast.error("Please log in to add address.");
+      toast.error("Silakan login terlebih dahulu untuk menambah alamat.");
       return;
     }
-    const payload: CreateAddressInput = {
+    const nextPayload: CreateAddressInput = {
       label: data.label,
       recipientName: data.recipientName,
       phoneNumber: data.phoneNumber,
@@ -151,80 +239,81 @@ export default function SummaryDesignPage() {
       longitude: data.longitude,
       postalCode: data.postalCode,
     };
-    await createAddress(payload);
+    await createAddress(nextPayload);
     await refetchAddresses();
   };
 
-  const subtotal = payload?.subtotal ?? 0;
-  const discount =
-    discountApplied && promoCode === "SAVE10" ? subtotal * 0.1 : 0;
-  const shippingCost = 0;
-  const total = subtotal - discount + shippingCost;
-  const totalItems = useMemo(
-    () => payload?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0,
-    [payload],
-  );
+  const handleCalculateFulfillment = async () => {
+    if (!selectedAddress) {
+      toast.error("Pilih alamat terlebih dahulu sebelum menghitung estimasi.");
+      return;
+    }
 
-  const applyPromo = () => {
-    if (promoCode.trim()) {
-      setDiscountApplied(true);
+    if (!payload?.configuration) {
+      toast.error("Konfigurasi desain tidak ditemukan.");
+      return;
+    }
+
+    try {
+      const estimates = await getDeliveryFeeEstimates({
+        addressId: selectedAddress.id,
+        configuration: payload.configuration,
+      });
+      const sortedEstimates = FULFILLMENT_OPTION_ORDER.map(
+        (option) => estimates.find((item) => item.type === option),
+      ).filter((item): item is DeliveryFeeEstimate => Boolean(item));
+      const fallbackOption =
+        sortedEstimates.find(
+          (item) => item.type === fulfillmentOption && item.available,
+        )?.type ??
+        sortedEstimates.find((item) => item.available)?.type ??
+        "PICKUP";
+
+      setFulfillmentEstimates(sortedEstimates);
+      setFulfillmentOption(fallbackOption);
+      setHasCalculatedFulfillment(true);
+    } catch {
+      setHasCalculatedFulfillment(false);
+      setFulfillmentEstimates([]);
     }
   };
 
   const handleProceedCheckout = async () => {
-    if (deliveryType === "DELIVERY" && !selectedAddress) {
-      toast.error("Please select a delivery address first.");
+    if (!hasCalculatedFulfillment || !selectedFulfillmentEstimate) {
+      toast.error("Pilih alamat lalu cek opsi fulfillment terlebih dahulu.");
+      return;
+    }
+    if (requiresAddress && !selectedAddress) {
+      toast.error("Silakan pilih alamat pengiriman terlebih dahulu.");
+      return;
+    }
+    if (!selectedFulfillmentEstimate.available) {
+      toast.error("Metode fulfillment yang dipilih belum tersedia.");
       return;
     }
     const fallbackDesignCode = loadDesignCodeFromStorage().trim();
     const resolvedDesignCode =
       payload?.designCode?.trim() || fallbackDesignCode;
     const resolvedConfiguration = payload?.configuration;
-
     if (!resolvedDesignCode && !resolvedConfiguration) {
-      toast.error("Missing design data. Please go back and re-open Summary.");
+      toast.error(
+        "Data desain tidak ditemukan. Silakan kembali lalu buka ulang halaman ringkasan.",
+      );
       return;
     }
 
     try {
-      console.log(
-        "[Summary] checkout mode:",
-        resolvedDesignCode ? "designCode" : "configuration",
-      );
-      if (!resolvedDesignCode && resolvedConfiguration) {
-        const config = resolvedConfiguration as Record<string, unknown>;
-        const productBase = Array.isArray(config.productBase)
-          ? config.productBase
-          : [];
-        const productComponent = Array.isArray(config.productComponent)
-          ? config.productComponent
-          : [];
-        console.log("[Summary] configuration keys:", Object.keys(config));
-        console.log(
-          "[Summary] configuration productBase count:",
-          productBase.length,
-        );
-        console.log(
-          "[Summary] configuration productComponent count:",
-          productComponent.length,
-        );
-      }
-
       const checkoutPayload = {
         ...(resolvedDesignCode
           ? { designCode: resolvedDesignCode }
           : { configuration: resolvedConfiguration }),
         ...(payload?.previewUrl ? { previewUrl: payload.previewUrl } : {}),
-        deliveryType,
-        ...(deliveryType === "DELIVERY" && selectedAddress
+        deliveryType: checkoutDeliveryType,
+        ...(requiresAddress && selectedAddress
           ? { addressId: selectedAddress.id }
           : {}),
       };
-
-      console.log("[Summary] createCustomOrder payload:", checkoutPayload);
-
       const result = await createCustomOrder(checkoutPayload);
-
       const orderId = String((result as any)?.id ?? "");
       const orderNumber = String((result as any)?.orderNumber ?? "").trim();
 
@@ -233,12 +322,12 @@ export default function SummaryDesignPage() {
           orderNumber: orderNumber || undefined,
           orderId,
           status: (result as any)?.status ?? "PENDING_PAYMENT",
-          deliveryType,
+          deliveryType: checkoutDeliveryType,
           subtotal: Number((result as any)?.subtotalPrice ?? subtotal),
-          deliveryFee: Number(
-            (result as any)?.deliveryFee ?? (deliveryType === "PICKUP" ? 0 : 0),
+          deliveryFee: Number((result as any)?.deliveryFee ?? 0),
+          grandTotal: Number(
+            (result as any)?.grandTotalPrice ?? estimatedTotal,
           ),
-          grandTotal: Number((result as any)?.grandTotalPrice ?? total),
           items: payload?.items ?? [],
           previewImage: payload?.previewImage,
           previewUrl: payload?.previewUrl,
@@ -246,31 +335,29 @@ export default function SummaryDesignPage() {
         });
       }
 
-      toast.success("Order created");
+      toast.success("Pesanan berhasil dibuat.");
       router.push(orderId ? `/checkout?orderId=${orderId}` : "/checkout");
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Failed to create order."));
+      toast.error(getApiErrorMessage(error, "Gagal membuat pesanan."));
     }
   };
 
   return (
     <main className="bg-background text-foreground min-h-screen">
       <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
-        {/* Breadcrumb */}
         <div className="text-muted-foreground mb-5 flex items-center gap-2 text-sm">
-          <span>Design</span>
+          <span>Desain</span>
           <ChevronRight className="h-3.5 w-3.5" />
-          <span className="text-foreground font-medium">Design Overview</span>
+          <span className="text-foreground font-medium">Ringkasan Desain</span>
         </div>
 
         <h1 className="mb-7 text-2xl font-bold tracking-tight sm:text-3xl">
-          Design Overview
+          Ringkasan Desain
         </h1>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
-          {/* ── LEFT COLUMN ─────────────────────────────── */}
-          <div className="space-y-5 lg:col-span-2">
-            {/* Preview card */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-8">
+          {/* left section */}
+          <div className="space-y-5 lg:col-span-3">
             <Card className="ring-border/60 overflow-hidden border-0 shadow-sm ring-1">
               <CardContent className="p-3 sm:p-4">
                 <div className="bg-muted overflow-hidden rounded-xl">
@@ -278,13 +365,13 @@ export default function SummaryDesignPage() {
                     {payload?.previewImage ? (
                       <img
                         src={payload.previewImage}
-                        alt="Room preview"
+                        alt="Preview ruangan"
                         className="h-full w-full object-cover"
                       />
                     ) : (
                       <div className="text-muted-foreground flex flex-col items-center gap-2">
                         <Box className="h-10 w-10 opacity-30" />
-                        <p className="text-sm">Preview not available</p>
+                        <p className="text-sm">Preview belum tersedia</p>
                       </div>
                     )}
                   </div>
@@ -292,16 +379,15 @@ export default function SummaryDesignPage() {
               </CardContent>
             </Card>
 
-            {/* Product list card */}
             <Card className="ring-border/60 border-0 shadow-sm ring-1">
               <CardHeader className="pt-4 pb-2">
                 <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                   <div className="bg-primary/10 flex h-7 w-7 items-center justify-center rounded-lg">
                     <Package className="text-primary h-3.5 w-3.5" />
                   </div>
-                  Product List
+                  Daftar Produk
                   <span className="bg-muted text-muted-foreground ml-auto rounded-full px-2.5 py-0.5 text-xs font-medium">
-                    {totalItems} item{totalItems !== 1 ? "s" : ""}
+                    {totalItems} produk
                   </span>
                 </CardTitle>
               </CardHeader>
@@ -312,7 +398,6 @@ export default function SummaryDesignPage() {
                       key={item.id}
                       className="ring-border/50 hover:bg-muted/20 flex items-start gap-3 rounded-xl p-4 ring-1 transition-colors"
                     >
-                      {/* Thumbnail */}
                       <div className="ring-border/40 h-20 w-20 shrink-0 overflow-hidden rounded-xl ring-1 sm:h-24 sm:w-24">
                         {item.image ? (
                           <img
@@ -327,7 +412,6 @@ export default function SummaryDesignPage() {
                         )}
                       </div>
 
-                      {/* Details */}
                       <div className="min-w-0 flex-1">
                         <h3 className="mb-0.5 text-sm font-semibold sm:text-base">
                           {item.name}
@@ -347,10 +431,10 @@ export default function SummaryDesignPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
                             <CheckCircle2 className="h-3 w-3" />
-                            In Stock
+                            Tersedia
                           </span>
                           <span className="text-muted-foreground text-xs">
-                            Qty:{" "}
+                            Jumlah:{" "}
                             <span className="text-foreground font-semibold">
                               {item.quantity}
                             </span>
@@ -358,232 +442,287 @@ export default function SummaryDesignPage() {
                         </div>
                       </div>
 
-                      {/* Price */}
                       <div className="shrink-0 text-right">
                         <p className="text-sm font-bold sm:text-base">
                           {formatPrice(item.unitPrice)}
                         </p>
                         <p className="text-muted-foreground mt-0.5 text-xs">
-                          {formatPrice(item.subtotal)} subtotal
+                          Subtotal {formatPrice(item.subtotal)}
                         </p>
                       </div>
                     </div>
                   ))
                 ) : (
                   <div className="text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm">
-                    No products in this summary.
+                    Belum ada produk pada ringkasan ini.
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
-
-          {/* ── RIGHT COLUMN – sticky sidebar ───────────── */}
-          <div className="lg:col-span-1">
+          {/* right section */}
+          <div className="lg:col-span-2">
             <div className="space-y-4 lg:sticky lg:top-22">
-              {/* Fulfillment + Address */}
               <Card className="ring-border/60 border-0 shadow-sm ring-1">
                 <CardHeader className="pt-4 pb-2">
                   <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                     <div className="bg-primary/10 flex h-7 w-7 items-center justify-center rounded-lg">
                       <Truck className="text-primary h-3.5 w-3.5" />
                     </div>
-                    Fulfillment
+                    Metode Fulfillment
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 px-5 pb-5">
-                  {/* Toggle */}
-                  <div className="bg-muted/50 grid grid-cols-2 gap-1 rounded-xl p-1">
-                    <button
-                      type="button"
-                      onClick={() => setDeliveryType("DELIVERY")}
-                      className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-all ${
-                        deliveryType === "DELIVERY"
-                          ? "bg-background text-foreground ring-border/60 shadow-sm ring-1"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <Truck className="h-3.5 w-3.5" />
-                      Delivery
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeliveryType("PICKUP")}
-                      className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-all ${
-                        deliveryType === "PICKUP"
-                          ? "bg-background text-foreground ring-border/60 shadow-sm ring-1"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <Store className="h-3.5 w-3.5" />
-                      Pickup
-                    </button>
-                  </div>
-
-                  {/* Address section */}
-                  {deliveryType === "DELIVERY" ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
-                          <MapPin className="h-3 w-3" />
-                          Delivery Address
-                        </p>
-                        {selectedAddress?.isDefault && (
-                          <Badge
-                            variant="outline"
-                            className="border-emerald-200 bg-emerald-100 px-1.5 py-0 text-[10px] text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300"
-                          >
-                            Default
-                          </Badge>
-                        )}
-                      </div>
-
-                      {sortedAddresses.length > 0 ? (
-                        <>
-                          <Combobox
-                            items={addressOptions}
-                            value={selectedAddressValue}
-                            itemToStringLabel={(value) =>
-                              addressLabelById[String(value)] ?? String(value)
-                            }
-                            onValueChange={(value) =>
-                              setSelectedAddressValue(value ?? "")
-                            }
-                          >
-                            <ComboboxInput
-                              placeholder="Choose delivery address"
-                              className="w-full text-xs md:text-sm"
-                              showClear
-                            />
-                            <ComboboxContent>
-                              <ComboboxEmpty>No address found.</ComboboxEmpty>
-                              <ComboboxList>
-                                {(item) => {
-                                  const address = sortedAddresses.find(
-                                    (entry) => String(entry.id) === item,
-                                  );
-                                  return (
-                                    <ComboboxItem key={item} value={item}>
-                                      {address
-                                        ? getAddressOptionLabel(address)
-                                        : item}
-                                      {address?.isDefault ? " (Default)" : ""}
-                                    </ComboboxItem>
-                                  );
-                                }}
-                              </ComboboxList>
-                            </ComboboxContent>
-                          </Combobox>
-
-                          {selectedAddress && (
-                            <div className="bg-muted/40 space-y-0.5 rounded-xl p-3 text-xs">
-                              <p className="text-foreground font-semibold">
-                                {selectedAddress.recipientName}{" "}
-                                <span className="text-muted-foreground font-normal">
-                                  ({selectedAddress.phoneNumber})
-                                </span>
-                              </p>
-                              <p className="text-muted-foreground">
-                                {selectedAddress.line1}
-                                {selectedAddress.line2
-                                  ? `, ${selectedAddress.line2}`
-                                  : ""}
-                              </p>
-                              <p className="text-muted-foreground">
-                                {selectedAddress.district},{" "}
-                                {selectedAddress.city},{" "}
-                                {selectedAddress.province}
-                              </p>
-                              <p className="text-muted-foreground">
-                                {selectedAddress.country}{" "}
-                                {selectedAddress.postalCode}
-                              </p>
-                            </div>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => setIsAddressModalOpen(true)}
-                            className="text-primary flex items-center gap-1 text-xs font-medium hover:underline"
-                          >
-                            <Plus className="h-3 w-3" />
-                            Add new address
-                          </button>
-                        </>
-                      ) : (
-                        <div className="rounded-xl border border-dashed p-4 text-center">
-                          <MapPin className="text-muted-foreground/40 mx-auto mb-2 h-6 w-6" />
-                          <p className="text-muted-foreground mb-2 text-xs">
-                            No address found.
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => setIsAddressModalOpen(true)}
-                            className="text-primary text-xs font-semibold hover:underline"
-                          >
-                            Add your first address
-                          </button>
-                        </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
+                        <MapPin className="h-3 w-3" />
+                        Alamat Pengiriman
+                      </p>
+                      {selectedAddress?.isDefault && (
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-200 bg-emerald-100 px-1.5 py-0 text-[10px] text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+                        >
+                          Utama
+                        </Badge>
                       )}
                     </div>
-                  ) : (
-                    <div className="bg-muted/40 text-muted-foreground flex items-start gap-2.5 rounded-xl p-3 text-xs">
-                      <Store className="mt-0.5 h-4 w-4 shrink-0" />
-                      <span>
-                        Pickup selected — no delivery address required.
-                      </span>
+
+                    {sortedAddresses.length > 0 ? (
+                      <>
+                        <Combobox
+                          items={addressOptions}
+                          value={selectedAddressValue}
+                          itemToStringLabel={(value) =>
+                            addressLabelById[String(value)] ?? String(value)
+                          }
+                          onValueChange={(value) =>
+                            setSelectedAddressValue(value ?? "")
+                          }
+                        >
+                          <ComboboxInput
+                            placeholder="Pilih alamat pengiriman"
+                            className="w-full text-xs md:text-sm"
+                            showClear
+                          />
+                          <ComboboxContent>
+                            <ComboboxEmpty>
+                              Alamat tidak ditemukan.
+                            </ComboboxEmpty>
+                            <ComboboxList>
+                              {(item) => {
+                                const address = sortedAddresses.find(
+                                  (entry) => String(entry.id) === item,
+                                );
+                                return (
+                                  <ComboboxItem key={item} value={item}>
+                                    {address
+                                      ? getAddressOptionLabel(address)
+                                      : item}
+                                    {address?.isDefault ? " (Utama)" : ""}
+                                  </ComboboxItem>
+                                );
+                              }}
+                            </ComboboxList>
+                          </ComboboxContent>
+                        </Combobox>
+
+                        {selectedAddress ? (
+                          <div className="bg-muted/40 space-y-0.5 rounded-xl p-3 text-xs">
+                            <p className="text-foreground font-semibold">
+                              {selectedAddress.recipientName}{" "}
+                              <span className="text-muted-foreground font-normal">
+                                ({selectedAddress.phoneNumber})
+                              </span>
+                            </p>
+                            <p className="text-muted-foreground">
+                              {selectedAddress.line1}
+                              {selectedAddress.line2
+                                ? `, ${selectedAddress.line2}`
+                                : ""}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {selectedAddress.district}, {selectedAddress.city},{" "}
+                              {selectedAddress.province}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {selectedAddress.country} {selectedAddress.postalCode}
+                            </p>
+                          </div>
+                        ) : null}
+
+                        <button
+                          type="button"
+                          onClick={() => setIsAddressModalOpen(true)}
+                          className="text-primary flex items-center gap-1 text-xs font-medium hover:underline"
+                        >
+                          <Plus className="h-3 w-3" />
+                          Tambah alamat baru
+                        </button>
+                      </>
+                    ) : (
+                      <div className="rounded-xl border border-dashed p-4 text-center">
+                        <MapPin className="text-muted-foreground/40 mx-auto mb-2 h-6 w-6" />
+                        <p className="text-muted-foreground mb-2 text-xs">
+                          Belum ada alamat.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddressModalOpen(true)}
+                          className="text-primary text-xs font-semibold hover:underline"
+                        >
+                          Tambah alamat pertama
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+                    Pilih alamat terlebih dahulu, lalu cek opsi fulfillment untuk melihat ongkir setiap metode.
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleCalculateFulfillment}
+                    disabled={
+                      !selectedAddress ||
+                      !payload?.configuration ||
+                      isCalculatingFulfillment
+                    }
+                  >
+                    {isCalculatingFulfillment
+                      ? "Menghitung opsi fulfillment..."
+                      : "Cek Opsi Fulfillment"}
+                  </Button>
+                  {hasCalculatedFulfillment ? (
+                    <div className="space-y-3">
+                      <Separator />
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold">
+                          Pilih Metode Fulfillment
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          Ongkir di bawah ini mengikuti alamat yang dipilih.
+                        </p>
+                      </div>
+                      <RadioGroup
+                        value={fulfillmentOption}
+                        onValueChange={(value) =>
+                          setFulfillmentOption(value as FulfillmentOption)
+                        }
+                        className="max-w-full space-y-2"
+                      >
+                        {fulfillmentEstimates.map((estimate) => {
+                          const icon =
+                            estimate.type === "PICKUP" ? (
+                              <Store className="h-3.5 w-3.5" />
+                            ) : (
+                              <Truck className="h-3.5 w-3.5" />
+                            );
+
+                          return (
+                            <FieldLabel
+                              key={estimate.type}
+                              htmlFor={`fulfillment-${estimate.type}`}
+                              className={
+                                !estimate.available
+                                  ? "cursor-not-allowed opacity-60"
+                                  : undefined
+                              }
+                            >
+                              <Field
+                                orientation="horizontal"
+                                data-disabled={!estimate.available}
+                                className="items-start gap-3"
+                              >
+                                <FieldContent>
+                                  <FieldTitle className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+                                    {icon}
+                                    <span className="text-sm">
+                                      {getFulfillmentLabel(estimate.type)}
+                                    </span>
+                                    <span className="text-primary sm:ml-auto text-sm font-bold">
+                                      {estimate.available
+                                        ? estimate.fee === 0
+                                          ? "Gratis"
+                                          : formatPrice(
+                                              Number(estimate.fee ?? 0),
+                                            )
+                                        : "Tidak tersedia"}
+                                    </span>
+                                  </FieldTitle>
+                                  <FieldDescription className="text-xs">
+                                    {getFulfillmentDescription(estimate)}
+                                  </FieldDescription>
+                                </FieldContent>
+                                <RadioGroupItem
+                                  value={estimate.type}
+                                  id={`fulfillment-${estimate.type}`}
+                                  disabled={!estimate.available}
+                                />
+                              </Field>
+                            </FieldLabel>
+                          );
+                        })}
+                      </RadioGroup>
+
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+                        {getFulfillmentNotice(fulfillmentOption)}
+                      </div>
                     </div>
-                  )}
+                  ) : null}
                 </CardContent>
               </Card>
 
-              {/* Order Summary */}
               <Card className="ring-border/60 border-0 shadow-sm ring-1">
                 <CardHeader className="pt-4 pb-2">
                   <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                     <div className="bg-primary/10 flex h-7 w-7 items-center justify-center rounded-lg">
                       <CreditCard className="text-primary h-3.5 w-3.5" />
                     </div>
-                    Order Summary
+                    Ringkasan Pesanan
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 px-5 pb-5">
-                  {/* Promo code */}
                   <div className="space-y-1.5">
                     <p className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
                       <Tag className="h-3 w-3" />
-                      Promo Code
+                      Kode Promo
                     </p>
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder='e.g. "SAVE10"'
+                        placeholder='contoh: "SAVE10"'
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
                         className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-w-0 grow rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
                       />
                       <button
-                        onClick={applyPromo}
+                        onClick={() =>
+                          promoCode.trim() && setDiscountApplied(true)
+                        }
                         className="border-input bg-background hover:bg-muted shrink-0 rounded-lg border px-3 py-2 text-sm font-medium transition"
                       >
-                        Apply
+                        Pakai
                       </button>
                     </div>
                     {discountApplied && discount > 0 && (
                       <p className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                         <CheckCircle2 className="h-3 w-3" />
-                        Code applied — 10% off!
+                        Kode berhasil dipakai, diskon 10%.
                       </p>
                     )}
                   </div>
 
                   <Separator />
 
-                  {/* Line items */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">
-                        Items ({totalItems})
+                        Total Produk ({totalItems})
                       </span>
                       <span className="font-medium">
                         {formatPrice(subtotal)}
@@ -591,31 +730,35 @@ export default function SummaryDesignPage() {
                     </div>
                     {discount > 0 && (
                       <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-400">
-                        <span>Discount (10%)</span>
+                        <span>Diskon (10%)</span>
                         <span className="font-medium">
-                          −{formatPrice(discount)}
+                          -{formatPrice(discount)}
                         </span>
                       </div>
                     )}
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Shipping</span>
-                      <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                        {shippingCost === 0
-                          ? "Free"
-                          : formatPrice(shippingCost)}
+                      <span className="text-muted-foreground">
+                        Estimasi Ongkir
+                      </span>
+                      <span className="font-medium">
+                        {!hasCalculatedFulfillment
+                          ? "Pilih alamat dulu"
+                          : estimatedShippingFee === 0
+                            ? "Gratis"
+                            : formatPrice(estimatedShippingFee)}
                       </span>
                     </div>
                   </div>
 
-                  {/* Grand total */}
                   <div className="bg-muted/40 flex items-center justify-between rounded-xl px-4 py-3">
-                    <span className="text-sm font-semibold">Total</span>
+                    <span className="text-sm font-semibold">
+                      Estimasi Pembayaran
+                    </span>
                     <span className="text-xl font-bold tracking-tight">
-                      {formatPrice(total)}
+                      {formatPrice(estimatedTotal)}
                     </span>
                   </div>
 
-                  {/* CTA */}
                   <Button
                     className="w-full gap-2 font-semibold"
                     size="lg"
@@ -625,39 +768,40 @@ export default function SummaryDesignPage() {
                     {isCreatingOrder ? (
                       <>
                         <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Creating Order…
+                        Membuat pesanan...
                       </>
                     ) : (
                       <>
                         <CreditCard className="h-4 w-4" />
-                        Proceed to Checkout
+                        Lanjut ke Checkout
                       </>
                     )}
                   </Button>
 
                   <p className="text-muted-foreground text-center text-xs">
-                    Taxes calculated at checkout
+                    Total di atas sudah termasuk produk dan estimasi ongkir
                   </p>
 
-                  {/* Trust badges */}
                   <div className="space-y-2 pt-1">
                     <div className="text-muted-foreground flex items-center gap-2.5 text-xs">
                       <div className="bg-muted flex h-6 w-6 shrink-0 items-center justify-center rounded-lg">
                         <Truck className="h-3.5 w-3.5" />
                       </div>
-                      <span>Free shipping on orders over Rp 150.000</span>
+                      <span>
+                        Opsi fulfillment mengikuti alamat yang dipilih
+                      </span>
                     </div>
                     <div className="text-muted-foreground flex items-center gap-2.5 text-xs">
                       <div className="bg-muted flex h-6 w-6 shrink-0 items-center justify-center rounded-lg">
                         <RotateCcw className="h-3.5 w-3.5" />
                       </div>
-                      <span>Free 30-day returns</span>
+                      <span>Gratis retur dalam 30 hari</span>
                     </div>
                     <div className="text-muted-foreground flex items-center gap-2.5 text-xs">
                       <div className="bg-muted flex h-6 w-6 shrink-0 items-center justify-center rounded-lg">
                         <Shield className="h-3.5 w-3.5" />
                       </div>
-                      <span>Secure checkout</span>
+                      <span>Checkout aman</span>
                     </div>
                   </div>
                 </CardContent>
@@ -667,7 +811,6 @@ export default function SummaryDesignPage() {
         </div>
       </div>
 
-      {/* Address Dialog */}
       <Dialog
         open={isAddressModalOpen}
         onOpenChange={(open) => {
@@ -677,15 +820,15 @@ export default function SummaryDesignPage() {
       >
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Add Delivery Address</DialogTitle>
+            <DialogTitle>Tambah Alamat Pengiriman</DialogTitle>
             <DialogDescription>
-              Add your delivery address to continue checkout.
+              Tambahkan alamat pengiriman untuk melanjutkan checkout.
             </DialogDescription>
           </DialogHeader>
-          <AddressForm
-            title="Add New Address"
-            description="Fill in your delivery address details"
-            submitLabel={isCreatingAddress ? "Saving..." : "Save Address"}
+          <SummaryAddressForm
+            title="Tambah Alamat Baru"
+            description="Lengkapi detail alamat pengiriman Anda"
+            submitLabel={isCreatingAddress ? "Menyimpan..." : "Simpan Alamat"}
             onSubmit={handleCreateAddress}
             layout="stacked"
           />

@@ -13,6 +13,7 @@ import {
 } from "@/features/dashboard/billing/components/PaymentInstruction";
 import useCreateSnapPayment from "@/hooks/api/payment/useCreateSnapPayment";
 import useGetAttemptDetail from "@/hooks/api/payment/useGetAttemptDetail";
+import useGetPaymentAttemptByPayment from "@/hooks/api/payment/useGetPaymentAttemptByPayment";
 import useGetOrder from "@/hooks/api/order/useGetOrder";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { PaymentInstructionMethod } from "@/lib/bankInstruction";
@@ -46,8 +47,6 @@ import { useQueryState } from "nuqs";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const useGetPaymentAttemptByPayment = useGetAttemptDetail;
-
 export type StepState = "completed" | "current" | "upcoming";
 
 export type PhaseStep = {
@@ -59,9 +58,9 @@ export type PhaseStep = {
 
 export const PHASE_LABEL: Record<PaymentPhase, string> = {
   DP: "DP",
-  PROGRESS_1: "Progress 1",
-  PROGRESS_2: "Progress 2",
-  FINAL: "Final",
+  PROGRESS_1: "Termin 1",
+  PROGRESS_2: "Termin 2",
+  FINAL: "Pelunasan",
 };
 
 export const phaseOrder: PaymentPhase[] = [
@@ -143,12 +142,12 @@ type CorePaymentMethod =
 const corePaymentMethodLabel: Record<CorePaymentMethod, string> = {
   qris: "QRIS",
   gopay: "GoPay",
-  bca_va: "BCA Virtual Account",
-  bni_va: "BNI Virtual Account",
-  bri_va: "BRI Virtual Account",
-  mandiri_bill: "Mandiri Bill Payment",
-  permata_va: "Permata Virtual Account",
-  cimb_va: "CIMB Virtual Account",
+  bca_va: "Virtual Account BCA",
+  bni_va: "Virtual Account BNI",
+  bri_va: "Virtual Account BRI",
+  mandiri_bill: "Pembayaran Mandiri Bill",
+  permata_va: "Virtual Account Permata",
+  cimb_va: "Virtual Account CIMB",
 };
 
 const buildCorePayload = (method: CorePaymentMethod) => {
@@ -284,10 +283,32 @@ const PAYMENT_FALLBACK: Record<
 };
 
 export const PAYMENT_PHASE_LABEL: Record<PaymentPhase, string> = {
-  DP: "Down Payment",
-  PROGRESS_1: "Progress 1",
-  PROGRESS_2: "Progress 2",
-  FINAL: "Final Payment",
+  DP: "Uang Muka",
+  PROGRESS_1: "Termin 1",
+  PROGRESS_2: "Termin 2",
+  FINAL: "Pelunasan",
+};
+
+const ORDER_STATUS_LABEL_ID: Record<OrderStatus, string> = {
+  PENDING_PAYMENT: "Menunggu Pembayaran",
+  AWAITING_PRODUCTION: "Menunggu Produksi",
+  IN_PRODUCTION: "Dalam Produksi",
+  READY_TO_SHIP: "Siap Dikirim",
+  SHIPPED: "Dikirim",
+  COMPLETED: "Selesai",
+  CANCELLED: "Dibatalkan",
+};
+
+const getPaymentStatusLabelId = (status?: string | null) => {
+  const normalized = String(status ?? "").toUpperCase();
+  if (normalized === "WAITING_FOR_PAYMENT") return "Menunggu Pembayaran";
+  if (normalized === "CHALLENGE") return "Perlu Verifikasi";
+  if (normalized === "EXPIRED") return "Kedaluwarsa";
+  if (normalized === "PAID") return "Lunas";
+  if (normalized === "CANCELLED") return "Dibatalkan";
+  if (normalized === "DENIED") return "Ditolak";
+  if (normalized === "FAILED") return "Gagal";
+  return getPaymentStatusLabel(normalized);
 };
 
 const getPaymentLogoKey = (payment: CustomOrderPayment) => {
@@ -467,7 +488,13 @@ function MetaItem({
   );
 }
 
-function PaymentHistoryCard({ payment }: { payment: CustomOrderPayment }) {
+function PaymentHistoryCard({
+  payment,
+  paymentAttemptId,
+}: {
+  payment: CustomOrderPayment;
+  paymentAttemptId?: string | null;
+}) {
   const normalizedStatus = String(payment.status ?? "").toUpperCase();
   const Icon = getPaymentStatusIcon(normalizedStatus);
   const phaseLabel = PAYMENT_PHASE_LABEL[payment.phase] ?? payment.phase;
@@ -484,7 +511,7 @@ function PaymentHistoryCard({ payment }: { payment: CustomOrderPayment }) {
     Boolean(permataVaNumber) ||
     Boolean(billerCode) ||
     Boolean(billKey);
-  const fallbackReference = String(payment.midtransReference ?? payment.id);
+  const referenceAttemptId = String(paymentAttemptId ?? "").trim();
 
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/70">
@@ -506,7 +533,7 @@ function PaymentHistoryCard({ payment }: { payment: CustomOrderPayment }) {
               payment.paymentType ??
               "-"}
             <span className="mx-1.5 text-zinc-200 dark:text-zinc-700">|</span>
-            <span className="font-mono">Payment ID: {paymentId}</span>
+            <span className="font-mono">ID Pembayaran: {paymentId}</span>
           </p>
         </div>
         <span
@@ -516,7 +543,7 @@ function PaymentHistoryCard({ payment }: { payment: CustomOrderPayment }) {
           )}
         >
           <Icon size={11} />
-          {getPaymentStatusLabel(normalizedStatus)}
+          {getPaymentStatusLabelId(normalizedStatus)}
         </span>
       </div>
 
@@ -537,7 +564,7 @@ function PaymentHistoryCard({ payment }: { payment: CustomOrderPayment }) {
 
       <div className="space-y-2 px-4 pb-3">
         <p className="text-[10px] font-medium tracking-wide text-zinc-400 uppercase dark:text-zinc-500">
-          Reference
+          Referensi
         </p>
 
         {vaNumbers.length > 0
@@ -599,7 +626,7 @@ function PaymentHistoryCard({ payment }: { payment: CustomOrderPayment }) {
           <div className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-700">
             <div className="min-w-0">
               <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                Mandiri Biller Code
+                Kode Biller Mandiri
               </p>
               <p className="font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                 {billerCode}
@@ -611,7 +638,7 @@ function PaymentHistoryCard({ payment }: { payment: CustomOrderPayment }) {
               size="sm"
               className="h-8 px-2"
               onClick={() =>
-                copyToClipboard(String(billerCode), "Mandiri Biller Code")
+                copyToClipboard(String(billerCode), "Kode Biller Mandiri")
               }
             >
               <Copy className="h-3.5 w-3.5" />
@@ -623,7 +650,7 @@ function PaymentHistoryCard({ payment }: { payment: CustomOrderPayment }) {
           <div className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-700">
             <div className="min-w-0">
               <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                Mandiri Bill Key
+                Kunci Tagihan Mandiri
               </p>
               <p className="font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                 {billKey}
@@ -635,7 +662,7 @@ function PaymentHistoryCard({ payment }: { payment: CustomOrderPayment }) {
               size="sm"
               className="h-8 px-2"
               onClick={() =>
-                copyToClipboard(String(billKey), "Mandiri Bill Key")
+                copyToClipboard(String(billKey), "Kunci Tagihan Mandiri")
               }
             >
               <Copy className="h-3.5 w-3.5" />
@@ -644,19 +671,23 @@ function PaymentHistoryCard({ payment }: { payment: CustomOrderPayment }) {
         ) : null}
 
         {!hasStructuredReference ? (
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-700">
-            <p className="truncate font-mono text-xs text-zinc-700 dark:text-zinc-300">
-              {fallbackReference}
+          <div className="flex items-start justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-700">
+            <p className="min-w-0 flex-1 break-all font-mono text-xs text-zinc-700 dark:text-zinc-300">
+              {referenceAttemptId || "Attempt ID belum tersedia"}
             </p>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2"
-              onClick={() => copyToClipboard(fallbackReference, "Reference")}
-            >
-              <Copy className="h-3.5 w-3.5" />
-            </Button>
+            {referenceAttemptId ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={() =>
+                  copyToClipboard(referenceAttemptId, "Payment Attempt ID")
+                }
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -698,7 +729,7 @@ type PaymentGroup = {
 
 const paymentGroups: PaymentGroup[] = [
   {
-    label: "E-Wallet",
+    label: "Dompet Digital",
     methods: [
       {
         code: "qris",
@@ -719,37 +750,37 @@ const paymentGroups: PaymentGroup[] = [
     methods: [
       {
         code: "bca_va",
-        displayName: "BCA Virtual Account",
+        displayName: "Virtual Account BCA",
         iconPath: "/assets/payment-icons/bca.svg",
         iconAlt: "BCA logo",
       },
       {
         code: "bni_va",
-        displayName: "BNI Virtual Account",
+        displayName: "Virtual Account BNI",
         iconPath: "/assets/payment-icons/bni.png",
         iconAlt: "BNI logo",
       },
       {
         code: "bri_va",
-        displayName: "BRI Virtual Account",
+        displayName: "Virtual Account BRI",
         iconPath: "/assets/payment-icons/bri.svg",
         iconAlt: "BRI logo",
       },
       {
         code: "permata_va",
-        displayName: "Permata Virtual Account",
+        displayName: "Virtual Account Permata",
         iconPath: "/assets/payment-icons/permata.png",
         iconAlt: "Permata Bank logo",
       },
       {
         code: "mandiri_bill",
-        displayName: "Mandiri Bill Payment",
+        displayName: "Pembayaran Mandiri Bill",
         iconPath: "/assets/payment-icons/mandiri.webp",
         iconAlt: "Bank Mandiri logo",
       },
       {
         code: "cimb_va",
-        displayName: "CIMB Virtual Account",
+        displayName: "Virtual Account CIMB",
         iconPath: "/assets/payment-icons/cimb.png",
         iconAlt: "CIMB logo",
       },
@@ -843,8 +874,7 @@ export const BillingDetail = ({
   const [waitingPaymentParam, setWaitingPaymentParam] =
     useQueryState("waiting-payment");
   const { data: order, isLoading, isError } = useGetOrder(orderId);
-  const { data: selectedAttemptDetail } =
-    useGetPaymentAttemptByPayment(paymentAttemptId);
+  const { data: selectedAttemptDetail } = useGetAttemptDetail(paymentAttemptId);
   const { mutateAsync: createSnapPayment, isPending: isCreatingSnapPayment } =
     useCreateSnapPayment();
   const [paymentMethod, setPaymentMethod] = useState<CorePaymentMethod>("qris");
@@ -1007,6 +1037,9 @@ export const BillingDetail = ({
     paymentHistory.find((payment) => payment.phase === currentPhase) ??
     paymentHistory[0] ??
     null;
+  const { data: currentPaymentAttempts } = useGetPaymentAttemptByPayment(
+    currentPaymentDetail?.id,
+  );
   const isSelectedPaymentActive = useMemo(() => {
     return isRetryActivePaymentStatus(selectedHistoryPayment?.status);
   }, [selectedHistoryPayment?.status]);
@@ -1023,32 +1056,32 @@ export const BillingDetail = ({
 
     if (status === "PAID") {
       return {
-        title: "History payment view",
-        description: `This payment was completed for phase ${phase} on ${formatPaymentDate(selectedHistoryPayment.paidAt)}.`,
+        title: "Riwayat pembayaran",
+        description: `Pembayaran untuk tahap ${phase} sudah berhasil pada ${formatPaymentDate(selectedHistoryPayment.paidAt)}.`,
         className:
           "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-300",
       };
     }
     if (status === "EXPIRED") {
       return {
-        title: "Invoice expired",
-        description: `The invoice for phase ${phase} expired on ${formatPaymentDate(selectedHistoryPayment.expiresAt)} and was not paid.`,
+        title: "Tagihan kedaluwarsa",
+        description: `Tagihan untuk tahap ${phase} kedaluwarsa pada ${formatPaymentDate(selectedHistoryPayment.expiresAt)} dan belum dibayar.`,
         className:
           "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300",
       };
     }
     if (status === "CANCELLED") {
       return {
-        title: "Invoice cancelled",
-        description: `The invoice for phase ${phase} was cancelled and cannot be used for payment.`,
+        title: "Tagihan dibatalkan",
+        description: `Tagihan untuk tahap ${phase} sudah dibatalkan dan tidak dapat digunakan untuk pembayaran.`,
         className:
           "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-300",
       };
     }
 
     return {
-      title: `Payment ${getPaymentStatusLabel(status).toLowerCase()}`,
-      description: `This is a history entry for phase ${phase} with status ${getPaymentStatusLabel(status)}.`,
+      title: `Pembayaran ${getPaymentStatusLabelId(status).toLowerCase()}`,
+      description: `Ini adalah riwayat pembayaran untuk tahap ${phase} dengan status ${getPaymentStatusLabelId(status)}.`,
       className:
         "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-300",
     };
@@ -1075,10 +1108,10 @@ export const BillingDetail = ({
       stepsToRender.map((step) => ({
         id: step.phase,
         title: step.label,
-        description:
-          step.state === "completed" || step.state === "current"
-            ? formatPrice(step.amount)
-            : "Upcoming",
+          description:
+            step.state === "completed" || step.state === "current"
+              ? formatPrice(step.amount)
+              : "Berikutnya",
       })),
     [stepsToRender],
   );
@@ -1136,6 +1169,30 @@ export const BillingDetail = ({
     setPaymentRedirectUrl(pendingUrl);
   }, [activePendingIsSnap, livePendingPayment?.paymentUrl, paymentRedirectUrl]);
 
+  const shouldShowPaymentMethodSelector =
+    !isHistoryView && !paymentInstruction && !allPaymentsDone;
+  const currentPaymentAttemptId = useMemo(() => {
+    if (
+      selectedAttemptDetail &&
+      currentPaymentDetail &&
+      selectedAttemptDetail.paymentId === currentPaymentDetail.id
+    ) {
+      return selectedAttemptDetail.id;
+    }
+
+    const attempts = Array.isArray(currentPaymentAttempts)
+      ? [...currentPaymentAttempts]
+      : [];
+    if (!attempts.length) return null;
+
+    attempts.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    return attempts[0]?.id ?? null;
+  }, [currentPaymentAttempts, currentPaymentDetail?.id, selectedAttemptDetail]);
+
   if (isLoading) {
     return (
       <section className="space-y-4">
@@ -1150,15 +1207,15 @@ export const BillingDetail = ({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Billing Detail</CardTitle>
+          <CardTitle>Detail Pembayaran</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm">Order not found.</p>
+          <p className="text-sm">Pesanan tidak ditemukan.</p>
           <Button
             variant="outline"
             onClick={() => router.push("/dashboard/billing")}
           >
-            Back
+            Kembali
           </Button>
         </CardContent>
       </Card>
@@ -1167,20 +1224,20 @@ export const BillingDetail = ({
 
   const handlePayNow = async () => {
     if (!isPayable) {
-      toast.info("This order is not payable.");
+      toast.info("Pesanan ini tidak dapat dibayar.");
       return;
     }
     const pendingUrl = livePendingPayment?.paymentUrl?.trim() || "";
     if (pendingUrl && !activePendingIsSnap) {
       setPaymentRedirectUrl(pendingUrl);
       toast.info(
-        "You already have an active payment invoice. Complete it first.",
+        "Anda sudah memiliki tagihan pembayaran aktif. Selesaikan terlebih dahulu.",
       );
       return;
     }
     if (activePendingIsSnap) {
       toast.error(
-        "There is an old Snap invoice still pending. Please expire/cancel that invoice first, then create a new Core payment.",
+        "Masih ada tagihan Snap lama yang pending. Selesaikan atau batalkan terlebih dahulu sebelum membuat pembayaran Core baru.",
       );
       return;
     }
@@ -1204,7 +1261,7 @@ export const BillingDetail = ({
           Boolean(payment?.billerCode);
 
         if (!hasInstruction) {
-          toast.error("Payment URL is missing.");
+          toast.error("URL pembayaran tidak tersedia.");
           return;
         }
 
@@ -1217,7 +1274,7 @@ export const BillingDetail = ({
           billerCode: payment?.billerCode ?? null,
         });
         void setWaitingPaymentParam("true");
-        toast.success("Payment instruction generated.");
+        toast.success("Instruksi pembayaran berhasil dibuat.");
         return;
       }
       if ((payment?.vaNumbers?.length ?? 0) > 0 || payment?.qrString) {
@@ -1231,12 +1288,12 @@ export const BillingDetail = ({
         });
         void setWaitingPaymentParam("true");
       }
-      toast.info("Redirecting to payment gateway...");
+      toast.info("Mengarahkan ke halaman pembayaran...");
       window.location.assign(paymentUrl);
     } catch (error) {
       const message = getApiErrorMessage(
         error,
-        "Failed to create payment transaction.",
+        "Gagal membuat transaksi pembayaran.",
       );
       if (message.includes("No invoice available for this phase yet")) {
         toast.error(
@@ -1249,7 +1306,7 @@ export const BillingDetail = ({
         message.toLowerCase().includes("conflict with the current state")
       ) {
         toast.error(
-          "Active payment invoice already exists. Please continue the existing payment first.",
+          "Tagihan pembayaran aktif sudah ada. Lanjutkan pembayaran yang sudah tersedia terlebih dahulu.",
         );
         return;
       }
@@ -1267,32 +1324,32 @@ export const BillingDetail = ({
           onClick={() => router.push("/dashboard/billing")}
         >
           <ArrowLeft className="mr-1 h-4 w-4" />
-          Back
+          Kembali
         </Button>
         <Badge className={getOrderStatusBadgeClass(order.status)}>
-          {getOrderStatusLabel(order.status)}
+          {ORDER_STATUS_LABEL_ID[order.status] ?? getOrderStatusLabel(order.status)}
         </Badge>
       </div>
 
       {/* Order Summary */}
       <Card className="py-4">
         <CardHeader className="space-y-4">
-          <CardTitle>Order {orderRef}</CardTitle>
+          <CardTitle>Pesanan {orderRef}</CardTitle>
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="bg-muted/40 rounded-lg p-3 text-sm">
-              <p className="text-muted-foreground">Grand Total</p>
+              <p className="text-muted-foreground">Total Tagihan</p>
               <p className="font-semibold">
                 {formatPrice(Number(order.grandTotalPrice ?? 0))}
               </p>
             </div>
             <div className="bg-muted/40 rounded-lg p-3 text-sm">
-              <p className="text-muted-foreground">Total Paid</p>
+              <p className="text-muted-foreground">Total Dibayar</p>
               <p className="font-semibold">
                 {formatPrice(Number(order.totalPaid ?? 0))}
               </p>
             </div>
             <div className="bg-muted/40 rounded-lg p-3 text-sm">
-              <p className="text-muted-foreground">Remaining</p>
+              <p className="text-muted-foreground">Sisa Pembayaran</p>
               <p className="font-semibold">{formatPrice(remainingAmount)}</p>
             </div>
           </div>
@@ -1301,7 +1358,7 @@ export const BillingDetail = ({
         <CardContent className="space-y-5">
           {/* Payment Stepper */}
           <div className="space-y-3">
-            <p className="text-sm font-semibold">Payment Stepper</p>
+            <p className="text-sm font-semibold">Tahapan Pembayaran</p>
             <Stepper
               steps={paymentStepperItems}
               currentStep={currentStepperPhase}
@@ -1329,18 +1386,17 @@ export const BillingDetail = ({
                 {allPaymentsDone ? (
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                     <p className="text-sm font-semibold text-emerald-700">
-                      All payments are completed
+                      Semua pembayaran sudah selesai
                     </p>
                     <p className="mt-1 text-xs text-emerald-700/90">
-                      Thank you. Your payment is fully settled, please kindly
-                      await the next production or shipping process.
+                      Pembayaran Anda sudah lunas. Silakan tunggu proses produksi atau pengiriman berikutnya.
                     </p>
                   </div>
                 ) : (
-                  <div className="flex flex-row justify-between gap-4">
-                    <div className="basis-1/3 space-y-3">
+                  <div className="grid gap-4 xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)] xl:items-start">
+                    <div className="min-w-0 space-y-3">
                       <p className="text-sm font-semibold">
-                        Current Payment Detail
+                        Detail Pembayaran Saat Ini
                       </p>
                       {!currentPaymentDetail ? (
                         <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 py-10 text-center dark:border-zinc-700 dark:bg-zinc-900/50">
@@ -1351,32 +1407,38 @@ export const BillingDetail = ({
                             />
                           </div>
                           <p className="text-sm font-medium text-zinc-500 dark:text-zinc-300">
-                            No payment detail yet
+                            Belum ada detail pembayaran
                           </p>
                           <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                            Payment detail will appear here once an invoice is
-                            created.
+                            Detail pembayaran akan muncul di sini setelah instruksi pembayaran dibuat.
                           </p>
                         </div>
                       ) : (
-                        <PaymentHistoryCard payment={currentPaymentDetail} />
+                        <PaymentHistoryCard
+                          payment={currentPaymentDetail}
+                          paymentAttemptId={currentPaymentAttemptId}
+                        />
                       )}
                     </div>
 
                     {/* payment method field and instruction */}
-                    <div className="basis-2/3 space-y-3">
-                      <p className="pb-2 text-sm font-semibold">
-                        Payment Method
-                      </p>
-                      <PaymentMethodSelector
-                        value={paymentMethod}
-                        onChange={(v) => {
-                          setPaymentMethod(v);
-                        }}
-                        disabled={isCreatingSnapPayment}
-                      />
+                    <div className="min-w-0 space-y-3">
+                      {shouldShowPaymentMethodSelector ? (
+                        <>
+                          <p className="pb-2 text-sm font-semibold">
+                            Metode Pembayaran
+                          </p>
+                          <PaymentMethodSelector
+                            value={paymentMethod}
+                            onChange={(v) => {
+                              setPaymentMethod(v);
+                            }}
+                            disabled={isCreatingSnapPayment}
+                          />
+                        </>
+                      ) : null}
 
-                      <div>
+                      <div className="min-w-0">
                         {!isHistoryView ? (
                           <>
                             {/* Payment Instruction (VA / QR result) */}
@@ -1388,11 +1450,11 @@ export const BillingDetail = ({
                               <Button
                                 variant="outline"
                                 className="w-full"
-                                onClick={() =>
+                              onClick={() =>
                                   window.open(paymentRedirectUrl, "_blank")
                                 }
                               >
-                                Open Existing Payment Page
+                                Buka Halaman Pembayaran
                               </Button>
                             ) : null}
                           </>
@@ -1400,10 +1462,10 @@ export const BillingDetail = ({
                       </div>
                       <div className="space-y-3">
                         {/* Summary row */}
-                        {isPayable && (
+                        {isPayable && shouldShowPaymentMethodSelector && (
                           <div className="bg-muted/40 flex items-center justify-between rounded-lg px-3 py-2 text-sm">
                             <span className="text-muted-foreground">
-                              {PHASE_LABEL[currentPhase]} via{" "}
+                              {PAYMENT_PHASE_LABEL[currentPhase]} melalui{" "}
                               {corePaymentMethodLabel[paymentMethod]}
                             </span>
                             <span className="font-semibold">
@@ -1414,29 +1476,30 @@ export const BillingDetail = ({
 
                         {allPaymentsDone ? (
                           <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-sm font-medium text-emerald-700">
-                            All payments are done. Thank you, please kindly
-                            await the next process.
+                            Semua pembayaran sudah selesai. Silakan tunggu proses berikutnya.
                           </div>
                         ) : (
                           <>
-                            <Button
-                              className="w-full"
-                              onClick={handlePayNow}
-                              disabled={!isPayable || isCreatingSnapPayment}
-                            >
-                              {isCreatingSnapPayment ? (
-                                "Redirecting..."
-                              ) : (
-                                <>
-                                  <CreditCard className="mr-2 h-4 w-4" />
-                                  Pay Now
-                                </>
-                              )}
-                            </Button>
+                            {!paymentInstruction ? (
+                              <Button
+                                className="w-full"
+                                onClick={handlePayNow}
+                                disabled={!isPayable || isCreatingSnapPayment}
+                              >
+                                {isCreatingSnapPayment ? (
+                                  "Membuat instruksi pembayaran..."
+                                ) : (
+                                  <>
+                                    <CreditCard className="mr-2 h-4 w-4" />
+                                    Buat Instruksi Pembayaran
+                                  </>
+                                )}
+                              </Button>
+                            ) : null}
 
                             {!isPayable && (
                               <p className="text-muted-foreground text-center text-xs">
-                                This order is no longer payable.
+                                Pesanan ini sudah tidak dapat dibayar.
                               </p>
                             )}
                           </>

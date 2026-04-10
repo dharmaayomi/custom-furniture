@@ -1,41 +1,40 @@
 "use client";
 
-import React from "react";
-import { motion } from "framer-motion";
-import { Quote, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { motion } from "framer-motion";
+import { Check, Quote } from "lucide-react";
 
 const testimonials = [
   {
     quote:
-      "The 3D preview helped us validate cabinet size before production. Installation day was smooth and exactly as planned.",
+      "Pratinjau 3D membantu kami memvalidasi ukuran kabinet sebelum produksi. Hari pemasangan berjalan lancar dan persis seperti yang direncanakan.",
     author: "Nadia Putri",
-    role: "Homeowner, Jakarta",
+    role: "Pemilik Rumah, Jakarta",
     avatar:
       "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=128&h=128&fit=crop&crop=faces",
   },
   {
     quote:
-      "From material selection to checkout, the workflow is clear. Our interior team can now present options much faster.",
+      "Dari pemilihan material hingga checkout, alurnya sangat jelas. Tim interior kami kini bisa mempresentasikan pilihan jauh lebih cepat.",
     author: "Rizky Mahendra",
-    role: "Interior Consultant",
+    role: "Konsultan Interior",
     avatar:
       "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=128&h=128&fit=crop&crop=faces",
   },
   {
     quote:
-      "Clients trust the process because they can review dimensions, components, and pricing before confirming the order.",
+      "Klien mempercayai prosesnya karena mereka bisa meninjau dimensi, komponen, dan harga sebelum mengkonfirmasi pesanan.",
     author: "Kevin Wijaya",
-    role: "Project Manager, Studio Furni",
+    role: "Manajer Proyek, Studio Furni",
     avatar:
       "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=128&h=128&fit=crop&crop=faces",
   },
   {
     quote:
-      "The delivery details in checkout are very helpful. We can confirm fulfillment, distance, and address in one place.",
+      "Detail pengiriman di checkout sangat membantu. Kami bisa mengkonfirmasi pemenuhan, jarak, dan alamat dalam satu tempat.",
     author: "Sinta Lestari",
-    role: "Operations Lead, Custom Furniture",
+    role: "Kepala Operasional, Custom Furniture",
     avatar:
       "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=128&h=128&fit=crop&crop=faces",
   },
@@ -61,11 +60,11 @@ export default function Testimonial04() {
             </Badge>
           </motion.div>
           <h2 className="text-4xl leading-[1.1] font-black tracking-tighter md:text-6xl">
-            Trusted by{" "}
+            Dipercaya oleh{" "}
             <span className="text-primary decoration-primary/20 italic underline underline-offset-8">
-              homeowners and interior teams
+              pemilik rumah dan tim interior
             </span>{" "}
-            building custom spaces.
+            yang membangun ruang kustom.
           </h2>
         </div>
       </div>

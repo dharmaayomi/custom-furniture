@@ -19,12 +19,11 @@ import {
   getOrderStatusBadgeClass,
   getOrderStatusLabel,
 } from "@/lib/orderStatus";
-import { OrderStatus } from "@/types/customOrder";
+import { CustomOrder, OrderStatus } from "@/types/customOrder";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { useMemo, useState } from "react";
 
-// --- Types & Constants (Keep logic as is) ---
 type OrderItem = {
   previewUrl: string;
   orderId: string;
@@ -33,8 +32,54 @@ type OrderItem = {
   subtitle: string;
   amount: string;
   orderDate: string;
-  status: OrderStatus;
+  status: OrderStatus | null;
   itemCount: number;
+  hasPendingPayment: boolean;
+};
+
+const getDisplayOrderStatusLabel = (status: OrderStatus | null) => {
+  if (!status) return "Unknown Status";
+  return getOrderStatusLabel(status);
+};
+
+const getDisplayOrderStatusBadgeClass = (status: OrderStatus | null) => {
+  if (!status) {
+    return "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200";
+  }
+  return getOrderStatusBadgeClass(status);
+};
+
+const isOrderAwaitingPayment = (order: CustomOrder) => {
+  const grandTotal = Number(order.grandTotalPrice ?? 0);
+  const totalPaid = Number(order.totalPaid ?? 0);
+  const remainingValue = Number(order.remaining ?? grandTotal - totalPaid);
+  const remaining = Number.isFinite(remainingValue)
+    ? Math.max(0, remainingValue)
+    : 0;
+
+  if (remaining <= 0) return false;
+  if (grandTotal > 0 && totalPaid >= grandTotal) return false;
+
+  const currentPaymentStatus = String(
+    order.currentPaymentStatus ?? "",
+  ).toUpperCase();
+  if (currentPaymentStatus === "PAID") return false;
+  if (
+    currentPaymentStatus === "WAITING_FOR_PAYMENT" ||
+    currentPaymentStatus === "CHALLENGE"
+  ) {
+    return true;
+  }
+
+  const hasLivePendingPayment = (order.payments ?? []).some((payment) => {
+    const status = String(payment.status ?? "").toUpperCase();
+    return status === "WAITING_FOR_PAYMENT" || status === "CHALLENGE";
+  });
+  if (hasLivePendingPayment) {
+    return true;
+  }
+
+  return order.status === "PENDING_PAYMENT";
 };
 
 const ORDER_TABS = [
@@ -61,6 +106,7 @@ export const OrdersPage = () => {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
     .map((order) => ({
+      hasPendingPayment: isOrderAwaitingPayment(order),
       orderId: order.id,
       previewUrl: order.previewUrl || "",
       id: order.orderNumber?.trim() || order.id,
@@ -73,14 +119,15 @@ export const OrdersPage = () => {
         day: "2-digit",
         year: "numeric",
       }),
-      status: order.status,
+      status: order.status ?? null,
     }));
 
   // Filtering Logic
-  const pendingPayment = all.filter((i) => i.status === "PENDING_PAYMENT");
-  const orderHistory = all.filter((i) => i.status !== "PENDING_PAYMENT");
+  const pendingPayment = all.filter((i) => i.hasPendingPayment);
+  const orderHistory = all.filter((i) => !i.hasPendingPayment);
   const productionQueue = all.filter((i) =>
-    ["AWAITING_PRODUCTION", "IN_PRODUCTION"].includes(i.status),
+    Boolean(i.status) &&
+      ["AWAITING_PRODUCTION", "IN_PRODUCTION"].includes(i.status),
   );
   const readyToShip = all.filter((i) => i.status === "READY_TO_SHIP");
   const shipped = all.filter((i) => i.status === "SHIPPED");
@@ -199,11 +246,11 @@ export const OrdersPage = () => {
 
               {/* Badge Status di Atas Gambar */}
               <div className="absolute top-3 right-3">
-                <Badge
-                  className={`border-none px-3 py-1 text-[10px] font-bold uppercase shadow-lg backdrop-blur-md ${getOrderStatusBadgeClass(item.status)}`}
-                >
-                  {getOrderStatusLabel(item.status)}
-                </Badge>
+                  <Badge
+                    className={`border-none px-3 py-1 text-[10px] font-bold uppercase shadow-lg backdrop-blur-md ${getDisplayOrderStatusBadgeClass(item.status)}`}
+                  >
+                    {getDisplayOrderStatusLabel(item.status)}
+                  </Badge>
               </div>
             </div>
 
@@ -324,9 +371,9 @@ export const OrdersPage = () => {
               </p>
               <div className="flex items-center gap-2">
                 <Badge
-                  className={`px-2.5 py-0.5 text-[10px] font-bold tracking-wider uppercase ${getOrderStatusBadgeClass(item.status)}`}
+                  className={`px-2.5 py-0.5 text-[10px] font-bold tracking-wider uppercase ${getDisplayOrderStatusBadgeClass(item.status)}`}
                 >
-                  {getOrderStatusLabel(item.status)}
+                  {getDisplayOrderStatusLabel(item.status)}
                 </Badge>
                 <ChevronRight className="text-muted-foreground/50 hidden h-5 w-5 transition-transform group-hover:translate-x-1 sm:block" />
               </div>
