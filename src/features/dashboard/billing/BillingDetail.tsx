@@ -13,6 +13,7 @@ import {
 } from "@/features/dashboard/billing/components/PaymentInstruction";
 import useCreateSnapPayment from "@/hooks/api/payment/useCreateSnapPayment";
 import useGetAttemptDetail from "@/hooks/api/payment/useGetAttemptDetail";
+import useGetPaymentAttemptByPayment from "@/hooks/api/payment/useGetPaymentAttemptByPayment";
 import useGetOrder from "@/hooks/api/order/useGetOrder";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { PaymentInstructionMethod } from "@/lib/bankInstruction";
@@ -45,8 +46,6 @@ import { useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-const useGetPaymentAttemptByPayment = useGetAttemptDetail;
 
 export type StepState = "completed" | "current" | "upcoming";
 
@@ -489,7 +488,13 @@ function MetaItem({
   );
 }
 
-function PaymentHistoryCard({ payment }: { payment: CustomOrderPayment }) {
+function PaymentHistoryCard({
+  payment,
+  paymentAttemptId,
+}: {
+  payment: CustomOrderPayment;
+  paymentAttemptId?: string | null;
+}) {
   const normalizedStatus = String(payment.status ?? "").toUpperCase();
   const Icon = getPaymentStatusIcon(normalizedStatus);
   const phaseLabel = PAYMENT_PHASE_LABEL[payment.phase] ?? payment.phase;
@@ -506,7 +511,7 @@ function PaymentHistoryCard({ payment }: { payment: CustomOrderPayment }) {
     Boolean(permataVaNumber) ||
     Boolean(billerCode) ||
     Boolean(billKey);
-  const fallbackReference = String(payment.midtransReference ?? payment.id);
+  const referenceAttemptId = String(paymentAttemptId ?? "").trim();
 
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/70">
@@ -666,19 +671,23 @@ function PaymentHistoryCard({ payment }: { payment: CustomOrderPayment }) {
         ) : null}
 
         {!hasStructuredReference ? (
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-700">
-            <p className="truncate font-mono text-xs text-zinc-700 dark:text-zinc-300">
-              {fallbackReference}
+          <div className="flex items-start justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-700">
+            <p className="min-w-0 flex-1 break-all font-mono text-xs text-zinc-700 dark:text-zinc-300">
+              {referenceAttemptId || "Attempt ID belum tersedia"}
             </p>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2"
-              onClick={() => copyToClipboard(fallbackReference, "Referensi")}
-            >
-              <Copy className="h-3.5 w-3.5" />
-            </Button>
+            {referenceAttemptId ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={() =>
+                  copyToClipboard(referenceAttemptId, "Payment Attempt ID")
+                }
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -865,8 +874,7 @@ export const BillingDetail = ({
   const [waitingPaymentParam, setWaitingPaymentParam] =
     useQueryState("waiting-payment");
   const { data: order, isLoading, isError } = useGetOrder(orderId);
-  const { data: selectedAttemptDetail } =
-    useGetPaymentAttemptByPayment(paymentAttemptId);
+  const { data: selectedAttemptDetail } = useGetAttemptDetail(paymentAttemptId);
   const { mutateAsync: createSnapPayment, isPending: isCreatingSnapPayment } =
     useCreateSnapPayment();
   const [paymentMethod, setPaymentMethod] = useState<CorePaymentMethod>("qris");
@@ -1029,6 +1037,9 @@ export const BillingDetail = ({
     paymentHistory.find((payment) => payment.phase === currentPhase) ??
     paymentHistory[0] ??
     null;
+  const { data: currentPaymentAttempts } = useGetPaymentAttemptByPayment(
+    currentPaymentDetail?.id,
+  );
   const isSelectedPaymentActive = useMemo(() => {
     return isRetryActivePaymentStatus(selectedHistoryPayment?.status);
   }, [selectedHistoryPayment?.status]);
@@ -1160,6 +1171,27 @@ export const BillingDetail = ({
 
   const shouldShowPaymentMethodSelector =
     !isHistoryView && !paymentInstruction && !allPaymentsDone;
+  const currentPaymentAttemptId = useMemo(() => {
+    if (
+      selectedAttemptDetail &&
+      currentPaymentDetail &&
+      selectedAttemptDetail.paymentId === currentPaymentDetail.id
+    ) {
+      return selectedAttemptDetail.id;
+    }
+
+    const attempts = Array.isArray(currentPaymentAttempts)
+      ? [...currentPaymentAttempts]
+      : [];
+    if (!attempts.length) return null;
+
+    attempts.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    return attempts[0]?.id ?? null;
+  }, [currentPaymentAttempts, currentPaymentDetail?.id, selectedAttemptDetail]);
 
   if (isLoading) {
     return (
@@ -1361,8 +1393,8 @@ export const BillingDetail = ({
                     </p>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
-                    <div className="w-full space-y-3 xl:basis-5/12">
+                  <div className="grid gap-4 xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)] xl:items-start">
+                    <div className="min-w-0 space-y-3">
                       <p className="text-sm font-semibold">
                         Detail Pembayaran Saat Ini
                       </p>
@@ -1382,12 +1414,15 @@ export const BillingDetail = ({
                           </p>
                         </div>
                       ) : (
-                        <PaymentHistoryCard payment={currentPaymentDetail} />
+                        <PaymentHistoryCard
+                          payment={currentPaymentDetail}
+                          paymentAttemptId={currentPaymentAttemptId}
+                        />
                       )}
                     </div>
 
                     {/* payment method field and instruction */}
-                    <div className="w-full space-y-3 xl:basis-7/12">
+                    <div className="min-w-0 space-y-3">
                       {shouldShowPaymentMethodSelector ? (
                         <>
                           <p className="pb-2 text-sm font-semibold">
@@ -1403,7 +1438,7 @@ export const BillingDetail = ({
                         </>
                       ) : null}
 
-                      <div>
+                      <div className="min-w-0">
                         {!isHistoryView ? (
                           <>
                             {/* Payment Instruction (VA / QR result) */}

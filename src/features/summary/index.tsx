@@ -20,6 +20,9 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import useCreateCustomOrder from "@/hooks/api/order/useCreateCustomOrder";
+import useGetDeliveryFeeEstimates, {
+  DeliveryFeeEstimate,
+} from "@/hooks/api/order/useGetDeliveryFeeEstimates";
 import useCreateNewAddress, {
   CreateAddressInput,
 } from "@/hooks/api/user/useCreateNewAddress";
@@ -67,33 +70,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 const getAddressOptionLabel = (address: Address) =>
   `${address.label} - ${address.recipientName}`;
 
-const normalizeRegionToken = (value?: string | null) =>
-  (value ?? "").trim().toLowerCase();
-
-const JABODETABEK_KEYWORDS = [
-  "jakarta",
-  "bogor",
-  "depok",
-  "tangerang",
-  "bekasi",
-];
-
-const isJabodetabekAddress = (address?: Address | null) => {
-  if (!address) return false;
-
-  const haystacks = [
-    address.city,
-    address.district,
-    address.subdistrict,
-    address.province,
-  ].map(normalizeRegionToken);
-
-  return haystacks.some((token) =>
-    JABODETABEK_KEYWORDS.some((keyword) => token.includes(keyword)),
-  );
-};
-
 type FulfillmentOption = DeliveryType;
+const FULFILLMENT_OPTION_ORDER: FulfillmentOption[] = [
+  "DELIVERY",
+  "STORE_DELIVERY",
+  "PICKUP",
+];
 
 const getFulfillmentLabel = (option: FulfillmentOption) => {
   if (option === "DELIVERY") return "JNE Kargo";
@@ -101,14 +83,33 @@ const getFulfillmentLabel = (option: FulfillmentOption) => {
   return "Ambil di toko";
 };
 
+const getFulfillmentDescription = (estimate?: DeliveryFeeEstimate | null) => {
+  if (!estimate) return "Pilih alamat lalu cek opsi fulfillment.";
+  if (!estimate.available) {
+    if (estimate.type === "DELIVERY") {
+      return "JNE Kargo belum tersedia untuk alamat ini.";
+    }
+    if (estimate.type === "STORE_DELIVERY") {
+      return "Kurir toko belum tersedia untuk alamat ini.";
+    }
+  }
+  if (estimate.type === "DELIVERY") {
+    return "Pengiriman reguler ke alamat yang dipilih.";
+  }
+  if (estimate.type === "STORE_DELIVERY") {
+    return "Pengiriman lokal dari toko ke alamat yang dipilih.";
+  }
+  return "Ambil pesanan langsung di toko tanpa ongkir.";
+};
+
 const getFulfillmentNotice = (option: FulfillmentOption) => {
   if (option === "DELIVERY") {
-    return "JNE Kargo menggunakan alamat aktif. Ongkir final dihitung saat checkout.";
+    return "JNE Kargo akan dikirim ke alamat yang dipilih.";
   }
   if (option === "STORE_DELIVERY") {
-    return "Kurir toko memerlukan alamat aktif. Biaya pengiriman final dihitung saat checkout.";
+    return "Kurir toko akan mengantar ke alamat yang dipilih.";
   }
-  return "Ambil di toko tidak memerlukan alamat pengiriman.";
+  return "Ambil langsung di toko sesuai jadwal pickup.";
 };
 
 export default function SummaryDesignPage() {
@@ -119,6 +120,11 @@ export default function SummaryDesignPage() {
   const [discountApplied, setDiscountApplied] = useState(false);
   const [fulfillmentOption, setFulfillmentOption] =
     useState<FulfillmentOption>("DELIVERY");
+  const [hasCalculatedFulfillment, setHasCalculatedFulfillment] =
+    useState(false);
+  const [fulfillmentEstimates, setFulfillmentEstimates] = useState<
+    DeliveryFeeEstimate[]
+  >([]);
   const [selectedAddressValue, setSelectedAddressValue] = useState("");
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const { data: addressesData, refetch: refetchAddresses } =
@@ -138,6 +144,10 @@ export default function SummaryDesignPage() {
     });
   const { mutateAsync: createCustomOrder, isPending: isCreatingOrder } =
     useCreateCustomOrder();
+  const {
+    mutateAsync: getDeliveryFeeEstimates,
+    isPending: isCalculatingFulfillment,
+  } = useGetDeliveryFeeEstimates();
 
   useEffect(() => {
     setPayload(loadSummaryPayload());
@@ -180,35 +190,29 @@ export default function SummaryDesignPage() {
       ) ?? (selectedAddressValue ? sortedAddresses[0] : undefined),
     [sortedAddresses, selectedAddressValue],
   );
-  const supportsStoreDelivery = useMemo(
-    () => isJabodetabekAddress(selectedAddress),
-    [selectedAddress],
-  );
-  const storeDeliveryDisabledReason = !selectedAddress
-    ? "Pilih alamat terlebih dahulu untuk mengecek cakupan Store Delivery."
-    : !supportsStoreDelivery
-      ? "Store Delivery hanya tersedia untuk alamat Jabodetabek."
-      : null;
   const requiresAddress = deliveryTypeUsesAddress(fulfillmentOption);
   const checkoutDeliveryType: DeliveryType = fulfillmentOption;
   const subtotal = payload?.subtotal ?? 0;
   const discount =
     discountApplied && promoCode === "SAVE10" ? subtotal * 0.1 : 0;
-  const estimatedTotal = subtotal - discount;
   const totalItems = useMemo(
     () => payload?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0,
     [payload],
   );
+  const selectedFulfillmentEstimate = useMemo(
+    () => fulfillmentEstimates.find((item) => item.type === fulfillmentOption),
+    [fulfillmentEstimates, fulfillmentOption],
+  );
+  const estimatedShippingFee = hasCalculatedFulfillment
+    ? Number(selectedFulfillmentEstimate?.fee ?? 0)
+    : 0;
+  const estimatedTotal = subtotal - discount + estimatedShippingFee;
 
   useEffect(() => {
-    if (fulfillmentOption !== "STORE_DELIVERY") return;
-    if (supportsStoreDelivery) return;
-
+    setHasCalculatedFulfillment(false);
+    setFulfillmentEstimates([]);
     setFulfillmentOption("DELIVERY");
-    if (selectedAddress) {
-      toast.error("Store Delivery hanya tersedia untuk alamat Jabodetabek.");
-    }
-  }, [fulfillmentOption, selectedAddress, supportsStoreDelivery]);
+  }, [selectedAddressValue]);
 
   const handleCreateAddress = async (data: SummaryAddressFormData) => {
     if (!userId) {
@@ -239,32 +243,52 @@ export default function SummaryDesignPage() {
     await refetchAddresses();
   };
 
-  const handleSaveFulfillment = () => {
-    if (requiresAddress && !selectedAddress) {
-      toast.error(
-        "Pilih alamat terlebih dahulu sebelum menyimpan fulfillment.",
-      );
+  const handleCalculateFulfillment = async () => {
+    if (!selectedAddress) {
+      toast.error("Pilih alamat terlebih dahulu sebelum menghitung estimasi.");
       return;
     }
-    if (fulfillmentOption === "STORE_DELIVERY" && !supportsStoreDelivery) {
-      toast.error("Store Delivery hanya tersedia untuk alamat Jabodetabek.");
+
+    if (!payload?.configuration) {
+      toast.error("Konfigurasi desain tidak ditemukan.");
       return;
     }
-    const addressLabel = selectedAddress
-      ? getAddressOptionLabel(selectedAddress)
-      : "Tanpa alamat";
-    toast.success(
-      `Pilihan fulfillment disimpan: ${getFulfillmentLabel(fulfillmentOption)}${requiresAddress ? `, ${addressLabel}` : ""}.`,
-    );
+
+    try {
+      const estimates = await getDeliveryFeeEstimates({
+        addressId: selectedAddress.id,
+        configuration: payload.configuration,
+      });
+      const sortedEstimates = FULFILLMENT_OPTION_ORDER.map(
+        (option) => estimates.find((item) => item.type === option),
+      ).filter((item): item is DeliveryFeeEstimate => Boolean(item));
+      const fallbackOption =
+        sortedEstimates.find(
+          (item) => item.type === fulfillmentOption && item.available,
+        )?.type ??
+        sortedEstimates.find((item) => item.available)?.type ??
+        "PICKUP";
+
+      setFulfillmentEstimates(sortedEstimates);
+      setFulfillmentOption(fallbackOption);
+      setHasCalculatedFulfillment(true);
+    } catch {
+      setHasCalculatedFulfillment(false);
+      setFulfillmentEstimates([]);
+    }
   };
 
   const handleProceedCheckout = async () => {
+    if (!hasCalculatedFulfillment || !selectedFulfillmentEstimate) {
+      toast.error("Pilih alamat lalu cek opsi fulfillment terlebih dahulu.");
+      return;
+    }
     if (requiresAddress && !selectedAddress) {
       toast.error("Silakan pilih alamat pengiriman terlebih dahulu.");
       return;
     }
-    if (checkoutDeliveryType === "STORE_DELIVERY" && !supportsStoreDelivery) {
-      toast.error("Store Delivery hanya tersedia untuk alamat Jabodetabek.");
+    if (!selectedFulfillmentEstimate.available) {
+      toast.error("Metode fulfillment yang dipilih belum tersedia.");
       return;
     }
     const fallbackDesignCode = loadDesignCodeFromStorage().trim();
@@ -449,244 +473,208 @@ export default function SummaryDesignPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 px-5 pb-5">
-                  <div className="bg-muted/50 grid grid-cols-3 gap-1 rounded-xl p-1">
-                    <button
-                      type="button"
-                      onClick={() => setFulfillmentOption("DELIVERY")}
-                      className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-all ${
-                        fulfillmentOption === "DELIVERY"
-                          ? "bg-background text-foreground ring-border/60 shadow-sm ring-1"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <Truck className="h-3.5 w-3.5" />
-                      JNE Kargo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFulfillmentOption("STORE_DELIVERY")}
-                      disabled={!supportsStoreDelivery}
-                      title={storeDeliveryDisabledReason ?? undefined}
-                      className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-all ${
-                        fulfillmentOption === "STORE_DELIVERY"
-                          ? "bg-background text-foreground ring-border/60 shadow-sm ring-1"
-                          : "text-muted-foreground hover:text-foreground"
-                      } ${
-                        !supportsStoreDelivery
-                          ? "hover:text-muted-foreground cursor-not-allowed opacity-50"
-                          : ""
-                      }`}
-                    >
-                      <Truck className="h-3.5 w-3.5" />
-                      Store Delivery
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFulfillmentOption("PICKUP")}
-                      className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-all ${
-                        fulfillmentOption === "PICKUP"
-                          ? "bg-background text-foreground ring-border/60 shadow-sm ring-1"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <Store className="h-3.5 w-3.5" />
-                      Ambil di toko
-                    </button>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
+                        <MapPin className="h-3 w-3" />
+                        Alamat Pengiriman
+                      </p>
+                      {selectedAddress?.isDefault && (
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-200 bg-emerald-100 px-1.5 py-0 text-[10px] text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+                        >
+                          Utama
+                        </Badge>
+                      )}
+                    </div>
+
+                    {sortedAddresses.length > 0 ? (
+                      <>
+                        <Combobox
+                          items={addressOptions}
+                          value={selectedAddressValue}
+                          itemToStringLabel={(value) =>
+                            addressLabelById[String(value)] ?? String(value)
+                          }
+                          onValueChange={(value) =>
+                            setSelectedAddressValue(value ?? "")
+                          }
+                        >
+                          <ComboboxInput
+                            placeholder="Pilih alamat pengiriman"
+                            className="w-full text-xs md:text-sm"
+                            showClear
+                          />
+                          <ComboboxContent>
+                            <ComboboxEmpty>
+                              Alamat tidak ditemukan.
+                            </ComboboxEmpty>
+                            <ComboboxList>
+                              {(item) => {
+                                const address = sortedAddresses.find(
+                                  (entry) => String(entry.id) === item,
+                                );
+                                return (
+                                  <ComboboxItem key={item} value={item}>
+                                    {address
+                                      ? getAddressOptionLabel(address)
+                                      : item}
+                                    {address?.isDefault ? " (Utama)" : ""}
+                                  </ComboboxItem>
+                                );
+                              }}
+                            </ComboboxList>
+                          </ComboboxContent>
+                        </Combobox>
+
+                        {selectedAddress ? (
+                          <div className="bg-muted/40 space-y-0.5 rounded-xl p-3 text-xs">
+                            <p className="text-foreground font-semibold">
+                              {selectedAddress.recipientName}{" "}
+                              <span className="text-muted-foreground font-normal">
+                                ({selectedAddress.phoneNumber})
+                              </span>
+                            </p>
+                            <p className="text-muted-foreground">
+                              {selectedAddress.line1}
+                              {selectedAddress.line2
+                                ? `, ${selectedAddress.line2}`
+                                : ""}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {selectedAddress.district}, {selectedAddress.city},{" "}
+                              {selectedAddress.province}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {selectedAddress.country} {selectedAddress.postalCode}
+                            </p>
+                          </div>
+                        ) : null}
+
+                        <button
+                          type="button"
+                          onClick={() => setIsAddressModalOpen(true)}
+                          className="text-primary flex items-center gap-1 text-xs font-medium hover:underline"
+                        >
+                          <Plus className="h-3 w-3" />
+                          Tambah alamat baru
+                        </button>
+                      </>
+                    ) : (
+                      <div className="rounded-xl border border-dashed p-4 text-center">
+                        <MapPin className="text-muted-foreground/40 mx-auto mb-2 h-6 w-6" />
+                        <p className="text-muted-foreground mb-2 text-xs">
+                          Belum ada alamat.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddressModalOpen(true)}
+                          className="text-primary text-xs font-semibold hover:underline"
+                        >
+                          Tambah alamat pertama
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
-                    {getFulfillmentNotice(fulfillmentOption)}
+                    Pilih alamat terlebih dahulu, lalu cek opsi fulfillment untuk melihat ongkir setiap metode.
                   </div>
-                  {storeDeliveryDisabledReason ? (
-                    <p className="text-muted-foreground text-xs">
-                      {storeDeliveryDisabledReason}
-                    </p>
-                  ) : null}
-
-                  {requiresAddress ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
-                          <MapPin className="h-3 w-3" />
-                          Alamat Pengiriman
-                        </p>
-                        {selectedAddress?.isDefault && (
-                          <Badge
-                            variant="outline"
-                            className="border-emerald-200 bg-emerald-100 px-1.5 py-0 text-[10px] text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300"
-                          >
-                            Utama
-                          </Badge>
-                        )}
-                        {supportsStoreDelivery && (
-                          <Badge
-                            variant="outline"
-                            className="border-sky-200 bg-sky-100 px-1.5 py-0 text-[10px] text-sky-800 dark:border-sky-800/50 dark:bg-sky-950/40 dark:text-sky-300"
-                          >
-                            Jabodetabek
-                          </Badge>
-                        )}
-                      </div>
-
-                      {sortedAddresses.length > 0 ? (
-                        <>
-                          <Combobox
-                            items={addressOptions}
-                            value={selectedAddressValue}
-                            itemToStringLabel={(value) =>
-                              addressLabelById[String(value)] ?? String(value)
-                            }
-                            onValueChange={(value) =>
-                              setSelectedAddressValue(value ?? "")
-                            }
-                          >
-                            <ComboboxInput
-                              placeholder="Pilih alamat pengiriman"
-                              className="w-full text-xs md:text-sm"
-                              showClear
-                            />
-                            <ComboboxContent>
-                              <ComboboxEmpty>
-                                Alamat tidak ditemukan.
-                              </ComboboxEmpty>
-                              <ComboboxList>
-                                {(item) => {
-                                  const address = sortedAddresses.find(
-                                    (entry) => String(entry.id) === item,
-                                  );
-                                  return (
-                                    <ComboboxItem key={item} value={item}>
-                                      {address
-                                        ? getAddressOptionLabel(address)
-                                        : item}
-                                      {address?.isDefault ? " (Utama)" : ""}
-                                    </ComboboxItem>
-                                  );
-                                }}
-                              </ComboboxList>
-                            </ComboboxContent>
-                          </Combobox>
-
-                          {selectedAddress && (
-                            <div className="bg-muted/40 space-y-0.5 rounded-xl p-3 text-xs">
-                              <p className="text-foreground font-semibold">
-                                {selectedAddress.recipientName}{" "}
-                                <span className="text-muted-foreground font-normal">
-                                  ({selectedAddress.phoneNumber})
-                                </span>
-                              </p>
-                              <p className="text-muted-foreground">
-                                {selectedAddress.line1}
-                                {selectedAddress.line2
-                                  ? `, ${selectedAddress.line2}`
-                                  : ""}
-                              </p>
-                              <p className="text-muted-foreground">
-                                {selectedAddress.district},{" "}
-                                {selectedAddress.city},{" "}
-                                {selectedAddress.province}
-                              </p>
-                              <p className="text-muted-foreground">
-                                {selectedAddress.country}{" "}
-                                {selectedAddress.postalCode}
-                              </p>
-                            </div>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => setIsAddressModalOpen(true)}
-                            className="text-primary flex items-center gap-1 text-xs font-medium hover:underline"
-                          >
-                            <Plus className="h-3 w-3" />
-                            Tambah alamat baru
-                          </button>
-                        </>
-                      ) : (
-                        <div className="rounded-xl border border-dashed p-4 text-center">
-                          <MapPin className="text-muted-foreground/40 mx-auto mb-2 h-6 w-6" />
-                          <p className="text-muted-foreground mb-2 text-xs">
-                            Belum ada alamat.
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => setIsAddressModalOpen(true)}
-                            className="text-primary text-xs font-semibold hover:underline"
-                          >
-                            Tambah alamat pertama
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="bg-muted/40 text-muted-foreground flex items-start gap-2.5 rounded-xl p-3 text-xs">
-                      <Store className="mt-0.5 h-4 w-4 shrink-0" />
-                      <span>
-                        Ambil di toko dipilih, jadi alamat tidak wajib.
-                      </span>
-                    </div>
-                  )}
 
                   <Button
                     type="button"
                     variant="outline"
                     className="w-full"
-                    onClick={handleSaveFulfillment}
+                    onClick={handleCalculateFulfillment}
+                    disabled={
+                      !selectedAddress ||
+                      !payload?.configuration ||
+                      isCalculatingFulfillment
+                    }
                   >
-                    Hitung Estimasi Ongkir
+                    {isCalculatingFulfillment
+                      ? "Menghitung opsi fulfillment..."
+                      : "Cek Opsi Fulfillment"}
                   </Button>
+                  {hasCalculatedFulfillment ? (
+                    <div className="space-y-3">
+                      <Separator />
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold">
+                          Pilih Metode Fulfillment
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          Ongkir di bawah ini mengikuti alamat yang dipilih.
+                        </p>
+                      </div>
+                      <RadioGroup
+                        value={fulfillmentOption}
+                        onValueChange={(value) =>
+                          setFulfillmentOption(value as FulfillmentOption)
+                        }
+                        className="max-w-full space-y-2"
+                      >
+                        {fulfillmentEstimates.map((estimate) => {
+                          const icon =
+                            estimate.type === "PICKUP" ? (
+                              <Store className="h-3.5 w-3.5" />
+                            ) : (
+                              <Truck className="h-3.5 w-3.5" />
+                            );
+
+                          return (
+                            <FieldLabel
+                              key={estimate.type}
+                              htmlFor={`fulfillment-${estimate.type}`}
+                              className={
+                                !estimate.available
+                                  ? "cursor-not-allowed opacity-60"
+                                  : undefined
+                              }
+                            >
+                              <Field
+                                orientation="horizontal"
+                                data-disabled={!estimate.available}
+                                className="items-start gap-3"
+                              >
+                                <FieldContent>
+                                  <FieldTitle className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+                                    {icon}
+                                    <span className="text-sm">
+                                      {getFulfillmentLabel(estimate.type)}
+                                    </span>
+                                    <span className="text-primary sm:ml-auto text-sm font-bold">
+                                      {estimate.available
+                                        ? estimate.fee === 0
+                                          ? "Gratis"
+                                          : formatPrice(
+                                              Number(estimate.fee ?? 0),
+                                            )
+                                        : "Tidak tersedia"}
+                                    </span>
+                                  </FieldTitle>
+                                  <FieldDescription className="text-xs">
+                                    {getFulfillmentDescription(estimate)}
+                                  </FieldDescription>
+                                </FieldContent>
+                                <RadioGroupItem
+                                  value={estimate.type}
+                                  id={`fulfillment-${estimate.type}`}
+                                  disabled={!estimate.available}
+                                />
+                              </Field>
+                            </FieldLabel>
+                          );
+                        })}
+                      </RadioGroup>
+
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+                        {getFulfillmentNotice(fulfillmentOption)}
+                      </div>
+                    </div>
+                  ) : null}
                 </CardContent>
-                <div className="px-5 pb-5">
-                  <RadioGroup defaultValue="plus" className="max-w-full">
-                    <FieldLabel htmlFor="plus-plan">
-                      <Field orientation="horizontal">
-                        <FieldContent>
-                          <FieldTitle className="flex gap-2 text-sm">
-                            {" "}
-                            <Truck className="h-3.5 w-3.5" /> Store Delivery
-                          </FieldTitle>
-                          <FieldDescription className="text-xs">
-                            Kurir toko memerlukan alamat aktif. Biaya pengiriman
-                            final dihitung saat checkout.
-                          </FieldDescription>
-                        </FieldContent>
-                        <RadioGroupItem value="plus" id="plus-plan" />
-                      </Field>
-                    </FieldLabel>
-                    <FieldLabel htmlFor="pro-plan">
-                      <Field orientation="horizontal">
-                        <FieldContent>
-                          <FieldTitle className="flex gap-2 text-sm">
-                            <Truck className="h-3.5 w-3.5" />
-                            JNE Kargo
-                          </FieldTitle>
-                          <FieldDescription className="text-xs">
-                            JNE Kargo menggunakan alamat aktif. Ongkir final
-                            dihitung saat checkout.
-                          </FieldDescription>
-                        </FieldContent>
-                        <RadioGroupItem value="pro" id="pro-plan" />
-                      </Field>
-                    </FieldLabel>
-                    <FieldLabel htmlFor="enterprise-plan">
-                      <Field orientation="horizontal">
-                        <FieldContent>
-                          <FieldTitle className="flex gap-2 text-sm">
-                            <Store className="h-3.5 w-3.5" />
-                            Pick Up
-                          </FieldTitle>
-                          <FieldDescription className="text-xs">
-                            For large teams and enterprises.
-                          </FieldDescription>
-                        </FieldContent>
-                        <RadioGroupItem
-                          value="enterprise"
-                          id="enterprise-plan"
-                        />
-                      </Field>
-                    </FieldLabel>
-                  </RadioGroup>
-                </div>
               </Card>
 
               <Card className="ring-border/60 border-0 shadow-sm ring-1">
@@ -734,7 +722,7 @@ export default function SummaryDesignPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">
-                        Produk ({totalItems})
+                        Total Produk ({totalItems})
                       </span>
                       <span className="font-medium">
                         {formatPrice(subtotal)}
@@ -749,20 +737,22 @@ export default function SummaryDesignPage() {
                       </div>
                     )}
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Pengiriman</span>
-                      <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                        {checkoutDeliveryType === "PICKUP"
-                          ? "Gratis"
-                          : "Dihitung saat checkout"}
+                      <span className="text-muted-foreground">
+                        Estimasi Ongkir
+                      </span>
+                      <span className="font-medium">
+                        {!hasCalculatedFulfillment
+                          ? "Pilih alamat dulu"
+                          : estimatedShippingFee === 0
+                            ? "Gratis"
+                            : formatPrice(estimatedShippingFee)}
                       </span>
                     </div>
                   </div>
 
                   <div className="bg-muted/40 flex items-center justify-between rounded-xl px-4 py-3">
                     <span className="text-sm font-semibold">
-                      {checkoutDeliveryType === "PICKUP"
-                        ? "Total"
-                        : "Estimasi Total"}
+                      Estimasi Pembayaran
                     </span>
                     <span className="text-xl font-bold tracking-tight">
                       {formatPrice(estimatedTotal)}
@@ -789,7 +779,7 @@ export default function SummaryDesignPage() {
                   </Button>
 
                   <p className="text-muted-foreground text-center text-xs">
-                    Biaya akhir, termasuk ongkir, dihitung saat checkout
+                    Total di atas sudah termasuk produk dan estimasi ongkir
                   </p>
 
                   <div className="space-y-2 pt-1">
@@ -798,7 +788,7 @@ export default function SummaryDesignPage() {
                         <Truck className="h-3.5 w-3.5" />
                       </div>
                       <span>
-                        Ongkir final mengikuti metode fulfillment yang dipilih
+                        Opsi fulfillment mengikuti alamat yang dipilih
                       </span>
                     </div>
                     <div className="text-muted-foreground flex items-center gap-2.5 text-xs">

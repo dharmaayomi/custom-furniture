@@ -43,7 +43,6 @@ const useCreateNewAddress = (
       if (!userId) {
         throw new Error("Missing userId");
       }
-      console.log("[useCreateNewAddress] payload", payload);
       const { data } = await axiosInstance.post(
         `/user/${userId}/address`,
         payload,
@@ -60,7 +59,10 @@ const useCreateNewAddress = (
             | undefined,
         ) => {
           if (Array.isArray(previous)) {
-            return [result, ...previous.filter((item) => item.id !== result.id)];
+            return [
+              result,
+              ...previous.filter((item) => item.id !== result.id),
+            ];
           }
 
           if (previous && Array.isArray(previous.data)) {
