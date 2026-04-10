@@ -1,4 +1,4 @@
-import AdminOrderProcessPage from "@/features/dashboard/orders/admin/trialprocess";
+import AdminOrderProcessPage from "@/features/dashboard/orders/admin/process";
 import { auth } from "@/lib/auth";
 import { normalizeRole } from "@/lib/dashboard-access";
 import { redirect } from "next/navigation";

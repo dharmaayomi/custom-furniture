@@ -215,7 +215,7 @@ function PaymentMethodSelector({
   onChange,
   disabled,
 }: {
-  value: CorePaymentMethod;
+  value: CorePaymentMethod | null;
   onChange: (value: CorePaymentMethod) => void;
   disabled?: boolean;
 }) {
@@ -403,7 +403,9 @@ export const CheckoutPageNew = () => {
   const axiosInstance = useAxios();
   const { mutateAsync: createSnapPayment, isPending: isCreatingSnapPayment } =
     useCreateSnapPayment();
-  const [paymentMethod, setPaymentMethod] = useState<CorePaymentMethod>("qris");
+  const [paymentMethod, setPaymentMethod] = useState<CorePaymentMethod | null>(
+    null,
+  );
   const [paymentInstruction, setPaymentInstruction] =
     useState<PaymentInstructionValue | null>(null);
   const [paymentRedirectUrl, setPaymentRedirectUrl] = useState<string | null>(
@@ -576,6 +578,7 @@ export const CheckoutPageNew = () => {
   const usesAddress = deliveryTypeUsesAddress(deliveryType);
   const isPayable =
     Boolean(orderId) && status !== "CANCELLED" && status !== "COMPLETED";
+  const canCreatePayment = isPayable && Boolean(paymentMethod);
 
   const handlePayNow = async () => {
     if (!orderId) {
@@ -584,6 +587,10 @@ export const CheckoutPageNew = () => {
     }
     if (!isPayable) {
       toast.info("This order can no longer receive payment.");
+      return;
+    }
+    if (!paymentMethod) {
+      toast.error("Select a payment method first.");
       return;
     }
     const pendingUrl = activePendingPayment?.paymentUrl?.trim() || "";
@@ -665,8 +672,8 @@ export const CheckoutPageNew = () => {
         </div>
       </div>
 
-      <div className="mx-auto grid gap-6 lg:grid-cols-3">
-        <section className="lg:col-span-2">
+      <div className="mx-auto grid gap-6 lg:grid-cols-5">
+        <section className="lg:col-span-3">
           <Card className="ring-border/60 border-0 shadow-sm ring-1">
             <CardHeader className="pt-4 pb-2">
               <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -807,7 +814,7 @@ export const CheckoutPageNew = () => {
           </Card>
         </section>
 
-        <aside className="lg:sticky lg:top-22 lg:h-fit">
+        <aside className="lg:sticky lg:top-22 lg:col-span-2 lg:h-fit">
           <Card className="ring-border/60 overflow-hidden border-0 shadow-sm ring-1">
             <CardHeader className="pt-4 pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -948,7 +955,7 @@ export const CheckoutPageNew = () => {
                 className="w-full gap-2 font-semibold"
                 size="lg"
                 onClick={handlePayNow}
-                disabled={!isPayable || isCreatingSnapPayment}
+                disabled={!canCreatePayment || isCreatingSnapPayment}
               >
                 {isCreatingSnapPayment ? (
                   <>
@@ -958,7 +965,9 @@ export const CheckoutPageNew = () => {
                 ) : (
                   <>
                     <CreditCard className="h-4 w-4" />
-                    Pay Now ({corePaymentMethodLabel[paymentMethod]})
+                    {paymentMethod
+                      ? `Pay Now (${corePaymentMethodLabel[paymentMethod]})`
+                      : "Pay Now"}
                   </>
                 )}
               </Button>
@@ -980,7 +989,9 @@ export const CheckoutPageNew = () => {
                           {activePendingPayment.midtransBank ??
                             activePendingPayment.midtransPaymentType ??
                             activePendingPayment.paymentType ??
-                            corePaymentMethodLabel[paymentMethod]}
+                            (paymentMethod
+                              ? corePaymentMethodLabel[paymentMethod]
+                              : "-")}
                         </span>
                       </p>
                     </div>
@@ -994,10 +1005,10 @@ export const CheckoutPageNew = () => {
                   <p className="font-semibold">Active Payment Invoice</p>
                   <p>
                     Phase:{" "}
-                        <span className="font-medium">
-                          {activePendingPayment.phase}
-                        </span>
-                      </p>
+                    <span className="font-medium">
+                      {activePendingPayment.phase}
+                    </span>
+                  </p>
                   {activePendingFallbackReference ? (
                     <p>
                       Ref:{" "}

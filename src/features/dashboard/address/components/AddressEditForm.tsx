@@ -61,8 +61,14 @@ export default function AddressEditForm({ addressId }: AddressEditFormProps) {
           rawAddress.regencyCode ??
           rawAddress.regency_code ??
           "",
-        jneCityCode:
-          rawAddress.jneCityCode ?? rawAddress.jne_city_code ?? "",
+        jneTariffCode:
+          rawAddress.jneTariffCode ??
+          rawAddress.jne_tariff_code ??
+          rawAddress.jneDestinationCode ??
+          rawAddress.jne_destination_code ??
+          rawAddress.jneCityCode ??
+          rawAddress.jne_city_code ??
+          "",
         districtCode: rawAddress.districtCode ?? rawAddress.district_code ?? "",
         subdistrictCode:
           rawAddress.subdistrictCode ??
@@ -110,6 +116,7 @@ export default function AddressEditForm({ addressId }: AddressEditFormProps) {
         province: address.province,
         provinceCode: address.provinceCode ?? "",
         cityCode: address.cityCode ?? "",
+        jneTariffCode: address.jneTariffCode ?? "",
         districtCode: address.districtCode ?? "",
         subdistrictCode: address.subdistrictCode ?? "",
         country: address.country,
@@ -146,21 +153,9 @@ export default function AddressEditForm({ addressId }: AddressEditFormProps) {
     if (current.province !== original.province) {
       payload.province = current.province;
     }
-    const originalProvinceCode = original.provinceCode ?? "";
-    if (current.provinceCode !== originalProvinceCode) {
-      payload.provinceCode = current.provinceCode || undefined;
-    }
-    const originalCityCode = original.cityCode ?? "";
-    if (current.cityCode !== originalCityCode) {
-      payload.cityCode = current.cityCode || undefined;
-    }
-    const originalDistrictCode = original.districtCode ?? "";
-    if (current.districtCode !== originalDistrictCode) {
-      payload.districtCode = current.districtCode || undefined;
-    }
-    const originalSubdistrictCode = original.subdistrictCode ?? "";
-    if (current.subdistrictCode !== originalSubdistrictCode) {
-      payload.subdistrictCode = current.subdistrictCode || undefined;
+    const originalJneTariffCode = original.jneTariffCode ?? "";
+    if (current.jneTariffCode !== originalJneTariffCode) {
+      payload.jneTariffCode = current.jneTariffCode || undefined;
     }
     if (current.country !== original.country) {
       payload.country = current.country;

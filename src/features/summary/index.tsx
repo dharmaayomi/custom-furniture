@@ -4,6 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Combobox,
   ComboboxContent,
   ComboboxEmpty,
@@ -40,6 +45,7 @@ import { SummaryOrderPayload } from "@/types/summary";
 import {
   Box,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   CreditCard,
   MapPin,
@@ -127,6 +133,7 @@ export default function SummaryDesignPage() {
   >([]);
   const [selectedAddressValue, setSelectedAddressValue] = useState("");
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [isPaymentInfoOpen, setIsPaymentInfoOpen] = useState(false);
   const { data: addressesData, refetch: refetchAddresses } =
     useGetUserAddresses(userId);
   const { mutateAsync: createAddress, isPending: isCreatingAddress } =
@@ -229,10 +236,7 @@ export default function SummaryDesignPage() {
       district: data.district,
       subdistrict: data.subdistrict || undefined,
       province: data.province,
-      provinceCode: data.provinceCode || undefined,
-      cityCode: data.cityCode || undefined,
-      districtCode: data.districtCode || undefined,
-      subdistrictCode: data.subdistrictCode || undefined,
+      jneTariffCode: data.jneTariffCode || undefined,
       country: data.country,
       isDefault: data.isDefault,
       latitude: data.latitude,
@@ -758,6 +762,77 @@ export default function SummaryDesignPage() {
                       {formatPrice(estimatedTotal)}
                     </span>
                   </div>
+
+                  <Collapsible
+                    open={isPaymentInfoOpen}
+                    onOpenChange={setIsPaymentInfoOpen}
+                    className="space-y-3"
+                  >
+                    <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-100">
+                      <p className="font-semibold">
+                        Bayar bertahap, tidak perlu lunas sekarang
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-sky-900/80 dark:text-sky-100/80">
+                        Pembayaran dilakukan bertahap sesuai progres produksi.
+                        Hari ini kamu hanya membayar DP untuk memulai.{" "}
+                        <CollapsibleTrigger asChild>
+                          <button
+                            type="button"
+                            className="text-sky-950 underline underline-offset-2 transition hover:text-sky-700 dark:text-sky-50 dark:hover:text-sky-200"
+                          >
+                            pelajari lebih lanjut
+                          </button>
+                        </CollapsibleTrigger>
+                      </p>
+                    </div>
+
+                    <CollapsibleContent className="overflow-hidden rounded-xl border border-sky-200 bg-white px-4 py-4 text-sm shadow-sm dark:border-sky-900/40 dark:bg-slate-950">
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold">
+                            Bagaimana sistem pembayaran bertahap ini bekerja?
+                          </p>
+                        </div>
+                        <CollapsibleTrigger asChild>
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-foreground shrink-0 transition"
+                            aria-label="Tutup penjelasan pembayaran bertahap"
+                          >
+                            <ChevronDown className="h-4 w-4 rotate-180" />
+                          </button>
+                        </CollapsibleTrigger>
+                      </div>
+
+                      <div className="space-y-2 text-sm leading-6">
+                        <p>
+                          <span className="font-semibold">
+                            Tahap 1 - DP
+                          </span>{" "}
+                          - Dibayar sekarang, produksi dimulai
+                        </p>
+                        <p>
+                          <span className="font-semibold">Tahap 2</span> -
+                          Ditagih setelah foto progres rakitan dikirim
+                        </p>
+                        <p>
+                          <span className="font-semibold">Tahap 3</span> -
+                          Ditagih setelah foto finishing dikirim
+                        </p>
+                        <p>
+                          <span className="font-semibold">Tahap 4</span> -
+                          Ditagih setelah produk siap kirim
+                        </p>
+                      </div>
+
+                      <p className="text-muted-foreground mt-4 text-sm leading-6">
+                        Nominal dan persentase tiap tahap akan tertera saat kamu
+                        melanjutkan ke checkout. Kamu akan selalu dapat
+                        notifikasi beserta foto bukti progres sebelum tagihan
+                        berikutnya muncul.
+                      </p>
+                    </CollapsibleContent>
+                  </Collapsible>
 
                   <Button
                     className="w-full gap-2 font-semibold"

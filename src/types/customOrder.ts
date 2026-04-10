@@ -13,7 +13,7 @@ export interface SnapshotAddress {
   province?: string | null;
   provinceCode?: string | null;
   cityCode?: string | null;
-  jneCityCode?: string | null;
+  jneTariffCode?: string | null;
   districtCode?: string | null;
   subdistrictCode?: string | null;
   komerceSubdistrictId?: string | null;

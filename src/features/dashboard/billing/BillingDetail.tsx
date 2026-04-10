@@ -672,7 +672,7 @@ function PaymentHistoryCard({
 
         {!hasStructuredReference ? (
           <div className="flex items-start justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-700">
-            <p className="min-w-0 flex-1 break-all font-mono text-xs text-zinc-700 dark:text-zinc-300">
+            <p className="min-w-0 flex-1 font-mono text-xs break-all text-zinc-700 dark:text-zinc-300">
               {referenceAttemptId || "Attempt ID belum tersedia"}
             </p>
             {referenceAttemptId ? (
@@ -1108,10 +1108,10 @@ export const BillingDetail = ({
       stepsToRender.map((step) => ({
         id: step.phase,
         title: step.label,
-          description:
-            step.state === "completed" || step.state === "current"
-              ? formatPrice(step.amount)
-              : "Berikutnya",
+        description:
+          step.state === "completed" || step.state === "current"
+            ? formatPrice(step.amount)
+            : "Berikutnya",
       })),
     [stepsToRender],
   );
@@ -1327,7 +1327,8 @@ export const BillingDetail = ({
           Kembali
         </Button>
         <Badge className={getOrderStatusBadgeClass(order.status)}>
-          {ORDER_STATUS_LABEL_ID[order.status] ?? getOrderStatusLabel(order.status)}
+          {ORDER_STATUS_LABEL_ID[order.status] ??
+            getOrderStatusLabel(order.status)}
         </Badge>
       </div>
 
@@ -1389,7 +1390,8 @@ export const BillingDetail = ({
                       Semua pembayaran sudah selesai
                     </p>
                     <p className="mt-1 text-xs text-emerald-700/90">
-                      Pembayaran Anda sudah lunas. Silakan tunggu proses produksi atau pengiriman berikutnya.
+                      Pembayaran Anda sudah lunas. Silakan tunggu proses
+                      produksi atau pengiriman berikutnya.
                     </p>
                   </div>
                 ) : (
@@ -1410,7 +1412,8 @@ export const BillingDetail = ({
                             Belum ada detail pembayaran
                           </p>
                           <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                            Detail pembayaran akan muncul di sini setelah instruksi pembayaran dibuat.
+                            Detail pembayaran akan muncul di sini setelah
+                            instruksi pembayaran dibuat.
                           </p>
                         </div>
                       ) : (
@@ -1450,7 +1453,7 @@ export const BillingDetail = ({
                               <Button
                                 variant="outline"
                                 className="w-full"
-                              onClick={() =>
+                                onClick={() =>
                                   window.open(paymentRedirectUrl, "_blank")
                                 }
                               >
@@ -1476,7 +1479,8 @@ export const BillingDetail = ({
 
                         {allPaymentsDone ? (
                           <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-sm font-medium text-emerald-700">
-                            Semua pembayaran sudah selesai. Silakan tunggu proses berikutnya.
+                            Semua pembayaran sudah selesai. Silakan tunggu
+                            proses berikutnya.
                           </div>
                         ) : (
                           <>
@@ -1487,11 +1491,11 @@ export const BillingDetail = ({
                                 disabled={!isPayable || isCreatingSnapPayment}
                               >
                                 {isCreatingSnapPayment ? (
-                                  "Membuat instruksi pembayaran..."
+                                  "Memilih pembayaran..."
                                 ) : (
                                   <>
                                     <CreditCard className="mr-2 h-4 w-4" />
-                                    Buat Instruksi Pembayaran
+                                    Pilih Pembayaran
                                   </>
                                 )}
                               </Button>
