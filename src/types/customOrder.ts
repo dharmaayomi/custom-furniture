@@ -75,7 +75,7 @@ export type OrderStatus =
   | "COMPLETED"
   | "CANCELLED";
 
-export type DeliveryType = "DELIVERY" | "PICKUP" | "STORE_DELIVERY";
+export type DeliveryType = "STORE_DELIVERY" | "DELIVERY" | "PICKUP";
 
 export type PaymentPhase = "DP" | "PROGRESS_1" | "PROGRESS_2" | "FINAL";
 

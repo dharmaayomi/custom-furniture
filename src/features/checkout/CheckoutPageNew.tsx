@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import useAxios from "@/hooks/useAxios";
 import useCreateSnapPayment from "@/hooks/api/payment/useCreateSnapPayment";
 import useGetOrder from "@/hooks/api/order/useGetOrder";
+import useGetPaymentSummary from "@/hooks/api/order/useGetPaymentSummary";
 import {
   PaymentInstruction,
   PaymentInstructionValue,
@@ -420,6 +421,11 @@ export const CheckoutPageNew = () => {
   const urlOrderId = searchParams.get("orderId") ?? "";
   const orderId = urlOrderId || snapshot?.orderId || "";
   const { data: order } = useGetOrder(orderId || undefined);
+  const {
+    data: paymentSummary,
+    isLoading: isPaymentSummaryLoading,
+    isError: isPaymentSummaryError,
+  } = useGetPaymentSummary(orderId || undefined);
   const canUseSnapshotFallback =
     !urlOrderId || snapshot?.orderId === urlOrderId;
 
@@ -579,6 +585,17 @@ export const CheckoutPageNew = () => {
   const isPayable =
     Boolean(orderId) && status !== "CANCELLED" && status !== "COMPLETED";
   const canCreatePayment = isPayable && Boolean(paymentMethod);
+  const totalPaid = Number(paymentSummary?.totalPaid ?? order?.totalPaid ?? 0);
+  const remainingBalance = Number(
+    paymentSummary?.remaining ?? order?.remaining ?? grandTotal,
+  );
+  const dpAmount = Number(paymentSummary?.dpAmount ?? 0);
+  const dueNow = Number(
+    activePendingPayment?.amount ?? paymentSummary?.dueNow ?? grandTotal,
+  );
+  const isDpPhasePreview =
+    activePendingPayment?.phase === "DP" ||
+    (!activePendingPayment && totalPaid === 0);
 
   const handlePayNow = async () => {
     if (!orderId) {
@@ -925,6 +942,16 @@ export const CheckoutPageNew = () => {
                     {formatPrice(deliveryFee)}
                   </span>
                 </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Total Paid</span>
+                  <span className="font-medium">{formatPrice(totalPaid)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Remaining</span>
+                  <span className="font-medium">
+                    {formatPrice(remainingBalance)}
+                  </span>
+                </div>
               </div>
 
               <Separator />
@@ -934,6 +961,34 @@ export const CheckoutPageNew = () => {
                 <span className="text-xl font-bold tracking-tight">
                   {formatPrice(grandTotal)}
                 </span>
+              </div>
+
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">
+                      {isDpPhasePreview ? "DP to Pay Now" : "Amount Due Now"}
+                    </p>
+                    <p className="mt-1 text-xs text-emerald-800/80 dark:text-emerald-100/80">
+                      {isPaymentSummaryLoading
+                        ? "Calculating payment preview..."
+                        : isDpPhasePreview
+                          ? `Pembayaran pertama untuk memulai produksi. Target DP ${formatPrice(dpAmount)}.`
+                          : "Jumlah tagihan saat ini mengikuti fase pembayaran aktif."}
+                    </p>
+                  </div>
+                  <span className="text-lg font-bold tracking-tight text-emerald-900 dark:text-emerald-100">
+                    {isPaymentSummaryLoading
+                      ? "..."
+                      : formatPrice(dueNow)}
+                  </span>
+                </div>
+                {isPaymentSummaryError ? (
+                  <p className="mt-2 text-xs text-emerald-800/80 dark:text-emerald-100/80">
+                    Preview pembayaran belum bisa dimuat. Invoice final tetap
+                    mengikuti tagihan sistem.
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-1.5">
@@ -966,7 +1021,7 @@ export const CheckoutPageNew = () => {
                   <>
                     <CreditCard className="h-4 w-4" />
                     {paymentMethod
-                      ? `Pay Now (${corePaymentMethodLabel[paymentMethod]})`
+                      ? `Pay Now ${isPaymentSummaryLoading ? "" : `(${formatPrice(dueNow)})`} - ${corePaymentMethodLabel[paymentMethod]}`
                       : "Pay Now"}
                   </>
                 )}
