@@ -16,7 +16,10 @@ import useGetAttemptDetail from "@/hooks/api/payment/useGetAttemptDetail";
 import useGetPaymentAttemptByPayment from "@/hooks/api/payment/useGetPaymentAttemptByPayment";
 import useGetOrder from "@/hooks/api/order/useGetOrder";
 import { getApiErrorMessage } from "@/lib/api-error";
-import { PaymentInstructionMethod } from "@/lib/bankInstruction";
+import {
+  buildInstructionFromPayment,
+  parsePaymentReference,
+} from "@/lib/payment-instruction";
 import { formatPrice } from "@/lib/price";
 import {
   getOrderStatusBadgeClass,
@@ -194,33 +197,6 @@ const buildCorePayload = (method: CorePaymentMethod) => {
   }
 };
 
-const inferInstructionMethodFromPayment = (
-  payment?: Pick<
-    CustomOrderPayment,
-    "paymentType" | "midtransPaymentType" | "midtransBank"
-  > | null,
-): PaymentInstructionMethod => {
-  const bank = String(payment?.midtransBank ?? "").toLowerCase();
-  if (bank === "bca") return "bca_va";
-  if (bank === "bni") return "bni_va";
-  if (bank === "bri") return "bri_va";
-  if (bank === "permata") return "permata_va";
-  if (bank === "cimb") return "cimb_va";
-  if (bank === "mandiri") return "mandiri_bill";
-
-  const midtransType = String(payment?.midtransPaymentType ?? "").toLowerCase();
-  if (midtransType === "qris") return "qris";
-  if (midtransType === "gopay") return "gopay";
-  if (midtransType === "echannel") return "mandiri_bill";
-
-  const paymentType = String(payment?.paymentType ?? "").toLowerCase();
-  if (paymentType.includes("qris")) return "qris";
-  if (paymentType.includes("gopay")) return "gopay";
-  if (paymentType.includes("echannel")) return "mandiri_bill";
-
-  return "qris";
-};
-
 const PAYMENT_FALLBACK: Record<
   string,
   { label: string; color: string; bg: string; iconPath?: string }
@@ -340,57 +316,6 @@ const formatPaymentDate = (value?: string | null) => {
     hour: "2-digit",
     minute: "2-digit",
   });
-};
-
-type ParsedPaymentReference = {
-  va_numbers?: Array<{ va_number?: string; bank?: string }>;
-  permata_va_number?: string;
-  bill_key?: string;
-  biller_code?: string;
-  qr_string?: string;
-};
-
-const parsePaymentReference = (value?: string | null) => {
-  if (!value) return null;
-  try {
-    const parsed = JSON.parse(value) as ParsedPaymentReference;
-    if (!parsed || typeof parsed !== "object") return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-};
-
-const buildInstructionFromPayment = (
-  payment: CustomOrderPayment,
-): PaymentInstructionValue | null => {
-  const parsedReference = parsePaymentReference(payment.midtransReference);
-  const vaNumbers = Array.isArray(parsedReference?.va_numbers)
-    ? parsedReference.va_numbers
-        .filter((item) => item?.va_number)
-        .map((item) => ({
-          bank: String(item.bank ?? payment.midtransBank ?? "bank"),
-          va_number: String(item.va_number),
-        }))
-    : [];
-
-  const next: PaymentInstructionValue = {
-    method: inferInstructionMethodFromPayment(payment),
-    vaNumbers,
-    permataVaNumber: parsedReference?.permata_va_number ?? null,
-    qrString: parsedReference?.qr_string ?? null,
-    billerCode: parsedReference?.biller_code ?? null,
-    billKey: parsedReference?.bill_key ?? null,
-  };
-
-  const hasInstruction =
-    next.vaNumbers.length > 0 ||
-    Boolean(next.permataVaNumber) ||
-    Boolean(next.qrString) ||
-    Boolean(next.billKey) ||
-    Boolean(next.billerCode);
-
-  return hasInstruction ? next : null;
 };
 
 const copyToClipboard = async (value: string, label: string) => {

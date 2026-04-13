@@ -186,10 +186,8 @@ export const OrderDetailPage = ({ orderId }: OrderDetailPageProps) => {
   const currentPaymentStep = useMemo<PaymentPhase>(() => {
     const statusPhase =
       paymentPhaseByStatus[order?.status ?? "PENDING_PAYMENT"];
-    const statusIndex = phaseOrder.indexOf(statusPhase);
 
     const nextUnpaid = phaseOrder.find((phase) => !paidPhaseSet.has(phase));
-    const unpaidIndex = nextUnpaid ? phaseOrder.indexOf(nextUnpaid) : -1;
 
     const isSettledByAmount =
       remainingAmount <= 0 ||
@@ -202,11 +200,16 @@ export const OrderDetailPage = ({ orderId }: OrderDetailPageProps) => {
       return order.currentPaymentPhase ?? statusPhase;
     }
 
-    const activeIndex = Math.max(
-      statusIndex,
-      unpaidIndex >= 0 ? unpaidIndex : statusIndex,
-    );
-    return phaseOrder[activeIndex] ?? "DP";
+    if (
+      order?.currentPaymentPhase &&
+      phaseOrder.includes(order.currentPaymentPhase)
+    ) {
+      return order.currentPaymentPhase;
+    }
+
+    if (nextUnpaid) return nextUnpaid;
+
+    return statusPhase ?? "DP";
   }, [
     grandTotalAmount,
     order?.currentPaymentPhase,
@@ -216,17 +219,32 @@ export const OrderDetailPage = ({ orderId }: OrderDetailPageProps) => {
     totalPaidAmount,
   ]);
 
+  const nextPaymentStep = useMemo(() => {
+    const currentIndex = phaseOrder.indexOf(currentPaymentStep);
+    if (currentIndex < 0) return null;
+
+    return (
+      phaseOrder
+        .slice(currentIndex + 1)
+        .find((phase) => !paidPhaseSet.has(phase)) ?? null
+    );
+  }, [currentPaymentStep, paidPhaseSet]);
+
   const paymentStepperItems = useMemo(
     () =>
       phaseOrder.map((phase) => ({
         id: phase,
         title: PHASE_LABEL[phase],
         description:
-          paidPhaseSet.has(phase) || phase === currentPaymentStep
+          paidPhaseSet.has(phase)
             ? formatPrice(phaseAmounts[phase])
-            : "Planned",
+            : phase === currentPaymentStep
+              ? "Current payment"
+              : phase === nextPaymentStep
+                ? "Next payment"
+                : "Planned",
       })),
-    [currentPaymentStep, paidPhaseSet, phaseAmounts],
+    [currentPaymentStep, nextPaymentStep, paidPhaseSet, phaseAmounts],
   );
 
   const componentIds = useMemo(

@@ -8,13 +8,8 @@ import useAxios from "@/hooks/useAxios";
 import useCreateSnapPayment from "@/hooks/api/payment/useCreateSnapPayment";
 import useGetOrder from "@/hooks/api/order/useGetOrder";
 import useGetPaymentSummary from "@/hooks/api/order/useGetPaymentSummary";
-import {
-  PaymentInstruction,
-  PaymentInstructionValue,
-} from "@/features/dashboard/billing/components/PaymentInstruction";
 import { formatPrice } from "@/lib/price";
 import { getApiErrorMessage } from "@/lib/api-error";
-import { PaymentInstructionMethod } from "@/lib/bankInstruction";
 import {
   CheckoutOrderSnapshot,
   loadCheckoutSnapshot,
@@ -24,7 +19,7 @@ import {
   formatDeliveryDistance,
   getDeliveryTypeLabel,
 } from "@/lib/deliveryType";
-import { CustomOrderPayment, SnapshotAddress } from "@/types/customOrder";
+import { SnapshotAddress } from "@/types/customOrder";
 import { ProductBase } from "@/types/product";
 import { ProductComponent } from "@/types/componentProduct";
 import { Button } from "@/components/ui/button";
@@ -98,6 +93,8 @@ const formatDateTimeDDMMYYYY = (value?: string | Date | null) => {
   const minutes = String(date.getMinutes()).padStart(2, "0");
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
+
+const DP_PENDING_STATUSES = ["WAITING_FOR_PAYMENT", "CHALLENGE"] as const;
 
 type CorePaymentMethod =
   | "qris"
@@ -318,100 +315,13 @@ const buildCorePayload = (method: CorePaymentMethod) => {
   }
 };
 
-type ParsedPaymentReference = {
-  va_numbers?: Array<{ va_number?: string; bank?: string }>;
-  permata_va_number?: string;
-  bill_key?: string;
-  biller_code?: string;
-  qr_string?: string;
-};
-
-const parsePaymentReference = (value?: string | null) => {
-  if (!value) return null;
-  try {
-    const parsed = JSON.parse(value) as ParsedPaymentReference;
-    if (!parsed || typeof parsed !== "object") return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-};
-
-const inferInstructionMethodFromPayment = (
-  payment?: Pick<
-    CustomOrderPayment,
-    "paymentType" | "midtransPaymentType" | "midtransBank"
-  > | null,
-): PaymentInstructionMethod => {
-  const bank = String(payment?.midtransBank ?? "").toLowerCase();
-  if (bank === "bca") return "bca_va";
-  if (bank === "bni") return "bni_va";
-  if (bank === "bri") return "bri_va";
-  if (bank === "permata") return "permata_va";
-  if (bank === "cimb") return "cimb_va";
-  if (bank === "mandiri") return "mandiri_bill";
-
-  const midtransType = String(payment?.midtransPaymentType ?? "").toLowerCase();
-  if (midtransType === "qris") return "qris";
-  if (midtransType === "gopay") return "gopay";
-  if (midtransType === "echannel") return "mandiri_bill";
-
-  const paymentType = String(payment?.paymentType ?? "").toLowerCase();
-  if (paymentType.includes("qris")) return "qris";
-  if (paymentType.includes("gopay")) return "gopay";
-  if (paymentType.includes("echannel")) return "mandiri_bill";
-
-  return "qris";
-};
-
-const buildInstructionFromPayment = (
-  payment?: CustomOrderPayment | null,
-): PaymentInstructionValue | null => {
-  if (!payment) return null;
-
-  const parsedReference = parsePaymentReference(payment.midtransReference);
-  const vaNumbers = Array.isArray(parsedReference?.va_numbers)
-    ? parsedReference.va_numbers
-        .filter((item) => item?.va_number)
-        .map((item) => ({
-          bank: String(item.bank ?? payment.midtransBank ?? "bank"),
-          va_number: String(item.va_number),
-        }))
-    : [];
-
-  const next: PaymentInstructionValue = {
-    method: inferInstructionMethodFromPayment(payment),
-    vaNumbers,
-    permataVaNumber: parsedReference?.permata_va_number ?? null,
-    qrString: parsedReference?.qr_string ?? null,
-    billKey: parsedReference?.bill_key ?? null,
-    billerCode: parsedReference?.biller_code ?? null,
-  };
-
-  const hasInstruction =
-    next.vaNumbers.length > 0 ||
-    Boolean(next.permataVaNumber) ||
-    Boolean(next.qrString) ||
-    Boolean(next.billKey) ||
-    Boolean(next.billerCode);
-
-  return hasInstruction ? next : null;
-};
-
 export const CheckoutPageNew = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const axiosInstance = useAxios();
   const { mutateAsync: createSnapPayment, isPending: isCreatingSnapPayment } =
     useCreateSnapPayment();
-  const [paymentMethod, setPaymentMethod] = useState<CorePaymentMethod | null>(
-    null,
-  );
-  const [paymentInstruction, setPaymentInstruction] =
-    useState<PaymentInstructionValue | null>(null);
-  const [paymentRedirectUrl, setPaymentRedirectUrl] = useState<string | null>(
-    null,
-  );
+  const [paymentMethod, setPaymentMethod] = useState<CorePaymentMethod | null>(null);
   const [snapshot, setSnapshot] = useState<CheckoutOrderSnapshot | null>(null);
 
   useEffect(() => {
@@ -420,6 +330,9 @@ export const CheckoutPageNew = () => {
 
   const urlOrderId = searchParams.get("orderId") ?? "";
   const orderId = urlOrderId || snapshot?.orderId || "";
+  const paymentStatusBaseUrl = orderId
+    ? `/payment-status?orderId=${encodeURIComponent(orderId)}`
+    : "/payment-status";
   const { data: order } = useGetOrder(orderId || undefined);
   const {
     data: paymentSummary,
@@ -520,30 +433,19 @@ export const CheckoutPageNew = () => {
     if (order?.items?.length) return order.items.length;
     return fallbackItems.reduce((sum, item) => sum + item.quantity, 0);
   }, [order?.items, fallbackItems]);
-  const activePendingPayment = useMemo(() => {
+  const latestDpPayment = useMemo(() => {
     const sorted = [...(order?.payments ?? [])].sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-    return sorted.find((payment) => {
-      const status = String(payment.status ?? "").toUpperCase();
-      return status === "WAITING_FOR_PAYMENT" || status === "CHALLENGE";
-    });
+    return sorted.find((payment) => payment.phase === "DP") ?? null;
   }, [order?.payments]);
-  const activePendingInstruction = useMemo(
-    () => buildInstructionFromPayment(activePendingPayment),
-    [activePendingPayment],
+  const latestDpPaymentStatus = String(
+    latestDpPayment?.status ?? "",
+  ).toUpperCase();
+  const hasActiveDpPayment = DP_PENDING_STATUSES.includes(
+    latestDpPaymentStatus as (typeof DP_PENDING_STATUSES)[number],
   );
-  const activePendingFallbackReference =
-    activePendingPayment?.midtransReference ?? activePendingPayment?.id ?? null;
-  const displayedInstruction = activePendingInstruction ?? paymentInstruction;
-
-  useEffect(() => {
-    const pendingUrl = activePendingPayment?.paymentUrl?.trim() || "";
-    if (!pendingUrl) return;
-    if (paymentRedirectUrl) return;
-    setPaymentRedirectUrl(pendingUrl);
-  }, [activePendingPayment?.paymentUrl, paymentRedirectUrl]);
 
   if (!snapshot && !orderId) {
     return (
@@ -591,11 +493,33 @@ export const CheckoutPageNew = () => {
   );
   const dpAmount = Number(paymentSummary?.dpAmount ?? 0);
   const dueNow = Number(
-    activePendingPayment?.amount ?? paymentSummary?.dueNow ?? grandTotal,
+    latestDpPayment?.amount ?? paymentSummary?.dueNow ?? grandTotal,
   );
-  const isDpPhasePreview =
-    activePendingPayment?.phase === "DP" ||
-    (!activePendingPayment && totalPaid === 0);
+  const isDpPhasePreview = totalPaid === 0;
+
+  useEffect(() => {
+    if (!orderId || !order) return;
+
+    if (hasActiveDpPayment) {
+      router.replace(`${paymentStatusBaseUrl}&state=waiting`);
+      return;
+    }
+
+    if (
+      latestDpPaymentStatus === "PAID" ||
+      (!latestDpPayment && order.status === "AWAITING_PRODUCTION")
+    ) {
+      router.replace(`${paymentStatusBaseUrl}&state=success`);
+    }
+  }, [
+    hasActiveDpPayment,
+    latestDpPayment,
+    latestDpPaymentStatus,
+    order,
+    orderId,
+    paymentStatusBaseUrl,
+    router,
+  ]);
 
   const handlePayNow = async () => {
     if (!orderId) {
@@ -610,51 +534,22 @@ export const CheckoutPageNew = () => {
       toast.error("Select a payment method first.");
       return;
     }
-    const pendingUrl = activePendingPayment?.paymentUrl?.trim() || "";
-    if (pendingUrl) {
-      setPaymentRedirectUrl(pendingUrl);
+    if (hasActiveDpPayment) {
+      router.push(`${paymentStatusBaseUrl}&state=waiting`);
       toast.info(
         "You already have an active payment invoice. Complete it first.",
       );
       return;
     }
     try {
-      const payment = await createSnapPayment({
+      await createSnapPayment({
         orderId,
         channel: "CORE",
         corePayload: buildCorePayload(paymentMethod),
       });
-      const paymentUrl =
-        payment?.paymentUrl?.trim() ??
-        payment?.actions?.find((item) => item?.url)?.url?.trim() ??
-        "";
-      const hasInstruction =
-        (payment?.vaNumbers?.length ?? 0) > 0 ||
-        Boolean(payment?.permataVaNumber) ||
-        Boolean(payment?.qrString) ||
-        Boolean(payment?.billKey) ||
-        Boolean(payment?.billerCode);
 
-      setPaymentInstruction(
-        hasInstruction
-          ? {
-              method: paymentMethod,
-              vaNumbers: payment?.vaNumbers ?? [],
-              permataVaNumber: payment?.permataVaNumber ?? null,
-              qrString: payment?.qrString ?? null,
-              billKey: payment?.billKey ?? null,
-              billerCode: payment?.billerCode ?? null,
-            }
-          : null,
-      );
-      setPaymentRedirectUrl(paymentUrl || null);
-
-      if (!paymentUrl && !hasInstruction) {
-        toast.error("Payment data is missing.");
-        return;
-      }
-
-      toast.success("Payment created. Continue with the details below.");
+      toast.success("Payment created. Redirecting to payment status.");
+      router.push(`${paymentStatusBaseUrl}&state=waiting`);
     } catch (error) {
       const message = getApiErrorMessage(
         error,
@@ -670,9 +565,10 @@ export const CheckoutPageNew = () => {
         message.includes("status code: 406") ||
         message.toLowerCase().includes("conflict with the current state")
       ) {
-        toast.error(
-          "Active payment invoice already exists. Please continue the existing payment first.",
+        toast.info(
+          "Active payment invoice already exists. Redirecting to payment status.",
         );
+        router.push(`${paymentStatusBaseUrl}&state=waiting`);
         return;
       }
       toast.error(message);
@@ -997,11 +893,7 @@ export const CheckoutPageNew = () => {
                 </p>
                 <PaymentMethodSelector
                   value={paymentMethod}
-                  onChange={(value) => {
-                    setPaymentInstruction(null);
-                    setPaymentRedirectUrl(null);
-                    setPaymentMethod(value);
-                  }}
+                  onChange={setPaymentMethod}
                   disabled={isCreatingSnapPayment}
                 />
               </div>
@@ -1026,73 +918,6 @@ export const CheckoutPageNew = () => {
                   </>
                 )}
               </Button>
-
-              {displayedInstruction ? (
-                <div className="space-y-2">
-                  {activePendingPayment ? (
-                    <div className="bg-muted/40 space-y-1 rounded-xl p-3 text-xs">
-                      <p className="font-semibold">Active Payment Invoice</p>
-                      <p>
-                        Phase:{" "}
-                        <span className="font-medium">
-                          {activePendingPayment.phase}
-                        </span>
-                      </p>
-                      <p>
-                        Method:{" "}
-                        <span className="font-medium">
-                          {activePendingPayment.midtransBank ??
-                            activePendingPayment.midtransPaymentType ??
-                            activePendingPayment.paymentType ??
-                            (paymentMethod
-                              ? corePaymentMethodLabel[paymentMethod]
-                              : "-")}
-                        </span>
-                      </p>
-                    </div>
-                  ) : null}
-                  <PaymentInstruction value={displayedInstruction} />
-                </div>
-              ) : null}
-
-              {activePendingPayment && !activePendingInstruction ? (
-                <div className="bg-muted/40 space-y-1 rounded-xl p-3 text-xs">
-                  <p className="font-semibold">Active Payment Invoice</p>
-                  <p>
-                    Phase:{" "}
-                    <span className="font-medium">
-                      {activePendingPayment.phase}
-                    </span>
-                  </p>
-                  {activePendingFallbackReference ? (
-                    <p>
-                      Ref:{" "}
-                      <span className="font-mono font-semibold">
-                        {activePendingFallbackReference}
-                      </span>
-                    </p>
-                  ) : null}
-                  <p>
-                    Method:{" "}
-                    <span className="font-medium">
-                      {activePendingPayment.midtransBank ??
-                        activePendingPayment.midtransPaymentType ??
-                        activePendingPayment.paymentType ??
-                        "-"}
-                    </span>
-                  </p>
-                </div>
-              ) : null}
-
-              {paymentRedirectUrl ? (
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => window.location.assign(paymentRedirectUrl)}
-                >
-                  Open Payment Page
-                </Button>
-              ) : null}
 
               {!isPayable && (
                 <p className="text-muted-foreground text-center text-xs">
