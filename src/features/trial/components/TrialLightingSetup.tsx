@@ -99,7 +99,8 @@ export const setupTrialLighting = (scene: BABYLON.Scene) => {
   );
   ambientLight.intensity = TRIAL_LIGHTING_CONFIG.ambientIntensity;
   ambientLight.diffuse = new BABYLON.Color3(1, 0.98, 0.94);
-  ambientLight.groundColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+  // ambientLight.groundColor = new BABYLON.Color3(0.72, 0.72, 0.72);
+  ambientLight.groundColor = ambientLight.diffuse;
 
   const ceilingLamp = new BABYLON.PointLight(
     "trial-ceiling-lamp",

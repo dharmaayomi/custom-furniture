@@ -1,6 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
 
-import { TRIAL_ROOM_CONFIG } from "./TrialConfig";
 import { setupTrialCamera } from "./TrialCameraSetup";
 import { setupTrialLighting } from "./TrialLightingSetup";
 import { setupTrialRoom } from "./TrialRoomSetup";
@@ -10,9 +9,6 @@ const setupTrialAutoHideWalls = (
   walls: BABYLON.Mesh[],
   camera: BABYLON.ArcRotateCamera,
 ) => {
-  const rw = TRIAL_ROOM_CONFIG.width;
-  const wallThickness = TRIAL_ROOM_CONFIG.wallThickness;
-
   return scene.onBeforeRenderObservable.add(() => {
     walls.forEach((wall) => {
       if (!wall.metadata) return;
@@ -39,6 +35,8 @@ const setupTrialAutoHideWalls = (
         wall.visibility = 0;
       } else if (wall.metadata.side === "ceiling" && cam.y > wall.position.y) {
         wall.visibility = 0;
+      } else if (wall.metadata.side === "floor" && cam.y < wall.position.y) {
+        wall.visibility = 0;
       } else {
         wall.visibility = 1;
       }
@@ -49,24 +47,23 @@ const setupTrialAutoHideWalls = (
 export const initTrialRoom = (canvas: HTMLCanvasElement) => {
   const engine = new BABYLON.Engine(canvas, true);
   const scene = new BABYLON.Scene(engine);
-  scene.clearColor = new BABYLON.Color4(0.95, 0.96, 0.98, 1);
+  scene.clearColor = new BABYLON.Color4(0.95, 0.96, 0.96, 1);
 
   const camera = setupTrialCamera(canvas, scene);
-  const { ceilingLamp } = setupTrialLighting(scene);
+  const { shadowGenerator } = setupTrialLighting(scene);
   const room = setupTrialRoom(scene);
 
   const autoHideObserver = setupTrialAutoHideWalls(scene, room.walls, camera);
 
-  // [
-  //   room.backWall,
-  //   room.frontWall,
-  //   room.leftWall,
-  //   room.rightWall,
-  //   room.ceiling,
-  //   room.floor,
-  // ].forEach((mesh) => {
-  //   shadowGenerator.addShadowCaster(mesh, false);
-  // });
+  [
+    room.backWall,
+    room.frontWall,
+    room.leftWall,
+    room.rightWall,
+    room.ceiling,
+  ].forEach((mesh) => {
+    shadowGenerator.addShadowCaster(mesh, false);
+  });
 
   engine.runRenderLoop(() => {
     scene.render();

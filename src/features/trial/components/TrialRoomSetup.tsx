@@ -231,9 +231,9 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     TRIAL_TEXTURES.ceiling,
     width * 0.28,
     depth * 0.28,
-    new BABYLON.Color3(0.82, 0.82, 0.8),
+    new BABYLON.Color3(0.93, 0.92, 0.9),
   );
-  ceilingMat.roughness = 1;
+  ceilingMat.roughness = 0.7;
 
   // 1. LANTAI (Floor)
   const floor = createSolidMiterPanel(
@@ -252,19 +252,22 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     -(depth / 2 + wallThickness),
   );
   floor.material = wallMat;
-  // floor.receiveShadows = true;
+  floor.receiveShadows = true;
+  floor.metadata = { side: "floor" };
 
   const floorVinyl = BABYLON.MeshBuilder.CreateBox(
     "floorVinyl",
     { width: width, height: vinylThickness, depth: depth },
     scene,
   );
-  floorVinyl.position.y = floorThickness + vinylThickness / 2 + 0.0001;
+  floorVinyl.position.y = floorThickness - vinylThickness / 2 + 0.0001;
   floorVinyl.receiveShadows = true;
+  floorVinyl.metadata = { side: "floor" };
 
   const floorVinylMat = new BABYLON.PBRMaterial("floorVinylMat", scene);
   floorVinylMat.roughness = 0.85;
   floorVinylMat.metallic = 0;
+  floorVinylMat.metadata = { side: "floor" };
 
   const vinylTexture = new BABYLON.Texture(
     TRIAL_ROOM_CONFIG.floorTexture,
@@ -360,6 +363,6 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     frontWall,
     leftWall,
     rightWall,
-    walls: [...walls, ceiling],
+    walls: [...walls, ceiling, floor, floorVinyl],
   };
 };

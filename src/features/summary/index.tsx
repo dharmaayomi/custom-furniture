@@ -348,7 +348,7 @@ export default function SummaryDesignPage() {
                 </CardContent>
               </Card>
 
-              <Card className="ring-border/60 border-0 shadow-sm ring-1">
+              <Card className="ring-border/60 border-0 shadow-sm ring-1 lg:sticky lg:top-22 lg:max-h-[calc(100vh-6rem)] lg:overflow-hidden">
                 <CardHeader className="pt-4 pb-2">
                   <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                     <div className="bg-primary/10 flex h-7 w-7 items-center justify-center rounded-lg">
@@ -360,7 +360,7 @@ export default function SummaryDesignPage() {
                     </span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 px-5 pb-5">
+                <CardContent className="space-y-3 px-5 pb-5 lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto">
                   {payload?.items.length ? (
                     payload.items.map((item) => (
                       <div
