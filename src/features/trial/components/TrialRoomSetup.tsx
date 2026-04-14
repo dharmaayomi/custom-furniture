@@ -1,9 +1,23 @@
 import * as BABYLON from "@babylonjs/core";
+import { TRIAL_ROOM_CONFIG, TRIAL_TEXTURES } from "./TrialConfig";
 import earcut from "earcut";
-import { RoomConfig } from "@/store/useRoomStore";
-import { TRIAL_MATERIAL_CONFIG, TRIAL_ROOM_DIMENSIONS } from "./TrialConfig";
 
-// Helper konversi Hex ke Color3
+// --- Helpers ──────────────────────────────────────────────────────────────────
+
+const createTexture = (
+  scene: BABYLON.Scene,
+  path: string,
+  uScale: number,
+  vScale: number,
+) => {
+  const texture = new BABYLON.Texture(path, scene);
+  texture.uScale = uScale;
+  texture.vScale = vScale;
+  texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+  texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+  return texture;
+};
+
 const hexToColor3 = (hex: string) => {
   return BABYLON.Color3.FromHexString(hex);
 };
@@ -11,161 +25,239 @@ if (typeof window !== "undefined") {
   (window as any).earcut = earcut;
 }
 
-const materialCache = new Map<string, BABYLON.PBRMaterial>();
-const textureCache = new Map<string, BABYLON.Texture>();
-
-export const preloadTextures = (
+const createMaterial = (
   scene: BABYLON.Scene,
-  texturePaths: string[],
+  name: string,
+  texturePath: string,
+  uScale: number,
+  vScale: number,
+  color = BABYLON.Color3.White(),
 ) => {
-  texturePaths.forEach((path) => {
-    if (!path) return;
-    const cached = textureCache.get(path);
-    if (cached) return;
-    const texture = new BABYLON.Texture(path, scene);
-    texture.onLoadObservable.addOnce(() => {
-      textureCache.set(path, texture);
-    });
-  });
+  const material = new BABYLON.PBRMaterial(name, scene);
+  material.albedoTexture = createTexture(scene, texturePath, uScale, vScale);
+  material.albedoColor = color;
+  material.roughness = 0.9;
+  material.metallic = 0;
+  material.backFaceCulling = false;
+  return material;
 };
-export const TrialSetupRoom = (scene: BABYLON.Scene, config: RoomConfig) => {
-  const {
-    width: rw,
-    depth: rd,
-    height: wallHeight,
-    wallColor,
-    floorTexture: floorTexturePath,
-  } = config;
-  const { wallThickness, floorThickness, vinylThickness } =
-    TRIAL_ROOM_DIMENSIONS;
 
-  // --- 1. FLOOR BASE ---
-  const floorBase = BABYLON.MeshBuilder.CreateBox(
-    "floorBase",
-    { width: rw, height: floorThickness - vinylThickness, depth: rd },
+/**
+ * Membuat Panel Solid dengan Miter Joint di keempat sisi.
+ * Presisi untuk Dinding, Lantai, dan Plafon agar bertemu di 45 derajat.
+ */
+const createSolidMiterPanel = (
+  name: string,
+  length: number, // Panjang sisi luar
+  panelThickness: number,
+  panelHeight: number, // Tinggi sisi luar
+  scene: BABYLON.Scene,
+) => {
+  const T = panelThickness;
+  const L = length;
+  const H = panelHeight;
+
+  // 8 Titik untuk membentuk volume solid trapesium 3D
+  const positions = [
+    // SISI LUAR (Full / Panjang Maksimal) - Z = T
+    0,
+    0,
+    T, // 0: Bawah Kiri Luar
+    L,
+    0,
+    T, // 1: Bawah Kanan Luar
+    L,
+    H,
+    T, // 2: Atas Kanan Luar
+    0,
+    H,
+    T, // 3: Atas Kiri Luar
+
+    // SISI DALAM (Inset T di semua sisi untuk adu manis) - Z = 0
+    T,
+    T,
+    0, // 4: Bawah Kiri Dalam
+    L - T,
+    T,
+    0, // 5: Bawah Kanan Dalam
+    L - T,
+    H - T,
+    0, // 6: Atas Kanan Dalam
+    T,
+    H - T,
+    0, // 7: Atas Kiri Dalam
+  ];
+
+  const indices = [
+    4,
+    6,
+    5,
+    4,
+    7,
+    6, // Depan (Dalam Ruangan)
+    0,
+    1,
+    2,
+    0,
+    2,
+    3, // Belakang (Luar Ruangan)
+    0,
+    4,
+    5,
+    0,
+    5,
+    1, // Sisi Bawah
+    3,
+    2,
+    6,
+    3,
+    6,
+    7, // Sisi Atas
+    0,
+    3,
+    7,
+    0,
+    7,
+    4, // Sisi Kiri
+    1,
+    5,
+    6,
+    1,
+    6,
+    2, // Sisi Kanan
+  ];
+
+  const normals: number[] = [];
+  BABYLON.VertexData.ComputeNormals(positions, indices, normals);
+
+  const vertexData = new BABYLON.VertexData();
+  vertexData.positions = positions;
+  vertexData.indices = indices;
+  vertexData.normals = normals;
+
+  const mesh = new BABYLON.Mesh(name, scene);
+  vertexData.applyToMesh(mesh);
+  return mesh;
+};
+
+// ─── Main export ──────────────────────────────────────────────────────────────
+
+export const setupTrialRoom = (scene: BABYLON.Scene) => {
+  const { width, depth, height, wallThickness, floorThickness } =
+    TRIAL_ROOM_CONFIG;
+
+  // Hitung Dimensi Luar agar presisi menutup satu sama lain
+  const outerWidth = width + 2 * wallThickness;
+  const outerDepth = depth + 2 * wallThickness;
+
+  const wallMat = new BABYLON.StandardMaterial("wall-mat", scene);
+  wallMat.diffuseColor = new BABYLON.Color3(0.96, 0.95, 0.93);
+  wallMat.backFaceCulling = false;
+  const floorMat = createMaterial(
+    scene,
+    "floor-mat",
+    TRIAL_TEXTURES.floor,
+    width,
+    depth,
+  );
+
+  // 1. LANTAI (Floor)
+  const floor = createSolidMiterPanel(
+    "floor",
+    outerWidth,
+    floorThickness,
+    outerDepth,
     scene,
   );
-  floorBase.position.y = (floorThickness - vinylThickness) / 2;
-  floorBase.receiveShadows = true;
-
-  // --- 2. FLOOR VINYL (Dynamic Texture) ---
-  const floorVinyl = BABYLON.MeshBuilder.CreateBox(
-    "floorVinyl",
-    { width: rw, height: vinylThickness, depth: rd },
-    scene,
+  floor.rotation.x = Math.PI / 2;
+  // Posisi diatur agar bagian dalam trapesium sejajar dengan lantai 0
+  floor.position.set(
+    -(width / 2 + wallThickness),
+    floorThickness,
+    -(depth / 2 + wallThickness),
   );
-  // floorVinyl.position.y = floorThickness - vinylThickness / 2;
-  floorVinyl.position.y = floorThickness - vinylThickness / 2 + 0.0001;
-  floorVinyl.receiveShadows = true;
+  floor.material = floorMat;
 
-  const floorVinylMat = new BABYLON.PBRMaterial("floorVinylMat", scene);
-  floorVinylMat.roughness = TRIAL_MATERIAL_CONFIG.floor.roughness;
-  floorVinylMat.metallic = TRIAL_MATERIAL_CONFIG.floor.metallic;
-  floorVinylMat.directIntensity = 1.5;
-
-  let texture = textureCache.get(floorTexturePath);
-  const isTextureValid =
-    texture &&
-    !(texture as any).isDisposed?.() &&
-    texture.getScene()?.getEngine() === scene.getEngine();
-
-  if (!isTextureValid) {
-    texture = new BABYLON.Texture(floorTexturePath, scene);
-    textureCache.set(floorTexturePath, texture);
-  }
-
-  // Always apply texture (even if not ready yet) to avoid blank floor on first load
-  if (texture) {
-    texture.uScale = rw;
-    texture.vScale = rd;
-    texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
-    texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
-    floorVinylMat.albedoTexture = texture;
-  }
-  floorVinylMat.albedoColor = new BABYLON.Color3(1, 1, 1);
-
-  floorVinyl.material = floorVinylMat;
-
-  // --- 3. CEILING ---
-  const ceiling = BABYLON.MeshBuilder.CreateBox(
+  // 2. PLAFON (Ceiling)
+  const ceiling = createSolidMiterPanel(
     "ceiling",
-    { width: rw, height: floorThickness, depth: rd },
+    outerWidth,
+    wallThickness,
+    outerDepth,
     scene,
   );
-  ceiling.position.y = wallHeight - floorThickness / 2;
-  ceiling.receiveShadows = true;
+  ceiling.rotation.x = -Math.PI / 2;
+  ceiling.position.set(
+    -(width / 2 + wallThickness),
+    height - wallThickness,
+    depth / 2 + wallThickness,
+  );
+  ceiling.material = wallMat;
   ceiling.metadata = { side: "ceiling" };
 
-  // --- 4. WALLS (Dynamic Color) ---
-  const wallMat = new BABYLON.PBRMaterial("wallMat", scene);
-  wallMat.albedoColor = hexToColor3(wallColor);
-  wallMat.roughness = TRIAL_MATERIAL_CONFIG.interior.roughness;
-  wallMat.metallic = TRIAL_MATERIAL_CONFIG.interior.metallic;
-  wallMat.directIntensity = 2.0;
-  const walls: BABYLON.Mesh[] = [];
+  // 3. DINDING (Walls)
 
-  // Helper untuk buat dinding
-  const createWall = (
-    name: string,
-    w: number,
-    d: number,
-    x: number,
-    z: number,
-    side: string,
-  ) => {
-    const wall = BABYLON.MeshBuilder.CreateBox(
-      name,
-      { width: w, height: wallHeight, depth: d },
-      scene,
-    );
-    wall.position.set(x, wallHeight / 2, z);
-    wall.material = wallMat;
-    wall.metadata = { side };
-    wall.receiveShadows = true;
-    walls.push(wall);
-    return wall;
-  };
-
-  // Back
-  createWall(
+  // Back Wall
+  const backWall = createSolidMiterPanel(
     "wall_back",
-    rw + wallThickness * 2,
+    outerWidth,
     wallThickness,
-    0,
-    rd / 2 + wallThickness / 2,
-    "back",
+    height,
+    scene,
   );
-  // Front
-  createWall(
+
+  backWall.position.set(-(width / 2 + wallThickness), 0, depth / 2);
+  backWall.metadata = { side: "back" };
+
+  // Front Wall
+  const frontWall = createSolidMiterPanel(
     "wall_front",
-    rw + wallThickness * 2,
+    outerWidth,
     wallThickness,
-    0,
-    -rd / 2 - wallThickness / 2,
-    "front",
+    height,
+    scene,
   );
+  frontWall.rotation.y = Math.PI;
+  frontWall.position.set(width / 2 + wallThickness, 0, -depth / 2);
+  frontWall.metadata = { side: "front" };
 
-  createWall(
+  // Left Wall
+  const leftWall = createSolidMiterPanel(
     "wall_left",
+    outerDepth,
     wallThickness,
-    rd,
-    -rw / 2 - wallThickness / 2,
-    0,
-    "left",
+    height,
+    scene,
   );
+  leftWall.rotation.y = -Math.PI / 2;
+  leftWall.position.set(-width / 2, 0, -(depth / 2 + wallThickness));
+  leftWall.metadata = { side: "left" };
 
-  createWall(
+  // Right Wall
+  const rightWall = createSolidMiterPanel(
     "wall_right",
+    outerDepth,
     wallThickness,
-    rd,
-    rw / 2 + wallThickness / 2,
-    0,
-    "right",
+    height,
+    scene,
   );
+  rightWall.rotation.y = Math.PI / 2;
+  rightWall.position.set(width / 2, 0, depth / 2 + wallThickness);
+  rightWall.metadata = { side: "right" };
 
-  ceiling.material = wallMat;
-  floorBase.material = wallMat;
+  const walls = [backWall, frontWall, leftWall, rightWall];
+  walls.forEach((w) => {
+    w.material = wallMat;
+    w.receiveShadows = true;
+  });
 
-  walls.push(ceiling);
-  return { walls, floorVinyl, ceiling, floorBase };
+  return {
+    floor,
+    ceiling,
+    backWall,
+    frontWall,
+    leftWall,
+    rightWall,
+    walls: [...walls, ceiling],
+  };
 };
