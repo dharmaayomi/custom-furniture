@@ -33,7 +33,7 @@ export const TRIAL_CAMERA_CONFIG = {
 } as const;
 
 export const TRIAL_LIGHTING_CONFIG = {
-  ambientIntensity: 0.48,
+  ambientIntensity: 0.6,
   pointIntensity: 9,
   pointRange: 12,
   directionalIntensity: 1.4,

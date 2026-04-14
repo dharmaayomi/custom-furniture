@@ -61,6 +61,11 @@ export const initTrialRoom = (canvas: HTMLCanvasElement) => {
     room.leftWall,
     room.rightWall,
     room.ceiling,
+    room.innerBackWall,
+    room.innerFrontWall,
+    room.innerLeftWall,
+    room.innerRightWall,
+    room.innerCeiling,
   ].forEach((mesh) => {
     shadowGenerator.addShadowCaster(mesh, false);
   });

@@ -1,5 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
-import { TRIAL_ROOM_CONFIG, TRIAL_TEXTURES } from "./TrialConfig";
+import { TRIAL_ROOM_CONFIG } from "./TrialConfig";
 import earcut from "earcut";
 
 // --- Helpers ──────────────────────────────────────────────────────────────────
@@ -219,21 +219,23 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
   const outerWidth = width + 2 * wallThickness;
   const outerDepth = depth + 2 * wallThickness;
 
-  const wallMat = new BABYLON.PBRMaterial("wall-mat", scene);
-  wallMat.albedoColor = hexToColor3(TRIAL_ROOM_CONFIG.wallColor);
-  wallMat.roughness = 0.5;
-  wallMat.metallic = 0;
-  wallMat.backFaceCulling = false;
+  const frameMat = new BABYLON.PBRMaterial("frame-mat", scene);
+  frameMat.albedoColor = new BABYLON.Color3(0.8, 0.8, 0.8);
+  frameMat.roughness = 0.8;
+  frameMat.metallic = 0;
+  frameMat.backFaceCulling = false;
 
-  const ceilingMat = createMaterial(
-    scene,
-    "ceiling-mat",
-    TRIAL_TEXTURES.ceiling,
-    width * 0.28,
-    depth * 0.28,
-    new BABYLON.Color3(0.93, 0.92, 0.9),
-  );
-  ceilingMat.roughness = 0.7;
+  const innerWallMat = new BABYLON.PBRMaterial("inner-wall-mat", scene);
+  innerWallMat.albedoColor = hexToColor3(TRIAL_ROOM_CONFIG.wallColor);
+  innerWallMat.roughness = 0.85;
+  innerWallMat.metallic = 0;
+  innerWallMat.backFaceCulling = false;
+
+  const innerCeilingMat = new BABYLON.PBRMaterial("inner-ceiling-mat", scene);
+  innerCeilingMat.albedoColor = innerWallMat.albedoColor.clone();
+  innerCeilingMat.roughness = 0.75;
+  innerCeilingMat.metallic = 0;
+  innerCeilingMat.backFaceCulling = false;
 
   // 1. LANTAI (Floor)
   const floor = createSolidMiterPanel(
@@ -251,7 +253,7 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     floorThickness,
     -(depth / 2 + wallThickness),
   );
-  floor.material = wallMat;
+  floor.material = frameMat;
   floor.receiveShadows = true;
   floor.metadata = { side: "floor" };
 
@@ -296,7 +298,7 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     height - wallThickness,
     depth / 2 + wallThickness,
   );
-  ceiling.material = ceilingMat;
+  ceiling.material = frameMat;
   ceiling.metadata = { side: "ceiling" };
 
   // 3. DINDING (Walls)
@@ -349,11 +351,85 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
   rightWall.position.set(width / 2, 0, depth / 2 + wallThickness);
   rightWall.metadata = { side: "right" };
 
-  const walls = [backWall, frontWall, leftWall, rightWall];
-  walls.forEach((w) => {
-    w.material = wallMat;
+  const frameWalls = [backWall, frontWall, leftWall, rightWall];
+  frameWalls.forEach((w) => {
+    w.material = frameMat;
     w.receiveShadows = true;
   });
+
+  const innerWallHeight = height - wallThickness - floorThickness;
+  const innerWallY = floorThickness + innerWallHeight / 2;
+  const innerSurfaceThickness = 0.002;
+
+  const innerBackWall = BABYLON.MeshBuilder.CreateBox(
+    "inner_wall_back",
+    { width, height: innerWallHeight, depth: innerSurfaceThickness },
+    scene,
+  );
+  innerBackWall.position.set(
+    0,
+    innerWallY,
+    depth / 2 - innerSurfaceThickness / 2,
+  );
+  innerBackWall.material = innerWallMat;
+  innerBackWall.receiveShadows = true;
+  innerBackWall.metadata = { side: "back" };
+
+  const innerFrontWall = BABYLON.MeshBuilder.CreateBox(
+    "inner_wall_front",
+    { width, height: innerWallHeight, depth: innerSurfaceThickness },
+    scene,
+  );
+  innerFrontWall.position.set(
+    0,
+    innerWallY,
+    -depth / 2 + innerSurfaceThickness / 2,
+  );
+  innerFrontWall.material = innerWallMat;
+  innerFrontWall.receiveShadows = true;
+  innerFrontWall.metadata = { side: "front" };
+
+  const innerLeftWall = BABYLON.MeshBuilder.CreateBox(
+    "inner_wall_left",
+    { width: innerSurfaceThickness, height: innerWallHeight, depth },
+    scene,
+  );
+  innerLeftWall.position.set(
+    -width / 2 + innerSurfaceThickness / 2,
+    innerWallY,
+    0,
+  );
+  innerLeftWall.material = innerWallMat;
+  innerLeftWall.receiveShadows = true;
+  innerLeftWall.metadata = { side: "left" };
+
+  const innerRightWall = BABYLON.MeshBuilder.CreateBox(
+    "inner_wall_right",
+    { width: innerSurfaceThickness, height: innerWallHeight, depth },
+    scene,
+  );
+  innerRightWall.position.set(
+    width / 2 - innerSurfaceThickness / 2,
+    innerWallY,
+    0,
+  );
+  innerRightWall.material = innerWallMat;
+  innerRightWall.receiveShadows = true;
+  innerRightWall.metadata = { side: "right" };
+
+  const innerCeiling = BABYLON.MeshBuilder.CreateBox(
+    "inner_ceiling",
+    { width, height: innerSurfaceThickness, depth },
+    scene,
+  );
+  innerCeiling.position.set(
+    0,
+    height - wallThickness - innerSurfaceThickness / 2,
+    0,
+  );
+  innerCeiling.material = innerCeilingMat;
+  innerCeiling.receiveShadows = true;
+  innerCeiling.metadata = { side: "ceiling" };
 
   return {
     floor,
@@ -361,8 +437,23 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     backWall,
     floorVinyl,
     frontWall,
+    innerBackWall,
+    innerFrontWall,
+    innerLeftWall,
+    innerRightWall,
+    innerCeiling,
     leftWall,
     rightWall,
-    walls: [...walls, ceiling, floor, floorVinyl],
+    walls: [
+      ...frameWalls,
+      innerBackWall,
+      innerFrontWall,
+      innerLeftWall,
+      innerRightWall,
+      ceiling,
+      innerCeiling,
+      floor,
+      floorVinyl,
+    ],
   };
 };

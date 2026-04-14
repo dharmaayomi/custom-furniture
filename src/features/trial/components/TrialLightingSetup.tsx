@@ -1,5 +1,134 @@
-import * as BABYLON from "@babylonjs/core";
+// import * as BABYLON from "@babylonjs/core";
 
+// import { TRIAL_LIGHTING_CONFIG, TRIAL_ROOM_CONFIG } from "./TrialConfig";
+
+// const createPointHelper = (
+//   scene: BABYLON.Scene,
+//   light: BABYLON.PointLight,
+//   name: string,
+//   color: BABYLON.Color3,
+// ) => {
+//   const sphere = BABYLON.MeshBuilder.CreateSphere(
+//     `${name}Sphere`,
+//     { diameter: 0.18 },
+//     scene,
+//   );
+//   sphere.position = light.position.clone();
+
+//   const material = new BABYLON.StandardMaterial(`${name}Mat`, scene);
+//   material.emissiveColor = color;
+//   material.alpha = 0.55;
+//   sphere.material = material;
+
+//   return sphere;
+// };
+
+// const createHemisphericHelper = (
+//   scene: BABYLON.Scene,
+//   light: BABYLON.HemisphericLight,
+//   name: string,
+//   color: BABYLON.Color3,
+// ) => {
+//   const anchor = new BABYLON.Vector3(0, 2.2, 0);
+
+//   const sphere = BABYLON.MeshBuilder.CreateSphere(
+//     `${name}Sphere`,
+//     { diameter: 0.16 },
+//     scene,
+//   );
+//   sphere.position = anchor;
+
+//   const direction = light.direction.normalize();
+//   const arrowLength = 0.9;
+//   const arrow = BABYLON.MeshBuilder.CreateCylinder(
+//     `${name}Arrow`,
+//     { height: arrowLength, diameter: 0.05 },
+//     scene,
+//   );
+//   arrow.position = anchor.add(direction.scale(arrowLength / 2));
+
+//   const up = BABYLON.Vector3.Up();
+//   const angle = Math.acos(BABYLON.Vector3.Dot(up, direction));
+//   const axis = BABYLON.Vector3.Cross(up, direction).normalize();
+
+//   if (axis.length() > 0) {
+//     arrow.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle);
+//   }
+
+//   const material = new BABYLON.StandardMaterial(`${name}Mat`, scene);
+//   material.emissiveColor = color;
+//   material.alpha = 0.55;
+//   sphere.material = material;
+//   arrow.material = material;
+
+//   return { sphere, arrow };
+// };
+
+// const createLightHelpers = (
+//   scene: BABYLON.Scene,
+//   lights: {
+//     ambientLight: BABYLON.HemisphericLight;
+//     ceilingLamp: BABYLON.PointLight;
+//   },
+// ) => {
+//   const ambientHelper = createHemisphericHelper(
+//     scene,
+//     lights.ambientLight,
+//     "trialAmbientHelper",
+//     new BABYLON.Color3(0.2, 0.9, 1),
+//   );
+
+//   const ceilingHelper = createPointHelper(
+//     scene,
+//     lights.ceilingLamp,
+//     "trialCeilingHelper",
+//     new BABYLON.Color3(1, 0.9, 0.2),
+//   );
+
+//   return {
+//     ambientHelper,
+//     ceilingHelper,
+//   };
+// };
+
+// export const setupTrialLighting = (scene: BABYLON.Scene) => {
+//   const ambientLight = new BABYLON.HemisphericLight(
+//     "trial-ambient",
+//     new BABYLON.Vector3(0, 1, 0),
+//     scene,
+//   );
+//   ambientLight.intensity = TRIAL_LIGHTING_CONFIG.ambientIntensity;
+//   ambientLight.diffuse = new BABYLON.Color3(1, 0.98, 0.94);
+//   // ambientLight.groundColor = new BABYLON.Color3(0.72, 0.72, 0.72);
+//   ambientLight.groundColor = ambientLight.diffuse;
+
+//   const ceilingLamp = new BABYLON.PointLight(
+//     "trial-ceiling-lamp",
+//     new BABYLON.Vector3(0, TRIAL_ROOM_CONFIG.height - 0.85, 0),
+//     scene,
+//   );
+//   ceilingLamp.intensity = TRIAL_LIGHTING_CONFIG.pointIntensity;
+//   ceilingLamp.range = TRIAL_LIGHTING_CONFIG.pointRange;
+//   ceilingLamp.diffuse = new BABYLON.Color3(1, 0.95, 0.88);
+
+//   const shadowGenerator = new BABYLON.ShadowGenerator(1024, ceilingLamp);
+//   shadowGenerator.useBlurExponentialShadowMap = true;
+//   shadowGenerator.blurKernel = 16;
+//   shadowGenerator.setDarkness(0.2);
+
+//   const helpers = createLightHelpers(scene, {
+//     ambientLight,
+//     ceilingLamp,
+//   });
+
+//   return {
+//     ambientLight,
+//     ceilingLamp,
+//     shadowGenerator,
+//     helpers,
+//   };
+// };
+import * as BABYLON from "@babylonjs/core";
 import { TRIAL_LIGHTING_CONFIG, TRIAL_ROOM_CONFIG } from "./TrialConfig";
 
 const createPointHelper = (
@@ -64,11 +193,71 @@ const createHemisphericHelper = (
   return { sphere, arrow };
 };
 
+const createSpotHelper = (
+  scene: BABYLON.Scene,
+  light: BABYLON.SpotLight,
+  name: string,
+  color: BABYLON.Color3,
+) => {
+  // Sphere di posisi lampu
+  const sphere = BABYLON.MeshBuilder.CreateSphere(
+    `${name}Sphere`,
+    { diameter: 0.18 },
+    scene,
+  );
+  sphere.position = light.position.clone();
+
+  // Arrow menunjukkan arah SpotLight (ke bawah)
+  const direction = light.direction.normalize();
+  const arrowLength = 0.9;
+  const arrow = BABYLON.MeshBuilder.CreateCylinder(
+    `${name}Arrow`,
+    { height: arrowLength, diameter: 0.05 },
+    scene,
+  );
+  arrow.position = light.position.add(direction.scale(arrowLength / 2));
+
+  const up = BABYLON.Vector3.Up();
+  const angle = Math.acos(BABYLON.Vector3.Dot(up, direction));
+  const axis = BABYLON.Vector3.Cross(up, direction).normalize();
+  if (axis.length() > 0) {
+    arrow.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle);
+  }
+
+  // Cone wireframe untuk visualisasi sudut spot
+  const coneHeight = 1.2;
+  const coneRadius = Math.tan(light.angle / 2) * coneHeight;
+  const cone = BABYLON.MeshBuilder.CreateCylinder(
+    `${name}Cone`,
+    {
+      height: coneHeight,
+      diameterTop: 0,
+      diameterBottom: coneRadius * 2,
+      tessellation: 16,
+    },
+    scene,
+  );
+  cone.position = light.position.add(direction.scale(coneHeight / 2));
+  if (axis.length() > 0) {
+    cone.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle);
+  }
+
+  const material = new BABYLON.StandardMaterial(`${name}Mat`, scene);
+  material.emissiveColor = color;
+  material.alpha = 0.15;
+  material.wireframe = true;
+  sphere.material = material;
+  arrow.material = material;
+  cone.material = material;
+
+  return { sphere, arrow, cone };
+};
+
 const createLightHelpers = (
   scene: BABYLON.Scene,
   lights: {
     ambientLight: BABYLON.HemisphericLight;
-    ceilingLamp: BABYLON.PointLight;
+    ceilingLamp: BABYLON.SpotLight;
   },
 ) => {
   const ambientHelper = createHemisphericHelper(
@@ -78,7 +267,7 @@ const createLightHelpers = (
     new BABYLON.Color3(0.2, 0.9, 1),
   );
 
-  const ceilingHelper = createPointHelper(
+  const ceilingHelper = createSpotHelper(
     scene,
     lights.ceilingLamp,
     "trialCeilingHelper",
@@ -92,39 +281,66 @@ const createLightHelpers = (
 };
 
 export const setupTrialLighting = (scene: BABYLON.Scene) => {
+  const { height } = TRIAL_ROOM_CONFIG;
+
+  // 1. Ambient — groundColor dibedakan agar ada gradasi vertikal natural
   const ambientLight = new BABYLON.HemisphericLight(
     "trial-ambient",
     new BABYLON.Vector3(0, 1, 0),
     scene,
   );
   ambientLight.intensity = TRIAL_LIGHTING_CONFIG.ambientIntensity;
-  ambientLight.diffuse = new BABYLON.Color3(1, 0.98, 0.94);
-  // ambientLight.groundColor = new BABYLON.Color3(0.72, 0.72, 0.72);
-  ambientLight.groundColor = ambientLight.diffuse;
+  ambientLight.diffuse = new BABYLON.Color3(0.72, 0.7, 0.66); // dari atas → redup (bikin ceiling & top wall gelap)
+  ambientLight.groundColor = new BABYLON.Color3(1, 0.98, 0.94); // dari bawah → terang (bikin floor & lower wall terang)
 
-  const ceilingLamp = new BABYLON.PointLight(
+  // 2. SpotLight menggantikan PointLight → cahaya hanya ke bawah
+  const lampY = height - 0.25;
+  const ceilingLamp = new BABYLON.SpotLight(
     "trial-ceiling-lamp",
-    new BABYLON.Vector3(0, TRIAL_ROOM_CONFIG.height - 0.85, 0),
+    new BABYLON.Vector3(0, lampY, 0),
+    new BABYLON.Vector3(0, -1, 0),
+    Math.PI / 2.2, // angle ~82°
+    1.8, // exponent soft edge
     scene,
   );
-  ceilingLamp.intensity = TRIAL_LIGHTING_CONFIG.pointIntensity;
+  ceilingLamp.intensity = TRIAL_LIGHTING_CONFIG.pointIntensity * 1.2;
   ceilingLamp.range = TRIAL_LIGHTING_CONFIG.pointRange;
   ceilingLamp.diffuse = new BABYLON.Color3(1, 0.95, 0.88);
 
-  const shadowGenerator = new BABYLON.ShadowGenerator(1024, ceilingLamp);
+  // 3. Shadow dari SpotLight — lebih bersih dari PointLight
+  const shadowGenerator = new BABYLON.ShadowGenerator(2048, ceilingLamp);
   shadowGenerator.useBlurExponentialShadowMap = true;
-  shadowGenerator.blurKernel = 16;
-  shadowGenerator.setDarkness(0.2);
+  shadowGenerator.blurKernel = 32;
+  shadowGenerator.setDarkness(0.25);
 
-  const helpers = createLightHelpers(scene, {
-    ambientLight,
-    ceilingLamp,
-  });
+  // 4. Emissive panel di ceiling — simulasi panel lampu, hilangkan titik cahaya keras
+  const lampPanel = BABYLON.MeshBuilder.CreatePlane(
+    "lamp-panel",
+    { width: 0.6, height: 0.6 },
+    scene,
+  );
+  lampPanel.position.set(0, height - 0.01, 0);
+  lampPanel.rotation.x = Math.PI / 2;
+
+  const lampPanelMat = new BABYLON.StandardMaterial("lamp-panel-mat", scene);
+  lampPanelMat.emissiveColor = new BABYLON.Color3(1, 0.97, 0.9);
+  lampPanelMat.disableLighting = true;
+  lampPanel.material = lampPanelMat;
+
+  const fillLight = new BABYLON.HemisphericLight(
+    "trial-fill",
+    new BABYLON.Vector3(0, -1, 0), // dari bawah ke atas → fill ke ceiling & walls
+    scene,
+  );
+  fillLight.intensity = 0.18;
+  fillLight.diffuse = new BABYLON.Color3(1, 0.98, 0.94);
+  fillLight.groundColor = new BABYLON.Color3(0.9, 0.88, 0.84);
 
   return {
     ambientLight,
     ceilingLamp,
     shadowGenerator,
-    helpers,
+    lampPanel,
+    fillLight,
   };
 };
