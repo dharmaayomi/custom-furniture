@@ -140,33 +140,108 @@ const createSolidMiterPanel = (
   return mesh;
 };
 
+/**
+ * Wall profile with mitered left/right joins only.
+ * Bottom and top stay flush so the wall meets the floor and ceiling cleanly.
+ */
+const createSolidMiterWall = (
+  name: string,
+  length: number,
+  thickness: number,
+  height: number,
+  scene: BABYLON.Scene,
+) => {
+  const T = thickness;
+  const L = length;
+  const H = height;
+
+  const positions = [
+    // Outer face
+    0,
+    0,
+    T,
+    L,
+    0,
+    T,
+    L,
+    H,
+    T,
+    0,
+    H,
+    T,
+
+    // Inner face, inset only on left/right edges
+    T,
+    0,
+    0,
+    L - T,
+    0,
+    0,
+    L - T,
+    H,
+    0,
+    T,
+    H,
+    0,
+  ];
+
+  const indices = [
+    4, 6, 5, 4, 7, 6, 0, 1, 2, 0, 2, 3, 0, 4, 5, 0, 5, 1, 3, 2, 6, 3, 6, 7, 0,
+    3, 7, 0, 7, 4, 1, 5, 6, 1, 6, 2,
+  ];
+
+  const normals: number[] = [];
+  BABYLON.VertexData.ComputeNormals(positions, indices, normals);
+
+  const vertexData = new BABYLON.VertexData();
+  vertexData.positions = positions;
+  vertexData.indices = indices;
+  vertexData.normals = normals;
+
+  const mesh = new BABYLON.Mesh(name, scene);
+  vertexData.applyToMesh(mesh);
+  return mesh;
+};
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export const setupTrialRoom = (scene: BABYLON.Scene) => {
-  const { width, depth, height, wallThickness, floorThickness } =
-    TRIAL_ROOM_CONFIG;
+  const {
+    width,
+    depth,
+    height,
+    wallThickness,
+    floorThickness,
+    vinylThickness,
+  } = TRIAL_ROOM_CONFIG;
 
   // Hitung Dimensi Luar agar presisi menutup satu sama lain
   const outerWidth = width + 2 * wallThickness;
   const outerDepth = depth + 2 * wallThickness;
 
-  const wallMat = new BABYLON.StandardMaterial("wall-mat", scene);
-  wallMat.diffuseColor = new BABYLON.Color3(0.96, 0.95, 0.93);
+  const wallMat = new BABYLON.PBRMaterial("wall-mat", scene);
+  wallMat.albedoColor = hexToColor3(TRIAL_ROOM_CONFIG.wallColor);
+  wallMat.roughness = 0.5;
+  wallMat.metallic = 0;
   wallMat.backFaceCulling = false;
-  const floorMat = createMaterial(
+
+  const ceilingMat = createMaterial(
     scene,
-    "floor-mat",
-    TRIAL_TEXTURES.floor,
-    width,
-    depth,
+    "ceiling-mat",
+    TRIAL_TEXTURES.ceiling,
+    width * 0.28,
+    depth * 0.28,
+    new BABYLON.Color3(0.82, 0.82, 0.8),
   );
+  ceilingMat.roughness = 1;
 
   // 1. LANTAI (Floor)
   const floor = createSolidMiterPanel(
     "floor",
     outerWidth,
-    floorThickness,
+    floorThickness - vinylThickness,
     outerDepth,
+
     scene,
   );
   floor.rotation.x = Math.PI / 2;
@@ -176,7 +251,33 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     floorThickness,
     -(depth / 2 + wallThickness),
   );
-  floor.material = floorMat;
+  floor.material = wallMat;
+  // floor.receiveShadows = true;
+
+  const floorVinyl = BABYLON.MeshBuilder.CreateBox(
+    "floorVinyl",
+    { width: width, height: vinylThickness, depth: depth },
+    scene,
+  );
+  floorVinyl.position.y = floorThickness + vinylThickness / 2 + 0.0001;
+  floorVinyl.receiveShadows = true;
+
+  const floorVinylMat = new BABYLON.PBRMaterial("floorVinylMat", scene);
+  floorVinylMat.roughness = 0.85;
+  floorVinylMat.metallic = 0;
+
+  const vinylTexture = new BABYLON.Texture(
+    TRIAL_ROOM_CONFIG.floorTexture,
+    scene,
+  );
+  vinylTexture.uScale = width;
+  vinylTexture.vScale = depth;
+  vinylTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+  vinylTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+
+  floorVinylMat.albedoTexture = vinylTexture;
+  floorVinylMat.albedoColor = new BABYLON.Color3(1, 1, 1);
+  floorVinyl.material = floorVinylMat;
 
   // 2. PLAFON (Ceiling)
   const ceiling = createSolidMiterPanel(
@@ -192,13 +293,13 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     height - wallThickness,
     depth / 2 + wallThickness,
   );
-  ceiling.material = wallMat;
+  ceiling.material = ceilingMat;
   ceiling.metadata = { side: "ceiling" };
 
   // 3. DINDING (Walls)
 
   // Back Wall
-  const backWall = createSolidMiterPanel(
+  const backWall = createSolidMiterWall(
     "wall_back",
     outerWidth,
     wallThickness,
@@ -210,7 +311,7 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
   backWall.metadata = { side: "back" };
 
   // Front Wall
-  const frontWall = createSolidMiterPanel(
+  const frontWall = createSolidMiterWall(
     "wall_front",
     outerWidth,
     wallThickness,
@@ -222,7 +323,7 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
   frontWall.metadata = { side: "front" };
 
   // Left Wall
-  const leftWall = createSolidMiterPanel(
+  const leftWall = createSolidMiterWall(
     "wall_left",
     outerDepth,
     wallThickness,
@@ -234,7 +335,7 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
   leftWall.metadata = { side: "left" };
 
   // Right Wall
-  const rightWall = createSolidMiterPanel(
+  const rightWall = createSolidMiterWall(
     "wall_right",
     outerDepth,
     wallThickness,
@@ -255,6 +356,7 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     floor,
     ceiling,
     backWall,
+    floorVinyl,
     frontWall,
     leftWall,
     rightWall,

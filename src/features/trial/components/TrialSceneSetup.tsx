@@ -52,10 +52,21 @@ export const initTrialRoom = (canvas: HTMLCanvasElement) => {
   scene.clearColor = new BABYLON.Color4(0.95, 0.96, 0.98, 1);
 
   const camera = setupTrialCamera(canvas, scene);
-  const { shadowGenerator } = setupTrialLighting(scene);
+  const { ceilingLamp } = setupTrialLighting(scene);
   const room = setupTrialRoom(scene);
 
   const autoHideObserver = setupTrialAutoHideWalls(scene, room.walls, camera);
+
+  // [
+  //   room.backWall,
+  //   room.frontWall,
+  //   room.leftWall,
+  //   room.rightWall,
+  //   room.ceiling,
+  //   room.floor,
+  // ].forEach((mesh) => {
+  //   shadowGenerator.addShadowCaster(mesh, false);
+  // });
 
   engine.runRenderLoop(() => {
     scene.render();

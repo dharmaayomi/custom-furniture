@@ -11,24 +11,30 @@ export const TRIAL_ROOM_CONFIG = {
   height: 3,
   wallThickness: 0.12,
   floorThickness: 0.08,
+  vinylThickness: 0.0002,
   trimHeight: 0.08,
+  wallColor: "#F2F0EB",
+  floorTexture: "/assets/texture/wood-texture.jpg",
 } as const;
 
 export const TRIAL_CAMERA_CONFIG = {
-  alpha: -Math.PI / 2.2,
-  beta: Math.PI / 2.8,
-  radius: 8.5,
+  alpha: -Math.PI / 2,
+  beta: Math.PI / 2,
+  radius: 6,
+  zoomInRadius: 2.5,
   targetY: 1.2,
-  lowerRadiusLimit: 4.5,
-  upperRadiusLimit: 12,
-  lowerBetaLimit: 0.7,
-  upperBetaLimit: Math.PI / 2.05,
-  wheelPrecision: 35,
+  wheelPrecision: 60,
+  lowerBetaLimit: 0.1,
+  upperBetaLimit: Math.PI / 1.85,
+  lowerRadiusLimit: 0.5,
+  upperRadiusLimit: 15,
+  minTargetY: 0.2,
+  maxTargetY: 2.0,
 } as const;
 
 export const TRIAL_LIGHTING_CONFIG = {
-  ambientIntensity: 0.65,
-  pointIntensity: 28,
-  pointRange: 18,
+  ambientIntensity: 0.48,
+  pointIntensity: 9,
+  pointRange: 12,
   directionalIntensity: 1.4,
 } as const;
