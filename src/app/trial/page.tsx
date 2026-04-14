@@ -1,7 +1,11 @@
-import React from "react";
+import { TrialPage } from "@/features/trial";
 
 const Trial = () => {
-  return <div>Trial</div>;
+  return (
+    <div>
+      <TrialPage />
+    </div>
+  );
 };
 
 export default Trial;
