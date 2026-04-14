@@ -22,7 +22,7 @@ const DeliverOrderRoute = async ({ params }: DeliverOrderRouteProps) => {
 
   return (
     <div>
-      <AdminOrderDeliverPage />
+      <AdminOrderDeliverPage orderId={orderid} />
     </div>
   );
 };

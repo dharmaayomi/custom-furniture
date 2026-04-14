@@ -80,7 +80,7 @@ export const ComponentFormPreview = ({
       {completeness.componentName ? (
         <Card className="border-border bg-card overflow-hidden border">
           {formData.componentImageUrls.length > 0 ? (
-            <div className="relative h-40 w-full px-4">
+            <div className="relative mt-4 h-40 w-full px-4">
               <img
                 src={formData.componentImageUrls[0]}
                 alt={formData.componentName}

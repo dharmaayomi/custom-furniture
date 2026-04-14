@@ -56,13 +56,17 @@ export const MaterialFormPreview = ({
         <h2 className="text-foreground text-lg font-semibold">
           Preview & Progress
         </h2>
-        <p className="text-muted-foreground text-sm">Live preview of your material</p>
+        <p className="text-muted-foreground text-sm">
+          Live preview of your material
+        </p>
       </div>
 
       <Card className="border-border bg-card border p-4">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-foreground text-sm font-medium">Completion</span>
+            <span className="text-foreground text-sm font-medium">
+              Completion
+            </span>
             <span className="text-primary text-sm font-bold">
               {completionPercentage}%
             </span>
@@ -83,7 +87,7 @@ export const MaterialFormPreview = ({
               <img
                 src={previewImage}
                 alt={formData.materialName}
-                className="h-full w-full rounded-lg object-cover"
+                className="mt-4 h-full w-full rounded-lg object-cover"
               />
             </div>
           ) : null}
@@ -102,7 +106,9 @@ export const MaterialFormPreview = ({
             </div>
 
             {formData.price && formattedPrice ? (
-              <p className="text-primary text-lg font-bold">Rp {formattedPrice}</p>
+              <p className="text-primary text-lg font-bold">
+                Rp {formattedPrice}
+              </p>
             ) : null}
 
             {formData.materialDesc ? (
