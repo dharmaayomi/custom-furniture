@@ -70,6 +70,11 @@ export const initTrialRoom = (canvas: HTMLCanvasElement) => {
     shadowGenerator.addShadowCaster(mesh, false);
   });
 
+  scene.imageProcessingConfiguration.toneMappingEnabled = true;
+  scene.imageProcessingConfiguration.toneMappingType =
+    BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+  scene.imageProcessingConfiguration.exposure = 1.1;
+  scene.imageProcessingConfiguration.contrast = 1.35;
   engine.runRenderLoop(() => {
     scene.render();
   });

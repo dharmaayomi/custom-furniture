@@ -224,6 +224,7 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
   frameMat.roughness = 0.8;
   frameMat.metallic = 0;
   frameMat.backFaceCulling = false;
+  frameMat.unlit = true; // ← tambah ini
 
   const innerWallMat = new BABYLON.PBRMaterial("inner-wall-mat", scene);
   innerWallMat.albedoColor = hexToColor3(TRIAL_ROOM_CONFIG.wallColor);
@@ -241,7 +242,7 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
   const floor = createSolidMiterPanel(
     "floor",
     outerWidth,
-    floorThickness - vinylThickness,
+    wallThickness,
     outerDepth,
 
     scene,
@@ -267,21 +268,26 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
   floorVinyl.metadata = { side: "floor" };
 
   const floorVinylMat = new BABYLON.PBRMaterial("floorVinylMat", scene);
-  floorVinylMat.roughness = 0.85;
+  floorVinylMat.roughness = 0.7;
   floorVinylMat.metallic = 0;
   floorVinylMat.metadata = { side: "floor" };
 
   const vinylTexture = new BABYLON.Texture(
     TRIAL_ROOM_CONFIG.floorTexture,
     scene,
+
+    false, // noMipmap = false (pastikan mipmap aktif)
+    true, // invertY
+    BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
   );
   vinylTexture.uScale = width;
   vinylTexture.vScale = depth;
   vinylTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
   vinylTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+  vinylTexture.anisotropicFilteringLevel = 16;
 
   floorVinylMat.albedoTexture = vinylTexture;
-  floorVinylMat.albedoColor = new BABYLON.Color3(1, 1, 1);
+  floorVinylMat.albedoColor = new BABYLON.Color3(1.4, 1.3, 1.2);
   floorVinyl.material = floorVinylMat;
 
   // 2. PLAFON (Ceiling)

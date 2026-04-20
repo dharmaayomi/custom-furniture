@@ -130,6 +130,7 @@
 // };
 import * as BABYLON from "@babylonjs/core";
 import { TRIAL_LIGHTING_CONFIG, TRIAL_ROOM_CONFIG } from "./TrialConfig";
+import { env } from "process";
 
 const createPointHelper = (
   scene: BABYLON.Scene,
@@ -283,64 +284,73 @@ const createLightHelpers = (
 export const setupTrialLighting = (scene: BABYLON.Scene) => {
   const { height } = TRIAL_ROOM_CONFIG;
 
+  const envTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
+    "https://assets.babylonjs.com/environments/studio.env",
+    scene,
+  );
+  envTexture.rotationY = Math.PI / 2;
+  scene.environmentTexture = envTexture;
+  scene.environmentIntensity = 0.25;
+
   // 1. Ambient — groundColor dibedakan agar ada gradasi vertikal natural
   const ambientLight = new BABYLON.HemisphericLight(
     "trial-ambient",
     new BABYLON.Vector3(0, 1, 0),
     scene,
   );
-  ambientLight.intensity = TRIAL_LIGHTING_CONFIG.ambientIntensity;
-  ambientLight.diffuse = new BABYLON.Color3(0.72, 0.7, 0.66); // dari atas → redup (bikin ceiling & top wall gelap)
-  ambientLight.groundColor = new BABYLON.Color3(1, 0.98, 0.94); // dari bawah → terang (bikin floor & lower wall terang)
+  // ambientLight.intensity = TRIAL_LIGHTING_CONFIG.ambientIntensity;
+  ambientLight.diffuse = new BABYLON.Color3(0.72, 0.7, 0.66);
+  ambientLight.groundColor = new BABYLON.Color3(0.55, 0.53, 0.5);
+  // ambientLight.groundColor = new BABYLON.Color3(0.85, 0.85, 0.85);
+  ambientLight.intensity = 1.0; // Naikkan kompensasi karena env diturunkan
+  // ambientLight.diffuse = new BABYLON.Color3(0.96, 0.96, 0.96); // Atas terang merata
+  // ambientLight.groundColor = new BABYLON.Color3(0.85, 0.85, 0.85);
 
-  // 2. SpotLight menggantikan PointLight → cahaya hanya ke bawah
   const lampY = height - 0.25;
   const ceilingLamp = new BABYLON.SpotLight(
     "trial-ceiling-lamp",
     new BABYLON.Vector3(0, lampY, 0),
     new BABYLON.Vector3(0, -1, 0),
-    Math.PI / 2.2, // angle ~82°
-    1.8, // exponent soft edge
+    Math.PI / 1.2, // angle ~82°
+    2.0, // exponent soft edge
     scene,
   );
   ceilingLamp.intensity = TRIAL_LIGHTING_CONFIG.pointIntensity * 1.2;
   ceilingLamp.range = TRIAL_LIGHTING_CONFIG.pointRange;
   ceilingLamp.diffuse = new BABYLON.Color3(1, 0.95, 0.88);
+  // ceilingLamp.diffuse = new BABYLON.Color3(1, 0.97, 0.92);
 
-  // 3. Shadow dari SpotLight — lebih bersih dari PointLight
   const shadowGenerator = new BABYLON.ShadowGenerator(2048, ceilingLamp);
   shadowGenerator.useBlurExponentialShadowMap = true;
   shadowGenerator.blurKernel = 32;
   shadowGenerator.setDarkness(0.25);
 
-  // 4. Emissive panel di ceiling — simulasi panel lampu, hilangkan titik cahaya keras
-  const lampPanel = BABYLON.MeshBuilder.CreatePlane(
-    "lamp-panel",
-    { width: 0.6, height: 0.6 },
-    scene,
-  );
-  lampPanel.position.set(0, height - 0.01, 0);
-  lampPanel.rotation.x = Math.PI / 2;
+  // const lampPanel = BABYLON.MeshBuilder.CreatePlane(
+  //   "lamp-panel",
+  //   { width: 2, height: 0.6 },
+  //   scene,
+  // );
+  // lampPanel.position.set(0, height - 0.01, 0);
+  // lampPanel.rotation.x = Math.PI / 2;
 
-  const lampPanelMat = new BABYLON.StandardMaterial("lamp-panel-mat", scene);
-  lampPanelMat.emissiveColor = new BABYLON.Color3(1, 0.97, 0.9);
-  lampPanelMat.disableLighting = true;
-  lampPanel.material = lampPanelMat;
+  // const lampPanelMat = new BABYLON.StandardMaterial("lamp-panel-mat", scene);
+  // lampPanelMat.emissiveColor = new BABYLON.Color3(1, 0.97, 0.9);
+  // lampPanelMat.disableLighting = true;
+  // lampPanel.material = lampPanelMat;
+  // lampPanel.isVisible = false;
 
-  const fillLight = new BABYLON.HemisphericLight(
-    "trial-fill",
-    new BABYLON.Vector3(0, -1, 0), // dari bawah ke atas → fill ke ceiling & walls
-    scene,
-  );
-  fillLight.intensity = 0.18;
-  fillLight.diffuse = new BABYLON.Color3(1, 0.98, 0.94);
-  fillLight.groundColor = new BABYLON.Color3(0.9, 0.88, 0.84);
+  // const fillLight = new BABYLON.HemisphericLight(
+  //   "trial-fill",
+  //   new BABYLON.Vector3(0, -1, 0), // dari bawah ke atas → fill ke ceiling & walls
+  //   scene,
+  // );
+  // fillLight.intensity = 0.18;
+  // fillLight.diffuse = new BABYLON.Color3(1, 0.98, 0.94);
+  // fillLight.groundColor = new BABYLON.Color3(0.9, 0.88, 0.84);
 
   return {
     ambientLight,
     ceilingLamp,
     shadowGenerator,
-    lampPanel,
-    fillLight,
   };
 };
