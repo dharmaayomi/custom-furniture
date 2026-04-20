@@ -239,18 +239,19 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
   frameMat.roughness = 0.8;
   frameMat.metallic = 0;
   frameMat.backFaceCulling = false;
-  frameMat.unlit = true; // ← tambah ini
+  frameMat.unlit = true;
+
+  const innerWallHeight = height - wallThickness - floorThickness;
 
   const innerWallMat = new BABYLON.PBRMaterial("inner-wall-mat", scene);
-  // This stucco image is not seamless, so render it once per wall face.
-  innerWallMat.albedoTexture = createClampedTexture(scene, TRIAL_TEXTURES.wall);
+  innerWallMat.albedoTexture = createTexture(scene, TRIAL_TEXTURES.wall, 4, 3);
   innerWallMat.albedoColor = hexToColor3(TRIAL_ROOM_CONFIG.wallColor);
   innerWallMat.roughness = 0.85;
   innerWallMat.metallic = 0;
   innerWallMat.backFaceCulling = false;
 
   const innerCeilingMat = new BABYLON.PBRMaterial("inner-ceiling-mat", scene);
-  innerCeilingMat.albedoColor = innerWallMat.albedoColor.clone();
+  innerCeilingMat.albedoColor = hexToColor3(TRIAL_ROOM_CONFIG.wallColor);
   innerCeilingMat.roughness = 0.75;
   innerCeilingMat.metallic = 0;
   innerCeilingMat.backFaceCulling = false;
@@ -280,7 +281,7 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     { width: width, height: vinylThickness, depth: depth },
     scene,
   );
-  floorVinyl.position.y = floorThickness - vinylThickness / 2 + 0.001;
+  floorVinyl.position.y = floorThickness - vinylThickness / 2 + 0.002;
   floorVinyl.receiveShadows = true;
   floorVinyl.metadata = { side: "floor" };
 
@@ -380,7 +381,6 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     w.receiveShadows = true;
   });
 
-  const innerWallHeight = height - wallThickness - floorThickness;
   const innerWallY = floorThickness + innerWallHeight / 2;
   const innerSurfaceThickness = 0.002;
 
