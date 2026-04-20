@@ -302,7 +302,7 @@ export const setupTrialLighting = (scene: BABYLON.Scene) => {
   ambientLight.diffuse = new BABYLON.Color3(0.72, 0.7, 0.66);
   ambientLight.groundColor = new BABYLON.Color3(0.55, 0.53, 0.5);
   // ambientLight.groundColor = new BABYLON.Color3(0.85, 0.85, 0.85);
-  ambientLight.intensity = 1.0; // Naikkan kompensasi karena env diturunkan
+  ambientLight.intensity = 1.2; // Naikkan kompensasi karena env diturunkan
   // ambientLight.diffuse = new BABYLON.Color3(0.96, 0.96, 0.96); // Atas terang merata
   // ambientLight.groundColor = new BABYLON.Color3(0.85, 0.85, 0.85);
 

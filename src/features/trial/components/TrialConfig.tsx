@@ -1,6 +1,6 @@
 export const TRIAL_TEXTURES = {
   floor: "/assets/texture/Oak_Herringbone.jpg",
-  wall: "/assets/texture/texture-of-dry-concrete-wall.jpg",
+  wall: "/assets/texture/pale-stucco-pattern.jpg",
   ceiling: "/assets/texture/gray-abstract-texture.jpg",
   trim: "/assets/texture/light-wood-texture.jpg",
 } as const;
@@ -20,10 +20,11 @@ export const TRIAL_ROOM_CONFIG = {
 export const TRIAL_CAMERA_CONFIG = {
   alpha: -Math.PI / 2,
   beta: Math.PI / 2,
-  radius: 6,
-  zoomInRadius: 2.5,
+  radius: 0.1,
+  zoomInRadius: 0.1,
   targetY: 1.2,
-  wheelPrecision: 50,
+  // targetY: 0,
+  wheelPrecision: 70,
   lowerBetaLimit: 0.1,
   upperBetaLimit: Math.PI / 1.85,
   lowerRadiusLimit: 0.1,

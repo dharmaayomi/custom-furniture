@@ -26,7 +26,8 @@ export const setupTrialCamera = (
   camera.upperBetaLimit = TRIAL_CAMERA_CONFIG.upperBetaLimit;
   camera.lowerRadiusLimit = TRIAL_CAMERA_CONFIG.lowerRadiusLimit;
   camera.upperRadiusLimit = TRIAL_CAMERA_CONFIG.upperRadiusLimit;
-
+  camera.minZ = 0.02;
+  camera.maxZ = 100;
   scene.onBeforeRenderObservable.add(() => {
     const lowerLimit = camera.lowerRadiusLimit ?? 0.1;
     const upperLimit = camera.upperRadiusLimit ?? 15;
@@ -40,10 +41,7 @@ export const setupTrialCamera = (
 
     camera.panningSensibility = BABYLON.Scalar.Lerp(10000, 500, t);
 
-    camera.wheelPrecision = BABYLON.Scalar.Lerp(200, 20, t);
-
     camera.pinchPrecision = BABYLON.Scalar.Lerp(100, 10, t);
-    camera.minZ = 0.001;
   });
 
   let isPointerDown = false;
@@ -80,7 +78,7 @@ export const setupTrialCamera = (
 
   zoomInAnimation.setKeys([
     { frame: 0, value: 6 },
-    { frame: 90, value: TRIAL_CAMERA_CONFIG.zoomInRadius },
+    { frame: 90, value: 1 },
   ]);
 
   const easing = new BABYLON.CubicEase();

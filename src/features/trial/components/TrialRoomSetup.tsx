@@ -1,5 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
-import { TRIAL_ROOM_CONFIG } from "./TrialConfig";
+import { TRIAL_ROOM_CONFIG, TRIAL_TEXTURES } from "./TrialConfig";
 import earcut from "earcut";
 
 // --- Helpers ──────────────────────────────────────────────────────────────────
@@ -15,6 +15,21 @@ const createTexture = (
   texture.vScale = vScale;
   texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
   texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+  return texture;
+};
+
+const createClampedTexture = (
+  scene: BABYLON.Scene,
+  path: string,
+  uScale = 1,
+  vScale = 1,
+) => {
+  const texture = new BABYLON.Texture(path, scene);
+  texture.uScale = uScale;
+  texture.vScale = vScale;
+  texture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
+  texture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
+  texture.anisotropicFilteringLevel = 8;
   return texture;
 };
 
@@ -227,6 +242,8 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
   frameMat.unlit = true; // ← tambah ini
 
   const innerWallMat = new BABYLON.PBRMaterial("inner-wall-mat", scene);
+  // This stucco image is not seamless, so render it once per wall face.
+  innerWallMat.albedoTexture = createClampedTexture(scene, TRIAL_TEXTURES.wall);
   innerWallMat.albedoColor = hexToColor3(TRIAL_ROOM_CONFIG.wallColor);
   innerWallMat.roughness = 0.85;
   innerWallMat.metallic = 0;
@@ -263,7 +280,7 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     { width: width, height: vinylThickness, depth: depth },
     scene,
   );
-  floorVinyl.position.y = floorThickness - vinylThickness / 2 + 0.0001;
+  floorVinyl.position.y = floorThickness - vinylThickness / 2 + 0.001;
   floorVinyl.receiveShadows = true;
   floorVinyl.metadata = { side: "floor" };
 
@@ -280,14 +297,14 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     true, // invertY
     BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
   );
-  vinylTexture.uScale = width;
-  vinylTexture.vScale = depth;
+  vinylTexture.uScale = width / 2;
+  vinylTexture.vScale = depth / 2;
   vinylTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
   vinylTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
   vinylTexture.anisotropicFilteringLevel = 16;
 
   floorVinylMat.albedoTexture = vinylTexture;
-  floorVinylMat.albedoColor = new BABYLON.Color3(1.4, 1.3, 1.2);
+  floorVinylMat.albedoColor = new BABYLON.Color3(1.0, 1.0, 1.0);
   floorVinyl.material = floorVinylMat;
 
   // 2. PLAFON (Ceiling)
