@@ -1,20 +1,17 @@
+import { extractModelNameFromId } from "@/lib/price";
 import { FurnitureTransform, useRoomStore } from "@/store/useRoomStore";
 import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders/glTF";
 import {
-  WallSnapPosition,
   addDragBehavior,
   applyTextureToMesh,
-  cacheOriginalMaterials,
   autoScaleMesh,
-  findAutoSnapPosition,
+  cacheOriginalMaterials,
   getAllFurniture,
   getMeshAABB,
-  getWallSnapPosition,
   updateRoomDimensions,
 } from "./MeshUtils_WallSnap_DB";
 import { CONFIG, FLOOR_Y } from "./RoomConfig";
-import { extractModelNameFromId } from "@/lib/price";
 
 const getBaseModelName = (modelName: string) =>
   modelName.replace(/\.glb$/i, "");
@@ -50,10 +47,7 @@ export const loadProductBaseModel = async (
       return null;
     }
 
-    const container = await BABYLON.LoadAssetContainerAsync(
-      modelSource,
-      scene,
-    );
+    const container = await BABYLON.LoadAssetContainerAsync(modelSource, scene);
 
     container.addAllToScene();
     // Prevent asset-embedded lights/cameras from stacking with scene lighting
@@ -450,10 +444,7 @@ export const loadAdditionalModel = async (
       uniqueId = `${baseName}_${count + 1}`;
     }
 
-    const container = await BABYLON.LoadAssetContainerAsync(
-      modelSource,
-      scene,
-    );
+    const container = await BABYLON.LoadAssetContainerAsync(modelSource, scene);
 
     container.addAllToScene();
     // Prevent asset-embedded lights/cameras from stacking with scene lighting
@@ -829,7 +820,3 @@ export const updateAllTextures = (
     }
   });
 };
-
-
-
-

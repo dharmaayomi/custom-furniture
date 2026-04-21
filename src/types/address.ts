@@ -18,7 +18,7 @@ export type Address = {
   province: string;
   provinceCode?: string;
   cityCode?: string;
-  jneCityCode?: string;
+  jneTariffCode?: string;
   districtCode?: string;
   subdistrictCode?: string;
   country: string;

@@ -70,7 +70,7 @@ export function FormPreview({ formData }: FormPreviewProps) {
               <img
                 src={formData.images[0]}
                 alt={formData.productName}
-                className="h-full w-full rounded-lg object-cover"
+                className="mt-4 h-full w-full rounded-lg object-cover"
               />
             </div>
           )}

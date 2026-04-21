@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import {
   getInstructionChannels,
-  PaymentInstructionMethod,
 } from "@/lib/bankInstruction";
+import { PaymentInstructionValue } from "@/lib/payment-instruction";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -20,15 +20,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { useState } from "react";
-
-export type PaymentInstructionValue = {
-  method: PaymentInstructionMethod;
-  vaNumbers: Array<{ bank: string; va_number: string }>;
-  permataVaNumber: string | null;
-  qrString: string | null;
-  billKey?: string | null;
-  billerCode?: string | null;
-};
+export type { PaymentInstructionValue } from "@/lib/payment-instruction";
 
 /* ── Copy button with "copied" feedback ─────────────────────── */
 const CopyButton = ({ value }: { value: string }) => {

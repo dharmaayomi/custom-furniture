@@ -67,21 +67,33 @@ export function PaymentPhaseStepper({
             className="relative flex grow"
           >
             {!isLast && (
-              <Separator
-                orientation="horizontal"
+              <div
                 className={cn(
-                  "absolute top-5 right-0 left-10 hidden sm:block",
-                  isCompleted ? "bg-primary/40" : "bg-border",
+                  "absolute top-5 right-0 left-10 hidden h-0.5 sm:block",
+                  isCompleted ? "bg-primary" : "bg-border",
                 )}
               />
+              // <Separator
+              //   orientation="horizontal"
+              //   className={cn(
+              //     "absolute top-5 right-0 left-10 hidden sm:block",
+              //     isCompleted ? "bg-primary/40" : "bg-border",
+              //   )}
+              // />
             )}
 
             {!isLast && (
-              <Separator
-                orientation="vertical"
+              // <Separator
+              //   orientation="vertical"
+              //   className={cn(
+              //     "absolute top-10 bottom-0 left-5 -translate-x-1/2 sm:hidden",
+              //     isCompleted ? "bg-primary/40" : "bg-border",
+              //   )}
+              // />
+              <div
                 className={cn(
-                  "absolute top-10 bottom-0 left-5 -translate-x-1/2 sm:hidden",
-                  isCompleted ? "bg-primary/40" : "bg-border",
+                  "absolute top-10 left-5 h-11 w-0.5 -translate-x-1/2 sm:hidden",
+                  isCompleted ? "bg-primary" : "bg-border",
                 )}
               />
             )}

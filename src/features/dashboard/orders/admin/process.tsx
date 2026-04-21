@@ -47,10 +47,11 @@ type AdminOrderProcessPageTrialProps = {
 };
 
 const processLoadingStates = [
-  { text: "Loading order details" },
-  { text: "Checking payment phase" },
-  { text: "Fetching production history" },
-  { text: "Preparing progress form" },
+  { text: "Memuat detail pesanan" },
+  { text: "Memeriksa fase pembayaran" },
+  { text: "Mengambil riwayat produksi" },
+  { text: "Memvalidasi izin unggah foto" },
+  { text: "Menyiapkan formulir progres" },
 ];
 
 export default function AdminOrderProcessPage({

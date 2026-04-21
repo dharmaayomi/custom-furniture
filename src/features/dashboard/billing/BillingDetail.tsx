@@ -16,7 +16,10 @@ import useGetAttemptDetail from "@/hooks/api/payment/useGetAttemptDetail";
 import useGetPaymentAttemptByPayment from "@/hooks/api/payment/useGetPaymentAttemptByPayment";
 import useGetOrder from "@/hooks/api/order/useGetOrder";
 import { getApiErrorMessage } from "@/lib/api-error";
-import { PaymentInstructionMethod } from "@/lib/bankInstruction";
+import {
+  buildInstructionFromPayment,
+  parsePaymentReference,
+} from "@/lib/payment-instruction";
 import { formatPrice } from "@/lib/price";
 import {
   getOrderStatusBadgeClass,
@@ -194,33 +197,6 @@ const buildCorePayload = (method: CorePaymentMethod) => {
   }
 };
 
-const inferInstructionMethodFromPayment = (
-  payment?: Pick<
-    CustomOrderPayment,
-    "paymentType" | "midtransPaymentType" | "midtransBank"
-  > | null,
-): PaymentInstructionMethod => {
-  const bank = String(payment?.midtransBank ?? "").toLowerCase();
-  if (bank === "bca") return "bca_va";
-  if (bank === "bni") return "bni_va";
-  if (bank === "bri") return "bri_va";
-  if (bank === "permata") return "permata_va";
-  if (bank === "cimb") return "cimb_va";
-  if (bank === "mandiri") return "mandiri_bill";
-
-  const midtransType = String(payment?.midtransPaymentType ?? "").toLowerCase();
-  if (midtransType === "qris") return "qris";
-  if (midtransType === "gopay") return "gopay";
-  if (midtransType === "echannel") return "mandiri_bill";
-
-  const paymentType = String(payment?.paymentType ?? "").toLowerCase();
-  if (paymentType.includes("qris")) return "qris";
-  if (paymentType.includes("gopay")) return "gopay";
-  if (paymentType.includes("echannel")) return "mandiri_bill";
-
-  return "qris";
-};
-
 const PAYMENT_FALLBACK: Record<
   string,
   { label: string; color: string; bg: string; iconPath?: string }
@@ -340,57 +316,6 @@ const formatPaymentDate = (value?: string | null) => {
     hour: "2-digit",
     minute: "2-digit",
   });
-};
-
-type ParsedPaymentReference = {
-  va_numbers?: Array<{ va_number?: string; bank?: string }>;
-  permata_va_number?: string;
-  bill_key?: string;
-  biller_code?: string;
-  qr_string?: string;
-};
-
-const parsePaymentReference = (value?: string | null) => {
-  if (!value) return null;
-  try {
-    const parsed = JSON.parse(value) as ParsedPaymentReference;
-    if (!parsed || typeof parsed !== "object") return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-};
-
-const buildInstructionFromPayment = (
-  payment: CustomOrderPayment,
-): PaymentInstructionValue | null => {
-  const parsedReference = parsePaymentReference(payment.midtransReference);
-  const vaNumbers = Array.isArray(parsedReference?.va_numbers)
-    ? parsedReference.va_numbers
-        .filter((item) => item?.va_number)
-        .map((item) => ({
-          bank: String(item.bank ?? payment.midtransBank ?? "bank"),
-          va_number: String(item.va_number),
-        }))
-    : [];
-
-  const next: PaymentInstructionValue = {
-    method: inferInstructionMethodFromPayment(payment),
-    vaNumbers,
-    permataVaNumber: parsedReference?.permata_va_number ?? null,
-    qrString: parsedReference?.qr_string ?? null,
-    billerCode: parsedReference?.biller_code ?? null,
-    billKey: parsedReference?.bill_key ?? null,
-  };
-
-  const hasInstruction =
-    next.vaNumbers.length > 0 ||
-    Boolean(next.permataVaNumber) ||
-    Boolean(next.qrString) ||
-    Boolean(next.billKey) ||
-    Boolean(next.billerCode);
-
-  return hasInstruction ? next : null;
 };
 
 const copyToClipboard = async (value: string, label: string) => {
@@ -672,7 +597,7 @@ function PaymentHistoryCard({
 
         {!hasStructuredReference ? (
           <div className="flex items-start justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-700">
-            <p className="min-w-0 flex-1 break-all font-mono text-xs text-zinc-700 dark:text-zinc-300">
+            <p className="min-w-0 flex-1 font-mono text-xs break-all text-zinc-700 dark:text-zinc-300">
               {referenceAttemptId || "Attempt ID belum tersedia"}
             </p>
             {referenceAttemptId ? (
@@ -1108,10 +1033,10 @@ export const BillingDetail = ({
       stepsToRender.map((step) => ({
         id: step.phase,
         title: step.label,
-          description:
-            step.state === "completed" || step.state === "current"
-              ? formatPrice(step.amount)
-              : "Berikutnya",
+        description:
+          step.state === "completed" || step.state === "current"
+            ? formatPrice(step.amount)
+            : "Berikutnya",
       })),
     [stepsToRender],
   );
@@ -1327,7 +1252,8 @@ export const BillingDetail = ({
           Kembali
         </Button>
         <Badge className={getOrderStatusBadgeClass(order.status)}>
-          {ORDER_STATUS_LABEL_ID[order.status] ?? getOrderStatusLabel(order.status)}
+          {ORDER_STATUS_LABEL_ID[order.status] ??
+            getOrderStatusLabel(order.status)}
         </Badge>
       </div>
 
@@ -1389,7 +1315,8 @@ export const BillingDetail = ({
                       Semua pembayaran sudah selesai
                     </p>
                     <p className="mt-1 text-xs text-emerald-700/90">
-                      Pembayaran Anda sudah lunas. Silakan tunggu proses produksi atau pengiriman berikutnya.
+                      Pembayaran Anda sudah lunas. Silakan tunggu proses
+                      produksi atau pengiriman berikutnya.
                     </p>
                   </div>
                 ) : (
@@ -1410,7 +1337,8 @@ export const BillingDetail = ({
                             Belum ada detail pembayaran
                           </p>
                           <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                            Detail pembayaran akan muncul di sini setelah instruksi pembayaran dibuat.
+                            Detail pembayaran akan muncul di sini setelah
+                            instruksi pembayaran dibuat.
                           </p>
                         </div>
                       ) : (
@@ -1450,7 +1378,7 @@ export const BillingDetail = ({
                               <Button
                                 variant="outline"
                                 className="w-full"
-                              onClick={() =>
+                                onClick={() =>
                                   window.open(paymentRedirectUrl, "_blank")
                                 }
                               >
@@ -1476,7 +1404,8 @@ export const BillingDetail = ({
 
                         {allPaymentsDone ? (
                           <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-sm font-medium text-emerald-700">
-                            Semua pembayaran sudah selesai. Silakan tunggu proses berikutnya.
+                            Semua pembayaran sudah selesai. Silakan tunggu
+                            proses berikutnya.
                           </div>
                         ) : (
                           <>
@@ -1487,11 +1416,11 @@ export const BillingDetail = ({
                                 disabled={!isPayable || isCreatingSnapPayment}
                               >
                                 {isCreatingSnapPayment ? (
-                                  "Membuat instruksi pembayaran..."
+                                  "Memilih pembayaran..."
                                 ) : (
                                   <>
                                     <CreditCard className="mr-2 h-4 w-4" />
-                                    Buat Instruksi Pembayaran
+                                    Pilih Pembayaran
                                   </>
                                 )}
                               </Button>

@@ -15,6 +15,7 @@ export const editAddressSchema = z.object({
   province: z.string().optional(),
   provinceCode: z.string().optional(),
   cityCode: z.string().optional(),
+  jneTariffCode: z.string().optional(),
   districtCode: z.string().optional(),
   subdistrictCode: z.string().optional(),
   country: z.string().optional(),

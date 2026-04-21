@@ -16,6 +16,7 @@ export const createAddressSchema = z.object({
   province: z.string().min(1, "Province is required"),
   provinceCode: z.string().optional(),
   cityCode: z.string().optional(),
+  jneTariffCode: z.string().optional(),
   districtCode: z.string().optional(),
   subdistrictCode: z.string().optional(),
   country: z.string().min(1, "Country is required"),

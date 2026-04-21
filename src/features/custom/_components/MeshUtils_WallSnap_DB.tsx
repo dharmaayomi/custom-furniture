@@ -50,13 +50,17 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
       let isProductBase = false;
       let storeIndex = -1;
 
-      const productBaseIndex = productBaseModels.findIndex((id) => id === mesh.name);
+      const productBaseIndex = productBaseModels.findIndex(
+        (id) => id === mesh.name,
+      );
       if (productBaseIndex !== -1) {
         savedTransform = productBaseTransforms[productBaseIndex];
         isProductBase = true;
         storeIndex = productBaseIndex;
       } else {
-        const productComponentIndex = productComponentModels.findIndex((id) => id === mesh.name);
+        const productComponentIndex = productComponentModels.findIndex(
+          (id) => id === mesh.name,
+        );
         if (productComponentIndex !== -1) {
           savedTransform = productComponentTransforms[productComponentIndex];
           isProductBase = false;
@@ -220,6 +224,7 @@ export const updateRoomDimensions = (scene?: BABYLON.Scene) => {
 
 const materialCache = new Map<string, BABYLON.PBRMaterial>();
 const originalMaterialCache = new Map<string, BABYLON.Material | null>();
+const TEXTURE_TILE_SIZE_METERS = 1;
 
 // Cache original materials for a mesh and its children so resets can restore originals
 export const cacheOriginalMaterials = (mesh: BABYLON.AbstractMesh) => {
@@ -244,29 +249,55 @@ export const cacheOriginalMaterials = (mesh: BABYLON.AbstractMesh) => {
  * Get atau create material dengan caching
  * Ini mencegah material baru dibuat terus-menerus yang menyebabkan perubahan lighting
  */
+const getTexturePath = (texName: string) =>
+  texName.startsWith("http://") ||
+  texName.startsWith("https://") ||
+  texName.startsWith("data:") ||
+  texName.startsWith("/")
+    ? texName
+    : "/assets/texture/" + texName;
+
+const getTextureTiling = (mesh: BABYLON.AbstractMesh) => {
+  mesh.computeWorldMatrix(true);
+  mesh.refreshBoundingInfo(true, true);
+
+  const bounds = mesh.getHierarchyBoundingVectors(
+    true,
+    (node) => node.isVisible,
+  );
+  const width = Math.max(Math.abs(bounds.max.x - bounds.min.x), 0.001);
+  const height = Math.max(Math.abs(bounds.max.y - bounds.min.y), 0.001);
+  const depth = Math.max(Math.abs(bounds.max.z - bounds.min.z), 0.001);
+
+  return {
+    uScale: Math.max(1, Math.max(width, depth) / TEXTURE_TILE_SIZE_METERS),
+    vScale: Math.max(1, height / TEXTURE_TILE_SIZE_METERS),
+  };
+};
+
 const getOrCreateMaterial = (
+  mesh: BABYLON.AbstractMesh,
   texName: string,
   scene: BABYLON.Scene,
 ): BABYLON.PBRMaterial => {
-  const cacheKey = `furnitureMat_${texName}`;
+  const { uScale, vScale } = getTextureTiling(mesh);
+  const cacheKey = `furnitureMat_${mesh.uniqueId}_${texName}_${uScale.toFixed(2)}_${vScale.toFixed(2)}`;
 
   // Cek apakah material sudah ada di cache
   if (materialCache.has(cacheKey)) {
     const cachedMat = materialCache.get(cacheKey);
-    if (cachedMat && !cachedMat.dispose) {
+    if (cachedMat && cachedMat.getScene() === scene) {
       return cachedMat;
     }
   }
 
   // Buat material baru jika belum ada
-  const texturePath =
-    texName.startsWith("http://") ||
-    texName.startsWith("https://") ||
-    texName.startsWith("data:") ||
-    texName.startsWith("/")
-      ? texName
-      : "/assets/texture/" + texName;
+  const texturePath = getTexturePath(texName);
   const newTex = new BABYLON.Texture(texturePath, scene);
+  newTex.uScale = uScale;
+  newTex.vScale = vScale;
+  newTex.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+  newTex.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 
   const pbrMat = new BABYLON.PBRMaterial(cacheKey, scene);
   pbrMat.albedoTexture = newTex;
@@ -618,7 +649,7 @@ export const applyTextureToMesh = (
     }
   }
 
-  const material = getOrCreateMaterial(texName, scene);
+  const material = getOrCreateMaterial(mesh, texName, scene);
   mesh.material = material;
 };
 
@@ -1090,11 +1121,15 @@ export const addDragBehavior = (
         productBaseModels: productBaseModels,
         productComponentModels: productComponentModels,
       } = useRoomStore.getState().present;
-      const productBaseIndex = productBaseModels.findIndex((id) => id === mesh.name);
+      const productBaseIndex = productBaseModels.findIndex(
+        (id) => id === mesh.name,
+      );
       if (productBaseIndex !== -1) {
         saveTransformToHistory(productBaseIndex, transform, true);
       } else {
-        const productComponentIndex = productComponentModels.findIndex((id) => id === mesh.name);
+        const productComponentIndex = productComponentModels.findIndex(
+          (id) => id === mesh.name,
+        );
         if (productComponentIndex !== -1) {
           saveTransformToHistory(productComponentIndex, transform, false);
         }
@@ -1194,5 +1229,3 @@ export const setupAutoHideWalls = (
     });
   });
 };
-
-
