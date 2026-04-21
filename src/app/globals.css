@@ -204,7 +204,25 @@
   animation-duration: 2s;
 }
 
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.33%);
+  }
+}
+
 @layer utilities {
+  .animate-marquee {
+    display: flex;
+    animation: marquee 50s linear infinite;
+  }
+
+  .pause-on-hover:hover {
+    animation-play-state: paused;
+  }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;

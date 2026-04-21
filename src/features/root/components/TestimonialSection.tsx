@@ -114,24 +114,6 @@ export default function Testimonial04() {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .animate-marquee {
-          display: flex;
-          animation: marquee 50s linear infinite;
-        }
-        .pause-on-hover:hover {
-          animation-play-state: paused;
-        }
-        @keyframes marquee {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-33.33%);
-          }
-        }
-      `}</style>
     </section>
   );
 }
