@@ -2,6 +2,7 @@ import * as BABYLON from "@babylonjs/core";
 
 import { setupTrialCamera } from "./TrialCameraSetup";
 import { setupTrialLighting } from "./TrialLightingSetup";
+import { loadProductBase } from "./TrialModelLoader";
 import { setupTrialRoom } from "./TrialRoomSetup";
 
 const setupTrialAutoHideWalls = (
@@ -52,6 +53,16 @@ export const initTrialRoom = (canvas: HTMLCanvasElement) => {
   const camera = setupTrialCamera(canvas, scene);
   const { shadowGenerator } = setupTrialLighting(scene);
   const room = setupTrialRoom(scene);
+  let loadedModel: { dispose: () => void } | null = null;
+  let isDisposed = false;
+
+  void loadProductBase(scene, shadowGenerator).then((result) => {
+    if (isDisposed) {
+      result?.dispose();
+      return;
+    }
+    loadedModel = result;
+  });
 
   const autoHideObserver = setupTrialAutoHideWalls(scene, room.walls, camera);
 
@@ -86,8 +97,10 @@ export const initTrialRoom = (canvas: HTMLCanvasElement) => {
   window.addEventListener("resize", handleResize);
 
   return () => {
+    isDisposed = true;
     window.removeEventListener("resize", handleResize);
     scene.onBeforeRenderObservable.remove(autoHideObserver);
+    loadedModel?.dispose();
     scene.dispose();
     engine.dispose();
   };

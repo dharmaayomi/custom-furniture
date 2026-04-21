@@ -1,6 +1,6 @@
 export const TRIAL_TEXTURES = {
   floor: "/assets/texture/Oak_Herringbone.jpg",
-  wall: "/assets/texture/wall-texture.jpg",
+  wall: "/assets/texture/pale-stucco-pattern.jpg",
   // wall: "/assets/texture/pale-stucco-pattern.jpg",
   ceiling: "/assets/texture/gray-abstract-texture.jpg",
   trim: "/assets/texture/light-wood-texture.jpg",

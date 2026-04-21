@@ -244,7 +244,10 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
   const innerWallHeight = height - wallThickness - floorThickness;
 
   const innerWallMat = new BABYLON.PBRMaterial("inner-wall-mat", scene);
-  innerWallMat.albedoTexture = createTexture(scene, TRIAL_TEXTURES.wall, 4, 3);
+  const wallTexture = new BABYLON.Texture(TRIAL_TEXTURES.wall, scene);
+  wallTexture.uScale = 4.0;
+  wallTexture.vScale = 3.0;
+  innerWallMat.albedoTexture = wallTexture;
   innerWallMat.albedoColor = hexToColor3(TRIAL_ROOM_CONFIG.wallColor);
   innerWallMat.roughness = 0.85;
   innerWallMat.metallic = 0;
@@ -394,7 +397,9 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     innerWallY,
     depth / 2 - innerSurfaceThickness / 2,
   );
+  // innerBackWall.material = makeWallMat("mat-back", width); // 6.8
   innerBackWall.material = innerWallMat;
+
   innerBackWall.receiveShadows = true;
   innerBackWall.metadata = { side: "back" };
 
@@ -409,6 +414,7 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     -depth / 2 + innerSurfaceThickness / 2,
   );
   innerFrontWall.material = innerWallMat;
+  // innerFrontWall.material = makeWallMat("mat-front", width); // 6.8
   innerFrontWall.receiveShadows = true;
   innerFrontWall.metadata = { side: "front" };
 
@@ -423,6 +429,7 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     0,
   );
   innerLeftWall.material = innerWallMat;
+  // innerLeftWall.material = makeWallMat("mat-left", depth);
   innerLeftWall.receiveShadows = true;
   innerLeftWall.metadata = { side: "left" };
 
@@ -437,6 +444,7 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     0,
   );
   innerRightWall.material = innerWallMat;
+  // innerRightWall.material = makeWallMat("mat-right", depth);
   innerRightWall.receiveShadows = true;
   innerRightWall.metadata = { side: "right" };
 
