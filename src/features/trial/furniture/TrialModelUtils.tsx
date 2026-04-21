@@ -1,6 +1,44 @@
 import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders/glTF";
 
+// SNAP TO NEAREST WALL
+
+const snapToNearestWall = (
+  targetMesh: BABYLON.AbstractMesh,
+  roomBounds: { width: number; depth: number },
+  modelExtents: BABYLON.Vector3,
+) => {
+  const { width, depth } = roomBounds;
+  const pos = targetMesh.position;
+
+  // Jarak ke tiap dinding (asumsi center ruangan adalah 0,0,0)
+  const distBack = Math.abs(depth / 2 - pos.z);
+  const distFront = Math.abs(-depth / 2 - pos.z);
+  const distRight = Math.abs(width / 2 - pos.x);
+  const distLeft = Math.abs(-width / 2 - pos.x);
+
+  const minDist = Math.min(distBack, distFront, distRight, distLeft);
+
+  // ✅ Logika Snap & Rotasi
+  if (minDist === distBack) {
+    // Menempel ke Back Wall (Menghadap Front/Z-)
+    pos.z = depth / 2 - modelExtents.z;
+    targetMesh.rotation.y = 0; // Default GLB hadap depan
+  } else if (minDist === distFront) {
+    // Menempel ke Front Wall (Menghadap Back/Z+)
+    pos.z = -depth / 2 + modelExtents.z;
+    targetMesh.rotation.y = Math.PI;
+  } else if (minDist === distRight) {
+    // Menempel ke Right Wall (Menghadap Left/X-)
+    pos.x = width / 2 - modelExtents.z; // Gunakan extents.z karena model berotasi
+    targetMesh.rotation.y = -Math.PI / 2;
+  } else if (minDist === distLeft) {
+    // Menempel ke Left Wall (Menghadap Right/X+)
+    pos.x = -width / 2 + modelExtents.z;
+    targetMesh.rotation.y = Math.PI / 2;
+  }
+};
+
 // DRAG SETTING
 export const createDraggableBoundingBox = (
   scene: BABYLON.Scene,
@@ -46,10 +84,16 @@ export const createDraggableBoundingBox = (
   });
   dragBehavior.useObjectOrientationForDragging = false;
 
+  const getPointerInput = () => {
+    const cam = getCamera();
+    return cam?.inputs.attached["pointers"] as
+      | BABYLON.ArcRotateCameraPointersInput
+      | undefined;
+  };
   dragBehavior.onDragStartObservable.add(() => {
     isDragging = true;
     setOutline(true); // outline tetap nyala selama drag
-
+    getPointerInput()?.detachControl();
     // Matikan input kamera supaya swipe/drag tidak memutar scene
     // — hanya furniture yang bergerak
     getCamera()?.inputs.detachElement();
@@ -62,9 +106,9 @@ export const createDraggableBoundingBox = (
 
   dragBehavior.onDragEndObservable.add(() => {
     isDragging = false;
-
-    // Kembalikan kontrol kamera
-    getCamera()?.inputs.attachElement();
+    // ✅ Re-attach ke canvas yang benar
+    const canvas = scene.getEngine().getRenderingCanvas();
+    if (canvas) getPointerInput()?.attachControl();
 
     // Matikan outline kalau pointer sudah tidak di atas mesh
     setOutline(false);
