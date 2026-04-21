@@ -36,6 +36,7 @@ export const setupTrialCamera = (
   camera.useAutoRotationBehavior = false;
   camera.zoomToMouseLocation = true;
   camera.wheelDeltaPercentage = 0.02;
+  camera.panningSensibility = 200;
   scene.activeCamera = camera;
 
   // ===== Limits =====

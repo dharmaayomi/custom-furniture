@@ -1,11 +1,11 @@
 "use client";
 
-import { TrialRoom } from "./components/TrialRoom";
+import { TrialRoomCanvas } from "./TrialRoomCanvas";
 
 export const TrialPage = () => {
   return (
     <main className="min-h-screen">
-      <TrialRoom />
+      <TrialRoomCanvas />
     </main>
   );
 };
