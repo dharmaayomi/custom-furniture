@@ -1,73 +1,5 @@
-// import * as BABYLON from "@babylonjs/core";
-
-// import { setupTrialCamera } from "./TrialCameraSetup";
-// import { setupTrialLighting } from "./TrialLightingSetup";
-// import { loadProductBase } from "../furniture/TrialModelLoader";
-// import { setupTrialRoom } from "./TrialRoomSetup";
-// import { setupTrialAutoHideWalls } from "../furniture/WallVisibility";
-
-// export const initTrialRoom = (canvas: HTMLCanvasElement) => {
-//   const engine = new BABYLON.Engine(canvas, true);
-//   const scene = new BABYLON.Scene(engine);
-//   scene.clearColor = new BABYLON.Color4(0.95, 0.96, 0.96, 1);
-
-//   const camera = setupTrialCamera(canvas, scene);
-//   const { shadowGenerator } = setupTrialLighting(scene);
-//   const room = setupTrialRoom(scene);
-//   let loadedModel: { dispose: () => void } | null = null;
-//   let isDisposed = false;
-
-//   void loadProductBase(scene, shadowGenerator).then((result) => {
-//     if (isDisposed) {
-//       result?.dispose();
-//       return;
-//     }
-//     loadedModel = result;
-//   });
-
-//   const autoHideObserver = setupTrialAutoHideWalls(scene, room.walls, camera);
-
-//   [
-//     room.backWall,
-//     room.frontWall,
-//     room.leftWall,
-//     room.rightWall,
-//     room.ceiling,
-//     room.innerBackWall,
-//     room.innerFrontWall,
-//     room.innerLeftWall,
-//     room.innerRightWall,
-//     room.innerCeiling,
-//   ].forEach((mesh) => {
-//     shadowGenerator.addShadowCaster(mesh, false);
-//   });
-
-//   scene.imageProcessingConfiguration.toneMappingEnabled = true;
-//   scene.imageProcessingConfiguration.toneMappingType =
-//     BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
-//   scene.imageProcessingConfiguration.exposure = 1.1;
-//   scene.imageProcessingConfiguration.contrast = 1.35;
-//   engine.runRenderLoop(() => {
-//     scene.render();
-//   });
-
-//   const handleResize = () => {
-//     engine.resize();
-//   };
-
-//   window.addEventListener("resize", handleResize);
-
-//   return () => {
-//     isDisposed = true;
-//     window.removeEventListener("resize", handleResize);
-//     scene.onBeforeRenderObservable.remove(autoHideObserver);
-//     loadedModel?.dispose();
-//     scene.dispose();
-//     engine.dispose();
-//   };
-// };
 import * as BABYLON from "@babylonjs/core";
-
+import { GridMaterial } from "@babylonjs/materials/grid";
 import { setupTrialCamera } from "./TrialCameraSetup";
 
 import { setupTrialRoom } from "./TrialRoomSetup";
@@ -104,10 +36,12 @@ export const initTrialScene = (
   const engine = new BABYLON.Engine(canvas, true, {
     adaptToDeviceRatio: true,
     preserveDrawingBuffer: true,
+    alpha: true, // ← ini
   });
 
   const scene = new BABYLON.Scene(engine);
-  scene.clearColor = new BABYLON.Color4(0.95, 0.96, 0.96, 1);
+  // scene.clearColor = new BABYLON.Color4(0.95, 0.96, 0.96, 1);
+  scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
 
   const camera = setupTrialCamera(canvas, scene);
   const lighting = setupTrialLighting(scene);

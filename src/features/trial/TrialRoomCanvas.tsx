@@ -1,11 +1,27 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   loadProductBase,
   TrialModelLoadResult,
 } from "./furniture/TrialModelLoader";
 import { getBackWallPosition, initTrialScene } from "./core/TrialSceneSetup";
+import { TrialHeader } from "./components/TrialHeader";
+import { TrialFooter } from "./components/TrialFooter";
+import {
+  RightPanel,
+  TrialActivePanel,
+  TrialTool,
+  TrialToolType,
+} from "./components/RightPanel";
+import {
+  DoorClosed,
+  Grid,
+  LampFloor,
+  LayoutTemplate,
+  Package,
+  PaintBucket,
+} from "lucide-react";
 
 /**
  * TrialRoomCanvas.tsx
