@@ -32,9 +32,6 @@ export const createDraggableBoundingBox = (
   hitBox.material = mat;
   hitBox.isPickable = true;
 
-  // 3. Ambil kamera aktif — butuh untuk detach/attach input saat drag
-  //    Kita pakai ArcRotateCamera (kamera orbit). Kalau proyek kamu pakai
-  //    tipe lain, ganti cast-nya di sini.
   const getCamera = (): BABYLON.ArcRotateCamera | null => {
     const cam = scene.activeCamera;
     return cam instanceof BABYLON.ArcRotateCamera ? cam : null;
@@ -70,7 +67,6 @@ export const createDraggableBoundingBox = (
 
   dragBehavior.onDragEndObservable.add(() => {
     isDragging = false;
-    // ✅ Re-attach ke canvas yang benar
     const canvas = scene.getEngine().getRenderingCanvas();
     if (canvas) getPointerInput()?.attachControl();
 

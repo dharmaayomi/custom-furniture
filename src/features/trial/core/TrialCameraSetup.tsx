@@ -35,7 +35,7 @@ export const setupTrialCamera = (
   camera.mapPanning = true;
   camera.useAutoRotationBehavior = false;
   camera.zoomToMouseLocation = true;
-  camera.wheelDeltaPercentage = 0.02;
+  camera.wheelDeltaPercentage = 0.01;
   camera.panningSensibility = 200;
   scene.activeCamera = camera;
 
@@ -53,14 +53,27 @@ export const setupTrialCamera = (
       return;
     }
 
-    updateZoomTargetFromPointer();
+    const wheelEvent = pointerInfo.event as WheelEvent;
+    const isZoomingIn = wheelEvent.deltaY < 0;
+
+    if (isZoomingIn) {
+      updateZoomTargetFromPointer();
+    } else {
+      zoomTarget.copyFrom(camera.target);
+
+      // Saat zoom out & radius mentok di lower limit,
+      // nudge radius biar wheel event ga "nyangkut"
+      const lowerLimit = camera.lowerRadiusLimit ?? 0.1;
+      if (camera.radius <= lowerLimit + 0.05) {
+        camera.radius = lowerLimit + 0.1;
+      }
+    }
   });
 
   scene.onBeforeRenderObservable.add(() => {
     const lowerLimit = camera.lowerRadiusLimit ?? 0.1;
     const upperLimit = camera.upperRadiusLimit ?? 15;
 
-    // t = 0 saat sangat dekat, t = 1 saat sangat jauh
     const t = BABYLON.Scalar.Clamp(
       (camera.radius - lowerLimit) / (upperLimit - lowerLimit),
       0,
@@ -71,6 +84,13 @@ export const setupTrialCamera = (
 
     camera.pinchPrecision = BABYLON.Scalar.Lerp(100, 10, t);
     BABYLON.Vector3.LerpToRef(camera.target, zoomTarget, 0.1, camera.target);
+    if (camera.radius > lowerLimit + 0.5) {
+      camera.target.y = BABYLON.Scalar.Lerp(
+        camera.target.y,
+        TRIAL_CAMERA_CONFIG.targetY,
+        0.03,
+      );
+    }
   });
 
   let isPointerDown = false;

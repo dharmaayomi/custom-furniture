@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
@@ -54,7 +53,7 @@ export const RightPanel = ({
       <div
         className="absolute top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-3"
         style={{
-          right: isSidebarOpen ? " 2rem" : "2rem",
+          right: isSidebarOpen ? "2.5rem" : "2rem",
         }}
       >
         <div className="bg-primary/10 pointer-events-none absolute -top-8 -right-3 h-24 w-24 rounded-full blur-3xl" />

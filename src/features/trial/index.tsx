@@ -15,6 +15,7 @@ import {
   TrialTool,
   TrialToolType,
 } from "./components/RightPanel";
+import { RightPanelDrawer } from "./components/RightPanelDrawer";
 import { TrialHeader } from "./components/TrialHeader";
 import { TrialFooter } from "./components/TrialFooter";
 import { useState } from "react";
@@ -71,7 +72,7 @@ export const TrialPage = () => {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-100">
       <div
-        className={`relative min-w-0 flex-1 bg-gray-200 ${isAnyPanelOpen ? "md:mr-70" : ""}`}
+        className={`relative min-w-0 flex-1 bg-gray-200 ${isAnyPanelOpen ? "md:mr-102" : ""}`}
       >
         <TrialHeader />
         <RightPanel
@@ -80,6 +81,16 @@ export const TrialPage = () => {
           onToolClick={handleToolClick}
           isSidebarOpen={isAnyPanelOpen}
           onCustomizeClick={handleCustomizeClick}
+        />
+        <RightPanelDrawer
+          open={isAnyPanelOpen}
+          selectedTool={selectedTool}
+          tools={tools}
+          onOpenChange={(open) => {
+            if (!open) {
+              closePanel();
+            }
+          }}
         />
         <div className="relative h-screen flex-1">
           <TrialRoomCanvas />

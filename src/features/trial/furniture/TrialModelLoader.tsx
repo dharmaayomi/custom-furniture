@@ -5,6 +5,7 @@ import {
   buildOutlineController,
   createDraggableBoundingBox,
 } from "./TrialModelUtils";
+import { useTrialRoomStore } from "../useTrialRoomStore";
 
 /**
  * TrialModelLoader.ts
@@ -20,15 +21,10 @@ import {
  */
 
 export interface TrialModelLoadOptions {
-  /** Path ke file GLB, misal "/assets/3d/my-model.glb" */
   modelPath: string;
-  /** Nama unik untuk rootMesh di scene */
   meshName: string;
-  /** Posisi awal (world space). Pemanggil yang menghitung ini. */
   initialPosition: BABYLON.Vector3;
-  /** Rotasi Y awal dalam radian */
   initialRotationY?: number;
-  /** Opsional shadow generator */
   shadowGenerator?: BABYLON.ShadowGenerator;
 }
 
@@ -36,7 +32,6 @@ export interface TrialModelLoadResult {
   container: BABYLON.AssetContainer;
   rootMesh: BABYLON.AbstractMesh;
   boundingBoxMesh: BABYLON.Mesh;
-  /** Toggle outline kuning dari luar (misal: saat item dipilih dari UI) */
   setOutline: (visible: boolean) => void;
   dispose: () => void;
 }
@@ -93,6 +88,10 @@ export const loadProductBase = async (
     const setOutline = buildOutlineController(scene, rootMesh);
     setOutline(false);
 
+    const unsubscribe = useTrialRoomStore.subscribe((state) => {
+      setOutline(state.selectedMeshName === meshName);
+    });
+
     const boundingBoxMesh = createDraggableBoundingBox(
       scene,
       rootMesh,
@@ -105,6 +104,7 @@ export const loadProductBase = async (
       boundingBoxMesh,
       setOutline,
       dispose: () => {
+        unsubscribe();
         boundingBoxMesh.dispose();
         container.dispose();
       },
