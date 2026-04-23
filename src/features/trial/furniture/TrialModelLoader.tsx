@@ -26,12 +26,14 @@ export interface TrialModelLoadOptions {
   initialPosition: BABYLON.Vector3;
   initialRotationY?: number;
   shadowGenerator?: BABYLON.ShadowGenerator;
+  enableInteraction?: boolean;
+  centerOnXAxis?: boolean;
 }
 
 export interface TrialModelLoadResult {
   container: BABYLON.AssetContainer;
   rootMesh: BABYLON.AbstractMesh;
-  boundingBoxMesh: BABYLON.Mesh;
+  boundingBoxMesh: BABYLON.Mesh | null;
   setOutline: (visible: boolean) => void;
   dispose: () => void;
 }
@@ -46,6 +48,8 @@ export const loadProductBase = async (
     initialPosition,
     initialRotationY = 0,
     shadowGenerator,
+    enableInteraction = true,
+    centerOnXAxis = true,
   } = options;
 
   try {
@@ -71,11 +75,15 @@ export const loadProductBase = async (
     rootMesh.rotation.y = initialRotationY;
     rootMesh.computeWorldMatrix(true);
 
-    // Koreksi X agar model di-center secara horizontal
-    const bounds = rootMesh.getHierarchyBoundingVectors(true);
-    const modelCenterX = (bounds.min.x + bounds.max.x) / 2;
-    rootMesh.position.x -= modelCenterX;
-    rootMesh.computeWorldMatrix(true);
+    // Step 1:
+    // Base furniture is centered on X so it lands neatly in the room.
+    // Tambahan keeps its authored origin so it can stay aligned inside the furniture.
+    if (centerOnXAxis) {
+      const bounds = rootMesh.getHierarchyBoundingVectors(true);
+      const modelCenterX = (bounds.min.x + bounds.max.x) / 2;
+      rootMesh.position.x -= modelCenterX;
+      rootMesh.computeWorldMatrix(true);
+    }
 
     // Setup child meshes
     rootMesh.getChildMeshes().forEach((mesh) => {
@@ -84,19 +92,23 @@ export const loadProductBase = async (
       shadowGenerator?.addShadowCaster(mesh, false);
     });
 
-    // Outline + drag
-    const setOutline = buildOutlineController(scene, rootMesh);
-    setOutline(false);
+    let setOutline = (_visible: boolean) => {};
+    let unsubscribe = () => {};
+    let boundingBoxMesh: BABYLON.Mesh | null = null;
 
-    const unsubscribe = useTrialRoomStore.subscribe((state) => {
-      setOutline(state.selectedMeshName === meshName);
-    });
+    // Step 2:
+    // Only the main furniture gets selection outline + drag hitbox.
+    // Tambahan stays attached to the furniture and does not need its own drag surface.
+    if (enableInteraction) {
+      setOutline = buildOutlineController(scene, rootMesh);
+      setOutline(false);
 
-    const boundingBoxMesh = createDraggableBoundingBox(
-      scene,
-      rootMesh,
-      setOutline,
-    );
+      unsubscribe = useTrialRoomStore.subscribe((state) => {
+        setOutline(state.selectedMeshName === meshName);
+      });
+
+      boundingBoxMesh = createDraggableBoundingBox(scene, rootMesh, setOutline);
+    }
 
     return {
       container,
@@ -105,7 +117,7 @@ export const loadProductBase = async (
       setOutline,
       dispose: () => {
         unsubscribe();
-        boundingBoxMesh.dispose();
+        boundingBoxMesh?.dispose();
         container.dispose();
       },
     };

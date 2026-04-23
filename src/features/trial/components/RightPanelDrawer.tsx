@@ -1,20 +1,20 @@
 "use client";
 
 import Image from "next/image";
-import { Eye, X } from "lucide-react";
+import { Eye, Grip, X } from "lucide-react";
+import type { DragEvent, KeyboardEvent } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { TrialTool, TrialToolType } from "./RightPanel";
-
-interface DrawerCard {
-  id: string;
-  image: string;
-  name: string;
-  size: string;
-  price: number;
-}
+import {
+  getTrialAssetsByCategory,
+  TRIAL_ASSET_DRAG_TYPE,
+  TrialAssetCategory,
+  TrialAssetItem,
+} from "../trialAssetCatalog";
+import { useTrialRoomStore } from "../useTrialRoomStore";
 
 interface RightPanelDrawerProps {
   open: boolean;
@@ -30,102 +30,15 @@ const formatPrice = (price: number) =>
     maximumFractionDigits: 0,
   }).format(price);
 
-const drawerCardsByTool: Record<string, DrawerCard[]> = {
-  furniture: [
-    {
-      id: "furniture-1",
-      image: "/assets/Ruang-Keluarga-Mess-Kadusirung.webp",
-      name: "Luma Cabinet",
-      size: "180 x 45 x 220 cm",
-      price: 12800000,
-    },
-    {
-      id: "furniture-2",
-      image: "/waw.jpg",
-      name: "Sora Shelf",
-      size: "120 x 38 x 210 cm",
-      price: 9400000,
-    },
-    {
-      id: "furniture-3",
-      image: "/hihi.jpg",
-      name: "Kara Sideboard",
-      size: "160 x 42 x 82 cm",
-      price: 7600000,
-    },
-  ],
-  tambahan: [
-    {
-      id: "tambahan-1",
-      image: "/waw.jpg",
-      name: "Drawer Module",
-      size: "60 x 45 x 20 cm",
-      price: 1450000,
-    },
-    {
-      id: "tambahan-2",
-      image: "/hihi.jpg",
-      name: "Open Shelf Insert",
-      size: "80 x 35 x 30 cm",
-      price: 980000,
-    },
-    {
-      id: "tambahan-3",
-      image: "/assets/Ruang-Keluarga-Mess-Kadusirung.webp",
-      name: "Hanging Rod Set",
-      size: "90 x 4 x 4 cm",
-      price: 650000,
-    },
-  ],
-  material: [
-    {
-      id: "material-1",
-      image: "/assets/Ruang-Keluarga-Mess-Kadusirung.webp",
-      name: "Oak Finish Panel",
-      size: "244 x 122 cm",
-      price: 2150000,
-    },
-    {
-      id: "material-2",
-      image: "/hihi.jpg",
-      name: "Matte White Panel",
-      size: "244 x 122 cm",
-      price: 1790000,
-    },
-    {
-      id: "material-3",
-      image: "/waw.jpg",
-      name: "Smoked Walnut Panel",
-      size: "244 x 122 cm",
-      price: 2380000,
-    },
-  ],
-  lighting: [
-    {
-      id: "lighting-1",
-      image: "/waw.jpg",
-      name: "Warm Strip Light",
-      size: "5 meter",
-      price: 780000,
-    },
-    {
-      id: "lighting-2",
-      image: "/assets/Ruang-Keluarga-Mess-Kadusirung.webp",
-      name: "Spotlight Set",
-      size: "3 points",
-      price: 1260000,
-    },
-    {
-      id: "lighting-3",
-      image: "/hihi.jpg",
-      name: "Sensor Lamp",
-      size: "12 x 12 x 3 cm",
-      price: 430000,
-    },
-  ],
-};
+const getDrawerCategory = (
+  selectedTool: TrialToolType,
+): TrialAssetCategory | null => {
+  if (selectedTool === "furniture" || selectedTool === "tambahan") {
+    return selectedTool;
+  }
 
-const fallbackCards = drawerCardsByTool.furniture;
+  return null;
+};
 
 export const RightPanelDrawer = ({
   open,
@@ -133,10 +46,43 @@ export const RightPanelDrawer = ({
   tools,
   onOpenChange,
 }: RightPanelDrawerProps) => {
+  const hasBaseFurniture = useTrialRoomStore((state) => state.hasBaseFurniture);
+  const requestAssetSpawn = useTrialRoomStore(
+    (state) => state.requestAssetSpawn,
+  );
+
   const selectedToolData = tools.find((tool) => tool.id === selectedTool);
-  const cards = selectedTool
-    ? (drawerCardsByTool[selectedTool] ?? fallbackCards)
-    : fallbackCards;
+  const assetCategory = getDrawerCategory(selectedTool);
+  const cards = assetCategory ? getTrialAssetsByCategory(assetCategory) : [];
+
+  // Step 1:
+  // Clicking a card uses the default spawn flow.
+  // Furniture goes to the back wall, while tambahan attaches to the existing furniture.
+  const handleCardClick = (card: TrialAssetItem, disabled: boolean) => {
+    if (disabled) {
+      return;
+    }
+
+    requestAssetSpawn(card.id, null);
+  };
+
+  // Step 2:
+  // Dragging a card writes the asset id into the browser drag payload.
+  // The canvas reads this same key when the user drops the card.
+  const handleCardDragStart = (
+    event: DragEvent<HTMLElement>,
+    card: TrialAssetItem,
+    disabled: boolean,
+  ) => {
+    if (disabled) {
+      event.preventDefault();
+      return;
+    }
+
+    event.dataTransfer.effectAllowed = "copy";
+    event.dataTransfer.setData(TRIAL_ASSET_DRAG_TYPE, card.id);
+    event.dataTransfer.setData("text/plain", card.id);
+  };
 
   return (
     <div
@@ -152,20 +98,14 @@ export const RightPanelDrawer = ({
         <div className="bg-primary/10 pointer-events-none absolute bottom-12 left-6 h-24 w-24 rounded-full blur-3xl" />
 
         <div className="relative flex h-full w-102 flex-col">
-          <div className="flex items-start justify-between gap-3 border-b border-white/60 px-5 pt-5 pb-4 dark:border-white/10">
+          <div className="flex items-start justify-between gap-3 border-b border-white/60 px-7 pt-7 pb-4 dark:border-white/10">
             <div className="space-y-2">
-              <Badge
-                variant="secondary"
-                className="rounded-full border border-white/60 bg-white/70 px-3 py-1 text-[11px] font-semibold tracking-[0.14em] uppercase dark:border-white/10 dark:bg-white/5"
-              >
-                Right Panel
-              </Badge>
               <div className="text-xl font-black">
                 {selectedToolData?.label ?? "Customize Room"}
               </div>
               <p className="text-muted-foreground max-w-sm text-sm leading-6">
-                Dummy product cards so you can confirm the click flow before
-                wiring real data.
+                Click a card to spawn it on the default position, or drag it
+                into the canvas to place it there.
               </p>
             </div>
 
@@ -182,42 +122,88 @@ export const RightPanelDrawer = ({
           </div>
 
           <div className="relative flex-1 overflow-y-auto px-5 py-5">
-            <div className="grid grid-cols-2 gap-3">
-              {cards.map((card) => (
-                <article
-                  key={card.id}
-                  className="overflow-hidden rounded-xl border border-white/60 bg-white/65 shadow-none hover:shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-white/5"
-                >
-                  <div className="relative aspect-square overflow-hidden">
-                    <Image
-                      src={card.image}
-                      alt={card.name}
-                      fill
-                      sizes="(max-width: 768px) 44vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
+            {cards.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3">
+                {cards.map((card) => {
+                  const isDisabled =
+                    card.category === "tambahan" && !hasBaseFurniture;
 
-                  <div className="space-y-2 p-3">
-                    <div className="flex min-w-0 justify-between">
-                      <p className="text-muted-foreground text-xs">
-                        {card.size}
-                      </p>
-                      <Eye className="text-muted-foreground/70 h-4 w-4" />
-                    </div>
+                  return (
+                    <article
+                      key={card.id}
+                      role="button"
+                      tabIndex={isDisabled ? -1 : 0}
+                      draggable={!isDisabled}
+                      aria-disabled={isDisabled}
+                      onClick={() => handleCardClick(card, isDisabled)}
+                      onDragStart={(event) =>
+                        handleCardDragStart(event, card, isDisabled)
+                      }
+                      onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
+                        if (isDisabled) {
+                          return;
+                        }
 
-                    <p className="text-sm font-bold">
-                      {formatPrice(card.price)}
-                    </p>
-                  </div>
-                </article>
-              ))}
-            </div>
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          handleCardClick(card, false);
+                        }
+                      }}
+                      className={`overflow-hidden rounded-xl border border-white/60 bg-white/65 shadow-none transition hover:shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-white/5 ${
+                        isDisabled
+                          ? "cursor-not-allowed opacity-45"
+                          : "cursor-pointer"
+                      }`}
+                    >
+                      <div className="relative aspect-square overflow-hidden">
+                        <Image
+                          src={card.image}
+                          alt={card.name}
+                          fill
+                          sizes="(max-width: 768px) 44vw, 180px"
+                          className="object-cover"
+                        />
+                        <div className="absolute top-2 right-2 rounded-full border border-white/60 bg-white/75 p-1.5 text-slate-700 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/65 dark:text-slate-200">
+                          <Grip className="h-3.5 w-3.5" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 p-3">
+                        <div className="flex min-w-0 items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold">
+                              {card.name}
+                            </p>
+                            <p className="text-muted-foreground text-xs">
+                              {card.size}
+                            </p>
+                          </div>
+                          <Eye className="text-muted-foreground/70 mt-0.5 h-4 w-4 shrink-0" />
+                        </div>
+
+                        <p className="text-sm font-bold">
+                          {formatPrice(card.price)}
+                        </p>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex h-full min-h-56 items-center justify-center rounded-2xl border border-dashed border-white/60 bg-white/50 px-6 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+                This tool is still empty. The spawn flow is currently wired for
+                furniture and tambahan.
+              </div>
+            )}
           </div>
 
           <div className="border-t border-white/60 px-5 py-4 dark:border-white/10">
             <p className="text-muted-foreground text-sm">
-              {cards.length} dummy items ready for flow testing.
+              {assetCategory === "tambahan" && !hasBaseFurniture
+                ? "Load one furniture item first before adding tambahan."
+                : cards.length > 0
+                  ? `${cards.length} items ready. Click to spawn or drag to place.`
+                  : "Select furniture or tambahan to test the loading flow."}
             </p>
           </div>
         </div>

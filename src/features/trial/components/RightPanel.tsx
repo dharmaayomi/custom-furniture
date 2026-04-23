@@ -93,7 +93,7 @@ export const RightPanel = ({
               <Button
                 type="button"
                 onClick={onCustomizeClick}
-                className="shadow-primary/20 size-9 rounded-2xl shadow-lg"
+                className="shadow-chart-2/20 bg-chart-2 size-9 rounded-2xl shadow-lg"
                 size="icon"
               >
                 <Wrench size={20} />
