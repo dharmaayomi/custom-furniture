@@ -9,14 +9,28 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { formatPrice } from "@/lib/price";
 import { Boxes, ListOrdered, Menu, MoveRight, Save } from "lucide-react";
-const previewPrice = new Intl.NumberFormat("id-ID", {
-  style: "currency",
-  currency: "IDR",
-  maximumFractionDigits: 0,
-}).format(9000000);
+import { calculateTrialTotalPrice } from "../trialPrice";
+import { useTrialRoomStore } from "../useTrialRoomStore";
 
 export const TrialHeader = () => {
+  const activeFrameProductId = useTrialRoomStore(
+    (state) => state.activeFrameProductId,
+  );
+  const activeInteriorProductIds = useTrialRoomStore(
+    (state) => state.activeInteriorProductIds,
+  );
+  const activeMaterialProductIds = useTrialRoomStore(
+    (state) => state.activeMaterialProductIds,
+  );
+
+  const totalPrice = calculateTrialTotalPrice(
+    activeFrameProductId ? [activeFrameProductId] : [],
+    activeInteriorProductIds,
+    activeMaterialProductIds,
+  );
+
   return (
     <header className="pointer-events-none absolute inset-x-0 top-0 z-5 px-4 pt-4 sm:px-6 md:px-8">
       <div className="relative mx-auto flex w-full items-start justify-between gap-3">
@@ -47,6 +61,7 @@ export const TrialHeader = () => {
               </DrawerFooter>
             </DrawerContent>
           </Drawer>
+
           <Button
             id="header-save-button"
             name="header-save"
@@ -71,7 +86,7 @@ export const TrialHeader = () => {
           <div className="from-background/95 to-background/70 border-border/60 flex h-11 items-center gap-3 rounded-2xl border bg-linear-to-r px-3 shadow-none sm:px-4 dark:from-slate-950/50 dark:to-slate-950/40">
             <div className="min-w-0">
               <div className="text-foreground text-sm font-black sm:text-base">
-                {previewPrice}
+                {formatPrice(totalPrice)}
               </div>
             </div>
           </div>

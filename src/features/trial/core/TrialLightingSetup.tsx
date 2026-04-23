@@ -1,5 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
-import { TRIAL_LIGHTING_CONFIG, TRIAL_ROOM_CONFIG } from "./TrialConfig";
+import { TRIAL_LIGHTING_CONFIG, TrialRoomConfig } from "./TrialConfig";
 
 // ─── Dev-only helper (hanya muncul saat DEV_LIGHTS=true) ──────────────────────
 // Uncomment baris berikut di TrialSceneSetup saat butuh debug visual:
@@ -98,12 +98,14 @@ export interface TrialLightingResult {
   ambientLight: BABYLON.HemisphericLight;
   ceilingLamp: BABYLON.SpotLight;
   shadowGenerator: BABYLON.ShadowGenerator;
+  updateForRoomConfig: (roomConfig: TrialRoomConfig) => void;
 }
 
 export const setupTrialLighting = (
   scene: BABYLON.Scene,
+  roomConfig: TrialRoomConfig,
 ): TrialLightingResult => {
-  const { height } = TRIAL_ROOM_CONFIG;
+  const { height } = roomConfig;
 
   // Environment map — memberikan refleksi PBR yang natural
   const envTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
@@ -143,5 +145,12 @@ export const setupTrialLighting = (
   shadowGenerator.blurKernel = 32;
   shadowGenerator.setDarkness(0.25);
 
-  return { ambientLight, ceilingLamp, shadowGenerator };
+  return {
+    ambientLight,
+    ceilingLamp,
+    shadowGenerator,
+    updateForRoomConfig: (nextRoomConfig) => {
+      ceilingLamp.position.y = nextRoomConfig.height - 0.25;
+    },
+  };
 };

@@ -5,6 +5,7 @@ import { Eye, Grip, X } from "lucide-react";
 import type { DragEvent, KeyboardEvent } from "react";
 
 import { Button } from "@/components/ui/button";
+import { formatPrice } from "@/lib/price";
 
 import { TrialTool, TrialToolType } from "./RightPanel";
 import {
@@ -13,6 +14,7 @@ import {
   TrialAssetCategory,
   TrialAssetItem,
 } from "../trialAssetCatalog";
+import { calculateTrialTotalPrice } from "../trialPrice";
 import { useTrialRoomStore } from "../useTrialRoomStore";
 
 interface RightPanelDrawerProps {
@@ -21,13 +23,6 @@ interface RightPanelDrawerProps {
   tools: TrialTool[];
   onOpenChange: (open: boolean) => void;
 }
-
-const formatPrice = (price: number) =>
-  new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(price);
 
 const getDrawerCategory = (
   selectedTool: TrialToolType,
@@ -50,6 +45,15 @@ export const RightPanelDrawer = ({
   onOpenChange,
 }: RightPanelDrawerProps) => {
   const hasFrameProduct = useTrialRoomStore((state) => state.hasFrameProduct);
+  const activeFrameProductId = useTrialRoomStore(
+    (state) => state.activeFrameProductId,
+  );
+  const activeInteriorProductIds = useTrialRoomStore(
+    (state) => state.activeInteriorProductIds,
+  );
+  const activeMaterialProductIds = useTrialRoomStore(
+    (state) => state.activeMaterialProductIds,
+  );
   const requestAssetSpawn = useTrialRoomStore(
     (state) => state.requestAssetSpawn,
   );
@@ -57,6 +61,11 @@ export const RightPanelDrawer = ({
   const selectedToolData = tools.find((tool) => tool.id === selectedTool);
   const assetCategory = getDrawerCategory(selectedTool);
   const cards = assetCategory ? getTrialAssetsByCategory(assetCategory) : [];
+  const totalPrice = calculateTrialTotalPrice(
+    activeFrameProductId ? [activeFrameProductId] : [],
+    activeInteriorProductIds,
+    activeMaterialProductIds,
+  );
 
   // Step 1:
   // Clicking a card uses the default spawn flow.
@@ -89,7 +98,7 @@ export const RightPanelDrawer = ({
 
   return (
     <div
-      className={`relative z-20 overflow-hidden rounded-l-xl border-l border-white/60 bg-white/80 text-slate-950 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl transition-[width,opacity,margin] duration-300 dark:border-white/10 dark:bg-slate-950/85 dark:text-slate-50 ${
+      className={`relative z-20 overflow-hidden rounded-l-xl border-l border-white/60 bg-white/80 text-slate-950 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl transition-[width,opacity,margin] duration-300 dark:border-white/10 dark:bg-slate-950 dark:text-slate-50 ${
         open ? "-ml-6 w-[min(92vw,408px)] opacity-100" : "ml-0 w-0 opacity-0"
       }`}
       aria-hidden={!open}
@@ -195,6 +204,21 @@ export const RightPanelDrawer = ({
                 Frame Lemari and Interior Lemari.
               </div>
             )}
+          </div>
+
+          <div className="border-t border-white/60 px-5 py-4 dark:border-white/10">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/65 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+              <div>
+                <p className="text-xs font-semibold tracking-[0.14em] uppercase">
+                  Total Estimate
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Same flow as the shared total-price calculation, adapted to
+                  the trial mock data.
+                </p>
+              </div>
+              <p className="text-sm font-black">{formatPrice(totalPrice)}</p>
+            </div>
           </div>
         </div>
       </div>

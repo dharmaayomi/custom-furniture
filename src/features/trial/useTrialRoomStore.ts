@@ -1,4 +1,8 @@
 import { create } from "zustand";
+import {
+  DEFAULT_TRIAL_ROOM_CONFIG,
+  TrialRoomConfig,
+} from "./core/TrialConfig";
 
 export interface TrialSpawnPoint {
   x: number;
@@ -16,10 +20,21 @@ interface TrialRoomState {
   selectedMeshName: string | null;
   hasFrameProduct: boolean;
   spawnRequest: TrialSpawnRequest | null;
+  draftRoomConfig: TrialRoomConfig;
+  appliedRoomConfig: TrialRoomConfig;
+  activeFrameProductId: string | null;
+  activeInteriorProductIds: string[];
+  activeMaterialProductIds: string[];
 
   selectMesh: (name: string | null) => void;
   setSelectedMesh: (name: string | null) => void;
   setHasFrameProduct: (hasFrameProduct: boolean) => void;
+  setDraftRoomConfig: (patch: Partial<TrialRoomConfig>) => void;
+  setAppliedRoomConfig: (nextRoomConfig: TrialRoomConfig) => void;
+  setActiveFrameProductId: (assetId: string | null) => void;
+  addActiveInteriorProductId: (assetId: string) => void;
+  clearActiveInteriorProductIds: () => void;
+  setActiveMaterialProductIds: (assetIds: string[]) => void;
   requestAssetSpawn: (
     assetId: string,
     dropPoint?: TrialSpawnPoint | null,
@@ -31,6 +46,11 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
   selectedMeshName: null,
   hasFrameProduct: false,
   spawnRequest: null,
+  draftRoomConfig: { ...DEFAULT_TRIAL_ROOM_CONFIG },
+  appliedRoomConfig: { ...DEFAULT_TRIAL_ROOM_CONFIG },
+  activeFrameProductId: null,
+  activeInteriorProductIds: [],
+  activeMaterialProductIds: [],
 
   selectMesh: (name) => {
     const current = get().selectedMeshName;
@@ -41,6 +61,39 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
   },
   setHasFrameProduct: (hasFrameProduct) => {
     set({ hasFrameProduct });
+  },
+  setDraftRoomConfig: (patch) => {
+    // Step 1:
+    // The drawer writes into the draft config immediately so the inputs stay responsive.
+    set((state) => ({
+      draftRoomConfig: {
+        ...state.draftRoomConfig,
+        ...patch,
+      },
+    }));
+  },
+  setAppliedRoomConfig: (nextRoomConfig) => {
+    // Step 2:
+    // The debounced room config is applied separately so the scene updates less often.
+    set({ appliedRoomConfig: nextRoomConfig });
+  },
+  setActiveFrameProductId: (assetId) => {
+    // Step 3:
+    // Keep the current frame id in the store so pricing can follow the loaded trial state.
+    set({ activeFrameProductId: assetId });
+  },
+  addActiveInteriorProductId: (assetId) => {
+    // Step 4:
+    // Interior items can be repeated, so we keep them as an ordered list.
+    set((state) => ({
+      activeInteriorProductIds: [...state.activeInteriorProductIds, assetId],
+    }));
+  },
+  clearActiveInteriorProductIds: () => {
+    set({ activeInteriorProductIds: [] });
+  },
+  setActiveMaterialProductIds: (assetIds) => {
+    set({ activeMaterialProductIds: assetIds });
   },
   requestAssetSpawn: (assetId, dropPoint = null) => {
     // Step 1:

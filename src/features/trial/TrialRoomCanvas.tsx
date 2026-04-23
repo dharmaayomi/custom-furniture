@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import * as BABYLON from "@babylonjs/core";
 
 import { getBackWallPosition, initTrialScene } from "./core/TrialSceneSetup";
+import { TrialRoomConfig } from "./core/TrialConfig";
 import {
   loadProductBase,
   TrialModelLoadResult,
@@ -68,16 +69,19 @@ export const TrialRoomCanvas = () => {
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
+    const initialRoomConfig = useTrialRoomStore.getState().appliedRoomConfig;
     const {
       scene,
       lighting,
+      updateRoomConfig,
       dispose: disposeScene,
-    } = initTrialScene(canvas);
+    } = initTrialScene(canvas, initialRoomConfig);
 
     let isMounted = true;
     let latestSpawnRequestId = 0;
     let frameProduct: TrialModelLoadResult | null = null;
     const interiorModels: TrialModelLoadResult[] = [];
+    let currentRoomConfig: TrialRoomConfig = initialRoomConfig;
 
     const clearInterior = () => {
       while (interiorModels.length > 0) {
@@ -90,6 +94,9 @@ export const TrialRoomCanvas = () => {
       frameProduct?.dispose();
       frameProduct = null;
       useTrialRoomStore.getState().setHasFrameProduct(false);
+      useTrialRoomStore.getState().setActiveFrameProductId(null);
+      useTrialRoomStore.getState().clearActiveInteriorProductIds();
+      useTrialRoomStore.getState().setActiveMaterialProductIds([]);
       useTrialRoomStore.getState().setSelectedMesh(null);
     };
 
@@ -134,7 +141,7 @@ export const TrialRoomCanvas = () => {
 
       const initialPosition = dropPoint
         ? toVector3(dropPoint)
-        : getBackWallPosition(0.01);
+        : getBackWallPosition(currentRoomConfig, 0.01);
 
       const result = await loadProductBase(scene, {
         modelPath: asset.modelPath,
@@ -160,6 +167,7 @@ export const TrialRoomCanvas = () => {
       // Step 2:
       // Once the frame exists, Interior Lemari becomes available in the panel.
       useTrialRoomStore.getState().setHasFrameProduct(true);
+      useTrialRoomStore.getState().setActiveFrameProductId(assetId);
       useTrialRoomStore.getState().setSelectedMesh(result.rootMesh.name);
     };
 
@@ -197,6 +205,7 @@ export const TrialRoomCanvas = () => {
       result.rootMesh.computeWorldMatrix(true);
 
       interiorModels.push(result);
+      useTrialRoomStore.getState().addActiveInteriorProductId(assetId);
       useTrialRoomStore.getState().setSelectedMesh(frameProduct.rootMesh.name);
     };
 
@@ -238,6 +247,19 @@ export const TrialRoomCanvas = () => {
 
       void handleSpawnRequest(state.spawnRequest);
     });
+
+    const unsubscribeRoomConfig = useTrialRoomStore.subscribe(
+      (state, previous) => {
+        if (state.appliedRoomConfig === previous.appliedRoomConfig) {
+          return;
+        }
+
+        // Step 5:
+        // The scene only rebuilds the room after the debounced room config is applied.
+        currentRoomConfig = state.appliedRoomConfig;
+        updateRoomConfig(state.appliedRoomConfig);
+      },
+    );
 
     const handleCanvasDragOver = (event: DragEvent) => {
       if (!hasTrialAssetDragType(event)) {
@@ -304,6 +326,7 @@ export const TrialRoomCanvas = () => {
       canvas.removeEventListener("dragover", handleCanvasDragOver);
       canvas.removeEventListener("drop", handleCanvasDrop);
       unsubscribeSpawn();
+      unsubscribeRoomConfig();
       isMounted = false;
       clearFrameProduct();
       disposeScene();

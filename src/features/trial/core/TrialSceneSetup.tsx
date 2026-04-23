@@ -4,7 +4,7 @@ import { setupTrialCamera } from "./TrialCameraSetup";
 
 import { setupTrialRoom } from "./TrialRoomSetup";
 
-import { TRIAL_ROOM_CONFIG } from "./TrialConfig";
+import { DEFAULT_TRIAL_ROOM_CONFIG, TrialRoomConfig } from "./TrialConfig";
 import { setupTrialAutoHideWalls } from "../furniture/WallVisibility";
 import { setupTrialLighting, TrialLightingResult } from "./TrialLightingSetup";
 
@@ -26,12 +26,14 @@ export interface TrialSceneContext {
   scene: BABYLON.Scene;
   camera: BABYLON.ArcRotateCamera;
   lighting: TrialLightingResult;
+  updateRoomConfig: (roomConfig: TrialRoomConfig) => void;
   /** Dispose seluruh scene + engine + observer */
   dispose: () => void;
 }
 
 export const initTrialScene = (
   canvas: HTMLCanvasElement,
+  initialRoomConfig: TrialRoomConfig = DEFAULT_TRIAL_ROOM_CONFIG,
 ): TrialSceneContext => {
   const engine = new BABYLON.Engine(canvas, true, {
     adaptToDeviceRatio: true,
@@ -44,28 +46,15 @@ export const initTrialScene = (
   scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
 
   const camera = setupTrialCamera(canvas, scene);
-  const lighting = setupTrialLighting(scene);
-  const room = setupTrialRoom(scene);
+  const lighting = setupTrialLighting(scene, initialRoomConfig);
+  let room = setupTrialRoom(scene, initialRoomConfig);
 
-  // Shadow casters: semua mesh structural kecuali lantai vinyl & floor base
-  const shadowCasters: BABYLON.Mesh[] = [
-    room.backWall,
-    room.frontWall,
-    room.leftWall,
-    room.rightWall,
-    room.ceiling,
-    room.innerBackWall,
-    room.innerFrontWall,
-    room.innerLeftWall,
-    room.innerRightWall,
-    room.innerCeiling,
-  ];
-  shadowCasters.forEach((mesh) => {
+  room.shadowCasters.forEach((mesh) => {
     lighting.shadowGenerator.addShadowCaster(mesh, false);
   });
 
   // Wall auto-hide
-  const wallObserver = setupTrialAutoHideWalls(scene, room.walls, camera);
+  let wallObserver = setupTrialAutoHideWalls(scene, room.walls, camera);
 
   // Post-processing
   scene.imageProcessingConfiguration.toneMappingEnabled = true;
@@ -123,6 +112,22 @@ export const initTrialScene = (
   resizeObserver?.observe(resizeTarget);
   scheduleResize();
 
+  const updateRoomConfig = (nextRoomConfig: TrialRoomConfig) => {
+    scene.onBeforeRenderObservable.remove(wallObserver);
+    room.shadowCasters.forEach((mesh) => {
+      lighting.shadowGenerator.removeShadowCaster(mesh);
+    });
+    room.dispose();
+
+    room = setupTrialRoom(scene, nextRoomConfig);
+    room.shadowCasters.forEach((mesh) => {
+      lighting.shadowGenerator.addShadowCaster(mesh, false);
+    });
+    lighting.updateForRoomConfig(nextRoomConfig);
+    wallObserver = setupTrialAutoHideWalls(scene, room.walls, camera);
+    scheduleResize();
+  };
+
   const dispose = () => {
     window.removeEventListener("resize", handleResize);
     resizeObserver?.disconnect();
@@ -130,11 +135,12 @@ export const initTrialScene = (
       window.cancelAnimationFrame(resizeFrame);
     }
     scene.onBeforeRenderObservable.remove(wallObserver);
+    room.dispose();
     scene.dispose();
     engine.dispose();
   };
 
-  return { engine, scene, camera, lighting, dispose };
+  return { engine, scene, camera, lighting, updateRoomConfig, dispose };
 };
 
 // ─── Helpers yang dipakai pemanggil untuk hitung posisi furniture ─────────────
@@ -143,8 +149,11 @@ export const initTrialScene = (
  * Hitung posisi awal furniture di dinding belakang (nempel ke wall_back).
  * Pemanggil bisa override Z offset sesuai kedalaman model yang sudah diketahui.
  */
-export const getBackWallPosition = (zOffset = 0.01): BABYLON.Vector3 => {
-  const { depth, floorThickness } = TRIAL_ROOM_CONFIG;
+export const getBackWallPosition = (
+  roomConfig: TrialRoomConfig = DEFAULT_TRIAL_ROOM_CONFIG,
+  zOffset = 0.01,
+): BABYLON.Vector3 => {
+  const { depth, floorThickness } = roomConfig;
   return new BABYLON.Vector3(
     0, // X: di-center, dikoreksi loader setelah load
     floorThickness, // Y: tepat di atas lantai

@@ -1,12 +1,22 @@
+export interface TrialRoomConfig {
+  width: number;
+  depth: number;
+  height: number;
+  wallThickness: number;
+  floorThickness: number;
+  vinylThickness: number;
+  trimHeight: number;
+  wallColor: string;
+  floorTexture: string;
+}
+
 export const TRIAL_TEXTURES = {
-  floor: "/assets/texture/Oak_Herringbone.jpg",
   wall: "/assets/texture/pale-stucco-pattern.jpg",
-  // wall: "/assets/texture/pale-stucco-pattern.jpg",
   ceiling: "/assets/texture/gray-abstract-texture.jpg",
   trim: "/assets/texture/light-wood-texture.jpg",
 } as const;
 
-export const TRIAL_ROOM_CONFIG = {
+export const DEFAULT_TRIAL_ROOM_CONFIG: TrialRoomConfig = {
   width: 6.8,
   depth: 6.6,
   height: 3,
@@ -16,7 +26,32 @@ export const TRIAL_ROOM_CONFIG = {
   trimHeight: 0.08,
   wallColor: "#F2F0EB",
   floorTexture: "/assets/texture/wood-texture.jpg",
-} as const;
+};
+
+export const TRIAL_ROOM_CONFIG = DEFAULT_TRIAL_ROOM_CONFIG;
+
+export const TRIAL_FLOOR_TEXTURE_OPTIONS = [
+  { name: "Oak Wood", path: "/assets/texture/european-oak.jpg" },
+  { name: "Light Wood", path: "/assets/texture/light-wood-texture.jpg" },
+  { name: "Fine Wood", path: "/assets/texture/fine-wood-texture.jpg" },
+  {
+    name: "Concrete",
+    path: "/assets/texture/texture-of-dry-concrete-wall.jpg",
+  },
+  { name: "Carpet", path: "/assets/texture/carpet.jpg" },
+  { name: "Tile", path: "/assets/texture/bathroom-tile.jpg" },
+  { name: "Herringbone", path: "/assets/texture/Oak_Herringbone.jpg" },
+  { name: "Gray Herringbone", path: "/assets/texture/gray_herringbone.jpg" },
+] as const;
+
+export const TRIAL_WALL_COLOR_OPTIONS = [
+  "#F2F0EB",
+  "#E8E0D4",
+  "#DDD6CF",
+  "#D7D3CC",
+  "#CFC6B8",
+  "#BFB7AB",
+] as const;
 
 export const TRIAL_CAMERA_CONFIG = {
   alpha: -Math.PI / 2,
@@ -24,7 +59,6 @@ export const TRIAL_CAMERA_CONFIG = {
   radius: 0.1,
   zoomInRadius: 2.5,
   targetY: 1.2,
-  // targetY: 0,
   wheelPrecision: 70,
   lowerBetaLimit: 0.1,
   upperBetaLimit: Math.PI / 1.85,

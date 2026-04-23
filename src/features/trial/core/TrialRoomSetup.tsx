@@ -1,5 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
-import { TRIAL_ROOM_CONFIG, TRIAL_TEXTURES } from "./TrialConfig";
+import { TRIAL_TEXTURES, TrialRoomConfig } from "./TrialConfig";
 import earcut from "earcut";
 
 // --- Helpers ──────────────────────────────────────────────────────────────────
@@ -220,7 +220,28 @@ const createSolidMiterWall = (
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export const setupTrialRoom = (scene: BABYLON.Scene) => {
+export interface TrialRoomResult {
+  floor: BABYLON.Mesh;
+  ceiling: BABYLON.Mesh;
+  backWall: BABYLON.Mesh;
+  floorVinyl: BABYLON.Mesh;
+  frontWall: BABYLON.Mesh;
+  innerBackWall: BABYLON.Mesh;
+  innerFrontWall: BABYLON.Mesh;
+  innerLeftWall: BABYLON.Mesh;
+  innerRightWall: BABYLON.Mesh;
+  innerCeiling: BABYLON.Mesh;
+  leftWall: BABYLON.Mesh;
+  rightWall: BABYLON.Mesh;
+  walls: BABYLON.Mesh[];
+  shadowCasters: BABYLON.Mesh[];
+  dispose: () => void;
+}
+
+export const setupTrialRoom = (
+  scene: BABYLON.Scene,
+  roomConfig: TrialRoomConfig,
+): TrialRoomResult => {
   const {
     width,
     depth,
@@ -228,7 +249,9 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     wallThickness,
     floorThickness,
     vinylThickness,
-  } = TRIAL_ROOM_CONFIG;
+    wallColor,
+    floorTexture,
+  } = roomConfig;
 
   // Hitung Dimensi Luar agar presisi menutup satu sama lain
   const outerWidth = width + 2 * wallThickness;
@@ -248,13 +271,13 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
   wallTexture.uScale = 4.0;
   wallTexture.vScale = 3.0;
   innerWallMat.albedoTexture = wallTexture;
-  innerWallMat.albedoColor = hexToColor3(TRIAL_ROOM_CONFIG.wallColor);
+  innerWallMat.albedoColor = hexToColor3(wallColor);
   innerWallMat.roughness = 0.85;
   innerWallMat.metallic = 0;
   innerWallMat.backFaceCulling = false;
 
   const innerCeilingMat = new BABYLON.PBRMaterial("inner-ceiling-mat", scene);
-  innerCeilingMat.albedoColor = hexToColor3(TRIAL_ROOM_CONFIG.wallColor);
+  innerCeilingMat.albedoColor = hexToColor3(wallColor);
   innerCeilingMat.roughness = 0.75;
   innerCeilingMat.metallic = 0;
   innerCeilingMat.backFaceCulling = false;
@@ -294,7 +317,7 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
   floorVinylMat.metadata = { side: "floor" };
 
   const vinylTexture = new BABYLON.Texture(
-    TRIAL_ROOM_CONFIG.floorTexture,
+    floorTexture,
     scene,
 
     false, // noMipmap = false (pastikan mipmap aktif)
@@ -462,6 +485,44 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
   innerCeiling.receiveShadows = true;
   innerCeiling.metadata = { side: "ceiling" };
 
+  const walls = [
+    ...frameWalls,
+    innerBackWall,
+    innerFrontWall,
+    innerLeftWall,
+    innerRightWall,
+    ceiling,
+    innerCeiling,
+    floor,
+    floorVinyl,
+  ];
+  const shadowCasters = [
+    backWall,
+    frontWall,
+    leftWall,
+    rightWall,
+    ceiling,
+    innerBackWall,
+    innerFrontWall,
+    innerLeftWall,
+    innerRightWall,
+    innerCeiling,
+  ];
+  const allMeshes = [
+    floor,
+    ceiling,
+    backWall,
+    floorVinyl,
+    frontWall,
+    innerBackWall,
+    innerFrontWall,
+    innerLeftWall,
+    innerRightWall,
+    innerCeiling,
+    leftWall,
+    rightWall,
+  ];
+
   return {
     floor,
     ceiling,
@@ -475,16 +536,16 @@ export const setupTrialRoom = (scene: BABYLON.Scene) => {
     innerCeiling,
     leftWall,
     rightWall,
-    walls: [
-      ...frameWalls,
-      innerBackWall,
-      innerFrontWall,
-      innerLeftWall,
-      innerRightWall,
-      ceiling,
-      innerCeiling,
-      floor,
-      floorVinyl,
-    ],
+    walls,
+    shadowCasters,
+    dispose: () => {
+      allMeshes.forEach((mesh) => mesh.dispose());
+      wallTexture.dispose();
+      vinylTexture.dispose();
+      frameMat.dispose();
+      innerWallMat.dispose();
+      innerCeilingMat.dispose();
+      floorVinylMat.dispose();
+    },
   };
 };
