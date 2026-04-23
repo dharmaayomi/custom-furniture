@@ -18,12 +18,15 @@ import {
 import { RightPanelDrawer } from "./components/RightPanelDrawer";
 import { TrialHeader } from "./components/TrialHeader";
 import { TrialFooter } from "./components/TrialFooter";
+import { TrialCustomizeDrawer } from "./components/TrialCustomizeDrawer";
 import { useState } from "react";
 
 export const TrialPage = () => {
   const [selectedTool, setSelectedTool] = useState<TrialToolType>(null);
   const [activePanel, setActivePanel] = useState<TrialActivePanel>(null);
   const isAnyPanelOpen = activePanel !== null;
+  const isSidebarPanelOpen = activePanel === "sidebar";
+  const isCustomizePanelOpen = activePanel === "customize";
 
   const handleToolClick = (toolId: TrialToolType) => {
     if (activePanel === "sidebar" && selectedTool === toolId) {
@@ -45,16 +48,16 @@ export const TrialPage = () => {
   };
   const tools: TrialTool[] = [
     {
-      id: "furniture",
+      id: "frame",
       icon: Package,
-      label: "Furniture",
-      category: "Furniture",
+      label: "Frame Lemari",
+      category: "Product Base",
     },
     {
-      id: "tambahan",
+      id: "interior",
       icon: LayoutTemplate,
-      label: "Tambahan",
-      category: "Struktur",
+      label: "Interior Lemari",
+      category: "Product Component",
     },
     {
       id: "material",
@@ -87,16 +90,27 @@ export const TrialPage = () => {
         </div>
         <TrialFooter />
       </div>
-      <RightPanelDrawer
-        open={isAnyPanelOpen}
-        selectedTool={selectedTool}
-        tools={tools}
-        onOpenChange={(open) => {
-          if (!open) {
-            closePanel();
-          }
-        }}
-      />
+      {isSidebarPanelOpen ? (
+        <RightPanelDrawer
+          open={isSidebarPanelOpen}
+          selectedTool={selectedTool}
+          tools={tools}
+          onOpenChange={(open) => {
+            if (!open) {
+              closePanel();
+            }
+          }}
+        />
+      ) : (
+        <TrialCustomizeDrawer
+          open={isCustomizePanelOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              closePanel();
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

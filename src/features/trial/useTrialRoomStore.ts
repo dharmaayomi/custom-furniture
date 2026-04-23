@@ -14,12 +14,12 @@ export interface TrialSpawnRequest {
 
 interface TrialRoomState {
   selectedMeshName: string | null;
-  hasBaseFurniture: boolean;
+  hasFrameProduct: boolean;
   spawnRequest: TrialSpawnRequest | null;
 
   selectMesh: (name: string | null) => void;
   setSelectedMesh: (name: string | null) => void;
-  setHasBaseFurniture: (hasBaseFurniture: boolean) => void;
+  setHasFrameProduct: (hasFrameProduct: boolean) => void;
   requestAssetSpawn: (
     assetId: string,
     dropPoint?: TrialSpawnPoint | null,
@@ -29,7 +29,7 @@ interface TrialRoomState {
 
 export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
   selectedMeshName: null,
-  hasBaseFurniture: false,
+  hasFrameProduct: false,
   spawnRequest: null,
 
   selectMesh: (name) => {
@@ -39,8 +39,8 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
   setSelectedMesh: (name) => {
     set({ selectedMeshName: name });
   },
-  setHasBaseFurniture: (hasBaseFurniture) => {
-    set({ hasBaseFurniture });
+  setHasFrameProduct: (hasFrameProduct) => {
+    set({ hasFrameProduct });
   },
   requestAssetSpawn: (assetId, dropPoint = null) => {
     // Step 1:

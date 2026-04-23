@@ -4,7 +4,6 @@ import Image from "next/image";
 import { Eye, Grip, X } from "lucide-react";
 import type { DragEvent, KeyboardEvent } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { TrialTool, TrialToolType } from "./RightPanel";
@@ -33,7 +32,11 @@ const formatPrice = (price: number) =>
 const getDrawerCategory = (
   selectedTool: TrialToolType,
 ): TrialAssetCategory | null => {
-  if (selectedTool === "furniture" || selectedTool === "tambahan") {
+  if (
+    selectedTool === "frame" ||
+    selectedTool === "interior" ||
+    selectedTool === "material"
+  ) {
     return selectedTool;
   }
 
@@ -46,7 +49,7 @@ export const RightPanelDrawer = ({
   tools,
   onOpenChange,
 }: RightPanelDrawerProps) => {
-  const hasBaseFurniture = useTrialRoomStore((state) => state.hasBaseFurniture);
+  const hasFrameProduct = useTrialRoomStore((state) => state.hasFrameProduct);
   const requestAssetSpawn = useTrialRoomStore(
     (state) => state.requestAssetSpawn,
   );
@@ -57,7 +60,7 @@ export const RightPanelDrawer = ({
 
   // Step 1:
   // Clicking a card uses the default spawn flow.
-  // Furniture goes to the back wall, while tambahan attaches to the existing furniture.
+  // Frame Lemari goes to the back wall, while Interior Lemari attaches to the existing frame.
   const handleCardClick = (card: TrialAssetItem, disabled: boolean) => {
     if (disabled) {
       return;
@@ -103,10 +106,6 @@ export const RightPanelDrawer = ({
               <div className="text-xl font-black">
                 {selectedToolData?.label ?? "Customize Room"}
               </div>
-              <p className="text-muted-foreground max-w-sm text-sm leading-6">
-                Click a card to spawn it on the default position, or drag it
-                into the canvas to place it there.
-              </p>
             </div>
 
             <Button
@@ -126,7 +125,8 @@ export const RightPanelDrawer = ({
               <div className="grid grid-cols-2 gap-3">
                 {cards.map((card) => {
                   const isDisabled =
-                    card.category === "tambahan" && !hasBaseFurniture;
+                    card.category === "material" ||
+                    (card.category === "interior" && !hasFrameProduct);
 
                   return (
                     <article
@@ -192,19 +192,9 @@ export const RightPanelDrawer = ({
             ) : (
               <div className="flex h-full min-h-56 items-center justify-center rounded-2xl border border-dashed border-white/60 bg-white/50 px-6 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
                 This tool is still empty. The spawn flow is currently wired for
-                furniture and tambahan.
+                Frame Lemari and Interior Lemari.
               </div>
             )}
-          </div>
-
-          <div className="border-t border-white/60 px-5 py-4 dark:border-white/10">
-            <p className="text-muted-foreground text-sm">
-              {assetCategory === "tambahan" && !hasBaseFurniture
-                ? "Load one furniture item first before adding tambahan."
-                : cards.length > 0
-                  ? `${cards.length} items ready. Click to spawn or drag to place.`
-                  : "Select furniture or tambahan to test the loading flow."}
-            </p>
           </div>
         </div>
       </div>

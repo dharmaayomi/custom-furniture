@@ -76,20 +76,20 @@ export const TrialRoomCanvas = () => {
 
     let isMounted = true;
     let latestSpawnRequestId = 0;
-    let baseFurniture: TrialModelLoadResult | null = null;
-    const tambahanModels: TrialModelLoadResult[] = [];
+    let frameProduct: TrialModelLoadResult | null = null;
+    const interiorModels: TrialModelLoadResult[] = [];
 
-    const clearTambahan = () => {
-      while (tambahanModels.length > 0) {
-        tambahanModels.pop()?.dispose();
+    const clearInterior = () => {
+      while (interiorModels.length > 0) {
+        interiorModels.pop()?.dispose();
       }
     };
 
-    const clearBaseFurniture = () => {
-      clearTambahan();
-      baseFurniture?.dispose();
-      baseFurniture = null;
-      useTrialRoomStore.getState().setHasBaseFurniture(false);
+    const clearFrameProduct = () => {
+      clearInterior();
+      frameProduct?.dispose();
+      frameProduct = null;
+      useTrialRoomStore.getState().setHasFrameProduct(false);
       useTrialRoomStore.getState().setSelectedMesh(null);
     };
 
@@ -118,7 +118,7 @@ export const TrialRoomCanvas = () => {
       }
     };
 
-    const spawnFurniture = async (
+    const spawnFrame = async (
       requestId: number,
       assetId: string,
       dropPoint: TrialSpawnPoint | null,
@@ -129,8 +129,8 @@ export const TrialRoomCanvas = () => {
       }
 
       // Step 1:
-      // A new furniture item replaces the old base furniture and resets tambahan.
-      clearBaseFurniture();
+      // A new frame item replaces the old frame product and resets all interior items.
+      clearFrameProduct();
 
       const initialPosition = dropPoint
         ? toVector3(dropPoint)
@@ -155,23 +155,23 @@ export const TrialRoomCanvas = () => {
         return;
       }
 
-      baseFurniture = result;
+      frameProduct = result;
 
       // Step 2:
-      // Once the base furniture exists, tambahan becomes available in the panel.
-      useTrialRoomStore.getState().setHasBaseFurniture(true);
+      // Once the frame exists, Interior Lemari becomes available in the panel.
+      useTrialRoomStore.getState().setHasFrameProduct(true);
       useTrialRoomStore.getState().setSelectedMesh(result.rootMesh.name);
     };
 
-    const spawnTambahan = async (requestId: number, assetId: string) => {
+    const spawnInterior = async (requestId: number, assetId: string) => {
       const asset = getTrialAssetById(assetId);
-      if (!asset || !baseFurniture) {
+      if (!asset || !frameProduct) {
         return;
       }
 
       const result = await loadProductBase(scene, {
         modelPath: asset.modelPath,
-        meshName: `trial-tambahan-${asset.id}-${requestId}`,
+        meshName: `trial-interior-${asset.id}-${requestId}`,
         initialPosition: BABYLON.Vector3.Zero(),
         initialRotationY: asset.initialRotationY,
         shadowGenerator: lighting.shadowGenerator,
@@ -183,21 +183,21 @@ export const TrialRoomCanvas = () => {
         return;
       }
 
-      if (!isMounted || latestSpawnRequestId !== requestId || !baseFurniture) {
+      if (!isMounted || latestSpawnRequestId !== requestId || !frameProduct) {
         result.dispose();
         return;
       }
 
       // Step 3:
-      // Parent tambahan to the base furniture so it follows the same drag movement.
-      result.rootMesh.parent = baseFurniture.rootMesh;
+      // Parent interior to the frame product so it follows the same drag movement.
+      result.rootMesh.parent = frameProduct.rootMesh;
       result.rootMesh.position.copyFromFloats(0, 0, 0);
       result.rootMesh.rotationQuaternion = null;
       result.rootMesh.rotation.y = asset.initialRotationY ?? 0;
       result.rootMesh.computeWorldMatrix(true);
 
-      tambahanModels.push(result);
-      useTrialRoomStore.getState().setSelectedMesh(baseFurniture.rootMesh.name);
+      interiorModels.push(result);
+      useTrialRoomStore.getState().setSelectedMesh(frameProduct.rootMesh.name);
     };
 
     const handleSpawnRequest = async (
@@ -211,18 +211,23 @@ export const TrialRoomCanvas = () => {
         return;
       }
 
-      if (asset.category === "tambahan") {
-        if (!baseFurniture) {
-          finishSpawnRequest(request.requestId);
-          return;
-        }
-
-        await spawnTambahan(request.requestId, request.assetId);
+      if (asset.category === "material") {
         finishSpawnRequest(request.requestId);
         return;
       }
 
-      await spawnFurniture(request.requestId, request.assetId, request.dropPoint);
+      if (asset.category === "interior") {
+        if (!frameProduct) {
+          finishSpawnRequest(request.requestId);
+          return;
+        }
+
+        await spawnInterior(request.requestId, request.assetId);
+        finishSpawnRequest(request.requestId);
+        return;
+      }
+
+      await spawnFrame(request.requestId, request.assetId, request.dropPoint);
       finishSpawnRequest(request.requestId);
     };
 
@@ -260,13 +265,17 @@ export const TrialRoomCanvas = () => {
         return;
       }
 
-      if (asset.category === "tambahan") {
-        if (!useTrialRoomStore.getState().hasBaseFurniture) {
+      if (asset.category === "material") {
+        return;
+      }
+
+      if (asset.category === "interior") {
+        if (!useTrialRoomStore.getState().hasFrameProduct) {
           return;
         }
 
         // Step 4:
-        // Tambahan always attaches to the current furniture, so drop position is ignored.
+        // Interior always attaches to the current frame, so drop position is ignored.
         useTrialRoomStore.getState().requestAssetSpawn(assetId, null);
         return;
       }
@@ -296,7 +305,7 @@ export const TrialRoomCanvas = () => {
       canvas.removeEventListener("drop", handleCanvasDrop);
       unsubscribeSpawn();
       isMounted = false;
-      clearBaseFurniture();
+      clearFrameProduct();
       disposeScene();
     };
   }, []);
