@@ -10,14 +10,14 @@ export const setupTrialCamera = (
     const pick = scene.pick(
       scene.pointerX,
       scene.pointerY,
-      (mesh) => mesh.isPickable && mesh.isVisible && mesh.visibility > 0,
+      // (mesh) => mesh.isPickable && mesh.isVisible && mesh.visibility > 0,
+      (mesh) => mesh.isPickable && mesh.metadata?.kind !== "bounding-box",
     );
 
     if (!pick?.hit || !pick.pickedPoint) {
       return;
     }
 
-    // camera.target.copyFrom(pick.pickedPoint);
     zoomTarget.copyFrom(pick.pickedPoint);
   };
 
