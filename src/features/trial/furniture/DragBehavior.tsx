@@ -1,4 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
+import { useTrialRoomStore } from "../useTrialRoomStore";
 
 interface AttachTrialDragBehaviorOptions {
   targetMesh: BABYLON.AbstractMesh;
@@ -29,11 +30,13 @@ export const attachTrialDragBehavior = ({
   const dragBehavior = new BABYLON.PointerDragBehavior({
     dragPlaneNormal: new BABYLON.Vector3(0, 1, 0),
   });
+  dragBehavior.moveAttached = false;
   dragBehavior.useObjectOrientationForDragging = false;
   dragBehavior.detachCameraControls = true;
 
   dragBehavior.onDragObservable.add((event) => {
     targetMesh.position.addInPlace(event.delta);
+    hitBox.position.addInPlace(event.delta);
   });
 
   hitBox.addBehavior(dragBehavior);
@@ -88,7 +91,14 @@ export const tryStartTrialDragFromPointer = (
   }
 
   if (metadata.kind === "bounding-box") {
+    if (metadata.dragRootName) {
+      useTrialRoomStore.getState().setSelectedMesh(metadata.dragRootName);
+    }
     return true;
+  }
+
+  if (metadata.dragRootName) {
+    useTrialRoomStore.getState().setSelectedMesh(metadata.dragRootName);
   }
 
   metadata.dragBehavior.startDrag(

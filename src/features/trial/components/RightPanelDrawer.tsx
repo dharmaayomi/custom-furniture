@@ -1,19 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { X } from "lucide-react";
+import { Eye, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
 
 import { TrialTool, TrialToolType } from "./RightPanel";
 
@@ -148,13 +139,20 @@ export const RightPanelDrawer = ({
     : fallbackCards;
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} direction="right">
-      <DrawerContent className="rounded-l-xl border-white/60 bg-white/80 text-slate-950 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl data-[vaul-drawer-direction=right]:w-[min(92vw,420px)] data-[vaul-drawer-direction=right]:sm:max-w-105 dark:border-white/10 dark:bg-slate-950/85 dark:text-slate-50">
+    <div
+      className={`relative z-20 overflow-hidden rounded-l-xl border-l border-white/60 bg-white/80 text-slate-950 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl transition-[width,opacity,margin] duration-300 dark:border-white/10 dark:bg-slate-950/85 dark:text-slate-50 ${
+        open ? "-ml-6 w-[min(92vw,408px)] opacity-100" : "ml-0 w-0 opacity-0"
+      }`}
+      aria-hidden={!open}
+    >
+      <div
+        className={`h-full ${open ? "pointer-events-auto" : "pointer-events-none"}`}
+      >
         <div className="bg-primary/10 pointer-events-none absolute top-10 right-8 h-28 w-28 rounded-full blur-3xl" />
         <div className="bg-primary/10 pointer-events-none absolute bottom-12 left-6 h-24 w-24 rounded-full blur-3xl" />
 
-        <DrawerHeader className="relative border-b border-white/60 px-5 pt-5 pb-4 dark:border-white/10">
-          <div className="flex items-start justify-between gap-3">
+        <div className="relative flex h-full w-102 flex-col">
+          <div className="flex items-start justify-between gap-3 border-b border-white/60 px-5 pt-5 pb-4 dark:border-white/10">
             <div className="space-y-2">
               <Badge
                 variant="secondary"
@@ -162,81 +160,68 @@ export const RightPanelDrawer = ({
               >
                 Right Panel
               </Badge>
-              <DrawerTitle className="text-xl font-black">
+              <div className="text-xl font-black">
                 {selectedToolData?.label ?? "Customize Room"}
-              </DrawerTitle>
-              <DrawerDescription className="max-w-sm text-sm leading-6">
+              </div>
+              <p className="text-muted-foreground max-w-sm text-sm leading-6">
                 Dummy product cards so you can confirm the click flow before
                 wiring real data.
-              </DrawerDescription>
+              </p>
             </div>
 
-            <DrawerClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="size-9 rounded-2xl border-white/50 bg-white/70 shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-                aria-label="Close right panel"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </DrawerClose>
-          </div>
-        </DrawerHeader>
-
-        <div className="relative flex-1 space-y-4 overflow-y-auto px-5 py-5">
-          {cards.map((card) => (
-            <article
-              key={card.id}
-              className="overflow-hidden rounded-[1.75rem] border border-white/60 bg-white/65 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5"
-            >
-              <div className="relative aspect-4/3 overflow-hidden">
-                <Image
-                  src={card.image}
-                  alt={card.name}
-                  fill
-                  sizes="(max-width: 768px) 90vw, 380px"
-                  className="object-cover"
-                />
-              </div>
-
-              <div className="space-y-3 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="truncate text-base font-black">
-                      {card.name}
-                    </h3>
-                    <p className="text-muted-foreground text-sm">{card.size}</p>
-                  </div>
-                  <p className="shrink-0 text-sm font-bold">
-                    {formatPrice(card.price)}
-                  </p>
-                </div>
-
-                <Button
-                  type="button"
-                  className="shadow-primary/20 w-full rounded-2xl text-sm font-bold shadow-lg"
-                >
-                  Select Item
-                </Button>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        <DrawerFooter className="border-t border-white/60 px-5 pt-4 pb-5 dark:border-white/10">
-          <DrawerClose asChild>
             <Button
               type="button"
               variant="outline"
-              className="rounded-2xl border-white/50 bg-white/70 font-semibold shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+              size="icon"
+              onClick={() => onOpenChange(false)}
+              className="size-9 rounded-2xl border-white/50 bg-white/70 shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+              aria-label="Close right panel"
             >
-              Close Panel
+              <X className="h-4 w-4" />
             </Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+          </div>
+
+          <div className="relative flex-1 overflow-y-auto px-5 py-5">
+            <div className="grid grid-cols-2 gap-3">
+              {cards.map((card) => (
+                <article
+                  key={card.id}
+                  className="overflow-hidden rounded-xl border border-white/60 bg-white/65 shadow-none hover:shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-white/5"
+                >
+                  <div className="relative aspect-square overflow-hidden">
+                    <Image
+                      src={card.image}
+                      alt={card.name}
+                      fill
+                      sizes="(max-width: 768px) 44vw, 180px"
+                      className="object-cover"
+                    />
+                  </div>
+
+                  <div className="space-y-2 p-3">
+                    <div className="flex min-w-0 justify-between">
+                      <p className="text-muted-foreground text-xs">
+                        {card.size}
+                      </p>
+                      <Eye className="text-muted-foreground/70 h-4 w-4" />
+                    </div>
+
+                    <p className="text-sm font-bold">
+                      {formatPrice(card.price)}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t border-white/60 px-5 py-4 dark:border-white/10">
+            <p className="text-muted-foreground text-sm">
+              {cards.length} dummy items ready for flow testing.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };

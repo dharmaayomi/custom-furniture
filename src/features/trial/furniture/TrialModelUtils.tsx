@@ -42,7 +42,7 @@ export const createDraggableBoundingBox = (
   hitBox.actionManager = new BABYLON.ActionManager(scene);
   hitBox.actionManager.registerAction(
     new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, () => {
-      useTrialRoomStore.getState().selectMesh(targetMesh.name);
+      useTrialRoomStore.getState().setSelectedMesh(targetMesh.name);
       // Outline dikontrol sepenuhnya oleh subscriber di TrialModelLoader
     }),
   );

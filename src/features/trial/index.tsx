@@ -72,7 +72,7 @@ export const TrialPage = () => {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-100">
       <div
-        className={`relative min-w-0 flex-1 bg-gray-200 ${isAnyPanelOpen ? "md:mr-102" : ""}`}
+        className={`relative min-w-0 flex-1 bg-gray-200 ${isAnyPanelOpen ? "mr-4" : ""}`}
       >
         <TrialHeader />
         <RightPanel
@@ -82,21 +82,21 @@ export const TrialPage = () => {
           isSidebarOpen={isAnyPanelOpen}
           onCustomizeClick={handleCustomizeClick}
         />
-        <RightPanelDrawer
-          open={isAnyPanelOpen}
-          selectedTool={selectedTool}
-          tools={tools}
-          onOpenChange={(open) => {
-            if (!open) {
-              closePanel();
-            }
-          }}
-        />
         <div className="relative h-screen flex-1">
           <TrialRoomCanvas />
         </div>
         <TrialFooter />
       </div>
+      <RightPanelDrawer
+        open={isAnyPanelOpen}
+        selectedTool={selectedTool}
+        tools={tools}
+        onOpenChange={(open) => {
+          if (!open) {
+            closePanel();
+          }
+        }}
+      />
     </div>
   );
 };

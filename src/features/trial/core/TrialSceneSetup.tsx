@@ -79,11 +79,56 @@ export const initTrialScene = (
     scene.render();
   });
 
-  const handleResize = () => engine.resize();
+  let resizeFrame = 0;
+  let lastWidth = 0;
+  let lastHeight = 0;
+
+  const resizeEngine = () => {
+    resizeFrame = 0;
+
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+
+    if (width === 0 || height === 0) {
+      return;
+    }
+
+    if (width === lastWidth && height === lastHeight) {
+      return;
+    }
+
+    lastWidth = width;
+    lastHeight = height;
+    engine.resize();
+  };
+
+  const scheduleResize = () => {
+    if (resizeFrame) {
+      return;
+    }
+
+    resizeFrame = window.requestAnimationFrame(resizeEngine);
+  };
+
+  const handleResize = () => scheduleResize();
+  const resizeTarget = canvas.parentElement ?? canvas;
+  const resizeObserver =
+    typeof ResizeObserver !== "undefined"
+      ? new ResizeObserver(() => {
+          scheduleResize();
+        })
+      : null;
+
   window.addEventListener("resize", handleResize);
+  resizeObserver?.observe(resizeTarget);
+  scheduleResize();
 
   const dispose = () => {
     window.removeEventListener("resize", handleResize);
+    resizeObserver?.disconnect();
+    if (resizeFrame) {
+      window.cancelAnimationFrame(resizeFrame);
+    }
     scene.onBeforeRenderObservable.remove(wallObserver);
     scene.dispose();
     engine.dispose();

@@ -26,7 +26,7 @@ import * as BABYLON from "@babylonjs/core";
  * Tidak ada logika Babylon di sini — semuanya didelegasikan ke layer yang tepat.
  */
 
-const TRIAL_MODEL_PATH = "/assets/3d/cobalagi-antinode.glb";
+const TRIAL_MODEL_PATH = "/assets/trial/wd-602.glb";
 
 export const TrialRoomCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -56,7 +56,7 @@ export const TrialRoomCanvas = () => {
         return;
       }
 
-      useTrialRoomStore.getState().selectMesh(null);
+      useTrialRoomStore.getState().setSelectedMesh(null);
     };
 
     const observer = scene.onPointerObservable.add(
