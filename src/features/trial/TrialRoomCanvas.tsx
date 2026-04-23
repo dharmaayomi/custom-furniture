@@ -6,6 +6,10 @@ import {
   loadProductBase,
   TrialModelLoadResult,
 } from "./furniture/TrialModelLoader";
+import {
+  isTrialDraggableMesh,
+  tryStartTrialDragFromPointer,
+} from "./furniture/DragBehavior";
 import { useTrialRoomStore } from "./useTrialRoomStore";
 import * as BABYLON from "@babylonjs/core";
 
@@ -45,10 +49,14 @@ export const TrialRoomCanvas = () => {
     // };
     const onPointerDown = (pointerInfo: BABYLON.PointerInfo) => {
       const hitMesh = pointerInfo.pickInfo?.pickedMesh;
-      const isBoundingBox = hitMesh?.metadata?.kind === "bounding-box";
-      if (!isBoundingBox) {
-        useTrialRoomStore.getState().selectMesh(null);
+      const isDraggableMesh = isTrialDraggableMesh(hitMesh);
+
+      if (isDraggableMesh) {
+        tryStartTrialDragFromPointer(pointerInfo);
+        return;
       }
+
+      useTrialRoomStore.getState().selectMesh(null);
     };
 
     const observer = scene.onPointerObservable.add(

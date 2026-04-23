@@ -6,6 +6,22 @@ export const setupTrialCamera = (
   scene: BABYLON.Scene,
 ): BABYLON.ArcRotateCamera => {
   let zoomTarget = new BABYLON.Vector3(0, TRIAL_CAMERA_CONFIG.targetY, 0);
+  const getPointerInput = () =>
+    camera.inputs.attached["pointers"] as
+      | BABYLON.ArcRotateCameraPointersInput
+      | undefined;
+
+  const ensureCameraInputAttached = () => {
+    const pointerInput = getPointerInput();
+    if (!pointerInput?.buttons.length) {
+      return;
+    }
+
+    if (!camera.inputs.attachedToElement) {
+      camera.attachControl(canvas, true);
+    }
+  };
+
   const updateZoomTargetFromPointer = () => {
     const pick = scene.pick(
       scene.pointerX,
@@ -34,7 +50,7 @@ export const setupTrialCamera = (
 
   camera.mapPanning = true;
   camera.useAutoRotationBehavior = false;
-  camera.zoomToMouseLocation = true;
+  camera.zoomToMouseLocation = false;
   camera.wheelDeltaPercentage = 0.01;
   camera.panningSensibility = 200;
   scene.activeCamera = camera;
@@ -52,6 +68,8 @@ export const setupTrialCamera = (
     if (pointerInfo.type !== BABYLON.PointerEventTypes.POINTERWHEEL) {
       return;
     }
+
+    ensureCameraInputAttached();
 
     const wheelEvent = pointerInfo.event as WheelEvent;
     const isZoomingIn = wheelEvent.deltaY < 0;
@@ -99,11 +117,13 @@ export const setupTrialCamera = (
   scene.onPointerObservable.add((pointerInfo) => {
     switch (pointerInfo.type) {
       case BABYLON.PointerEventTypes.POINTERDOWN:
+        ensureCameraInputAttached();
         isPointerDown = true;
         lastPointerY = scene.pointerY;
         break;
 
       case BABYLON.PointerEventTypes.POINTERUP:
+        ensureCameraInputAttached();
         isPointerDown = false;
         break;
 

@@ -1,46 +1,100 @@
 import * as BABYLON from "@babylonjs/core";
 
 interface AttachTrialDragBehaviorOptions {
-  scene: BABYLON.Scene;
   targetMesh: BABYLON.AbstractMesh;
   hitBox: BABYLON.Mesh;
 }
 
+interface TrialDragMetadata {
+  kind?: string;
+  dragBehavior?: BABYLON.PointerDragBehavior;
+  dragHitBox?: BABYLON.Mesh;
+  dragRootName?: string;
+}
+
+const getTrialDragMetadata = (
+  mesh?: BABYLON.Nullable<BABYLON.AbstractMesh>,
+): TrialDragMetadata | null => {
+  if (!mesh?.metadata) {
+    return null;
+  }
+
+  return mesh.metadata as TrialDragMetadata;
+};
+
 export const attachTrialDragBehavior = ({
-  scene,
   targetMesh,
   hitBox,
 }: AttachTrialDragBehaviorOptions): BABYLON.PointerDragBehavior => {
-  const getCamera = (): BABYLON.ArcRotateCamera | null => {
-    const cam = scene.activeCamera;
-    return cam instanceof BABYLON.ArcRotateCamera ? cam : null;
-  };
-
   const dragBehavior = new BABYLON.PointerDragBehavior({
     dragPlaneNormal: new BABYLON.Vector3(0, 1, 0),
   });
   dragBehavior.useObjectOrientationForDragging = false;
-
-  dragBehavior.onDragStartObservable.add(() => {
-    const camera = getCamera();
-    if (camera) {
-      camera.detachControl();
-    }
-  });
+  dragBehavior.detachCameraControls = true;
 
   dragBehavior.onDragObservable.add((event) => {
     targetMesh.position.addInPlace(event.delta);
   });
 
-  dragBehavior.onDragEndObservable.add(() => {
-    const camera = getCamera();
-    const canvas = scene.getEngine().getRenderingCanvas();
-    if (camera && canvas) {
-      camera.attachControl(canvas, true);
-    }
-  });
-
   hitBox.addBehavior(dragBehavior);
 
   return dragBehavior;
+};
+
+export const registerTrialDraggableMeshes = (
+  rootMesh: BABYLON.AbstractMesh,
+  hitBox: BABYLON.Mesh,
+  dragBehavior: BABYLON.PointerDragBehavior,
+) => {
+  const applyMetadata = (mesh: BABYLON.AbstractMesh, kind?: string) => {
+    mesh.metadata = {
+      ...(mesh.metadata ?? {}),
+      ...(kind ? { kind } : {}),
+      dragBehavior,
+      dragHitBox: hitBox,
+      dragRootName: rootMesh.name,
+    };
+  };
+
+  applyMetadata(rootMesh);
+  rootMesh.getChildMeshes().forEach((mesh) => applyMetadata(mesh));
+  applyMetadata(hitBox, "bounding-box");
+};
+
+export const isTrialDraggableMesh = (
+  mesh?: BABYLON.Nullable<BABYLON.AbstractMesh>,
+) => {
+  const metadata = getTrialDragMetadata(mesh);
+  return Boolean(metadata?.dragBehavior && metadata?.dragHitBox);
+};
+
+export const tryStartTrialDragFromPointer = (
+  pointerInfo: BABYLON.PointerInfo,
+) => {
+  const pickedMesh = pointerInfo.pickInfo?.pickedMesh;
+  const metadata = getTrialDragMetadata(pickedMesh);
+  const pointerEvent = pointerInfo.event as PointerEvent | undefined;
+  const pickInfo = pointerInfo.pickInfo;
+
+  if (
+    pointerInfo.type !== BABYLON.PointerEventTypes.POINTERDOWN ||
+    !metadata?.dragBehavior ||
+    !metadata.dragHitBox ||
+    !pickInfo?.hit ||
+    !pickInfo.pickedPoint ||
+    !pickInfo.ray
+  ) {
+    return false;
+  }
+
+  if (metadata.kind === "bounding-box") {
+    return true;
+  }
+
+  metadata.dragBehavior.startDrag(
+    pointerEvent?.pointerId,
+    pickInfo.ray,
+    pickInfo.pickedPoint,
+  );
+  return true;
 };

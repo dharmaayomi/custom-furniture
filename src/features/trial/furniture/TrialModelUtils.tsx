@@ -1,7 +1,10 @@
 import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders/glTF";
 import { useTrialRoomStore } from "../useTrialRoomStore";
-import { attachTrialDragBehavior } from "./DragBehavior";
+import {
+  attachTrialDragBehavior,
+  registerTrialDraggableMeshes,
+} from "./DragBehavior";
 
 // HITBOX
 export const createDraggableBoundingBox = (
@@ -29,13 +32,12 @@ export const createDraggableBoundingBox = (
   mat.backFaceCulling = false;
   hitBox.material = mat;
   hitBox.isPickable = true;
-  hitBox.metadata = { kind: "bounding-box" };
 
-  attachTrialDragBehavior({
-    scene,
+  const dragBehavior = attachTrialDragBehavior({
     targetMesh,
     hitBox,
   });
+  registerTrialDraggableMeshes(targetMesh, hitBox, dragBehavior);
 
   hitBox.actionManager = new BABYLON.ActionManager(scene);
   hitBox.actionManager.registerAction(
