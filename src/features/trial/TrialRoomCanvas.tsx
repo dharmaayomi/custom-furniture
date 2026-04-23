@@ -1,27 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { getBackWallPosition, initTrialScene } from "./core/TrialSceneSetup";
 import {
   loadProductBase,
   TrialModelLoadResult,
 } from "./furniture/TrialModelLoader";
-import { getBackWallPosition, initTrialScene } from "./core/TrialSceneSetup";
-import { TrialHeader } from "./components/TrialHeader";
-import { TrialFooter } from "./components/TrialFooter";
-import {
-  RightPanel,
-  TrialActivePanel,
-  TrialTool,
-  TrialToolType,
-} from "./components/RightPanel";
-import {
-  DoorClosed,
-  Grid,
-  LampFloor,
-  LayoutTemplate,
-  Package,
-  PaintBucket,
-} from "lucide-react";
+import { useTrialRoomStore } from "./useTrialRoomStore";
+import * as BABYLON from "@babylonjs/core";
 
 /**
  * TrialRoomCanvas.tsx
@@ -50,6 +36,26 @@ export const TrialRoomCanvas = () => {
       dispose: disposeScene,
     } = initTrialScene(canvasRef.current);
 
+    // const onPointerDown = (pointerInfo: BABYLON.PointerInfo) => {
+    //   if (pointerInfo.type !== BABYLON.PointerEventTypes.POINTERDOWN) return;
+    //   const pickInfo = pointerInfo.pickInfo;
+    //   if (!pickInfo || !pickInfo.hit) {
+    //     useTrialRoomStore.getState().selectMesh(null);
+    //   }
+    // };
+    const onPointerDown = (pointerInfo: BABYLON.PointerInfo) => {
+      const hitMesh = pointerInfo.pickInfo?.pickedMesh;
+      const isBoundingBox = hitMesh?.metadata?.kind === "bounding-box";
+      if (!isBoundingBox) {
+        useTrialRoomStore.getState().selectMesh(null);
+      }
+    };
+
+    const observer = scene.onPointerObservable.add(
+      onPointerDown,
+      BABYLON.PointerEventTypes.POINTERDOWN,
+    );
+
     let loadedModel: TrialModelLoadResult | null = null;
     let isMounted = true;
 
@@ -73,6 +79,9 @@ export const TrialRoomCanvas = () => {
     void loadModel();
 
     return () => {
+      if (observer) {
+        scene.onPointerObservable.remove(observer);
+      }
       isMounted = false;
       loadedModel?.dispose();
       disposeScene();
