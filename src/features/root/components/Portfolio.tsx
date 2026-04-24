@@ -82,6 +82,8 @@ export default function Porfolio() {
                     <Button
                       size="icon"
                       variant="outline"
+                      type="button"
+                      aria-label={`Preview ${image.title}`}
                       className="flex h-10 w-10 items-center justify-center rounded-full border-none border-white/20 bg-white/10 p-0 backdrop-blur-md transition-all hover:bg-white/20"
                     >
                       <Maximize2 className="h-4 w-4 text-white" />
@@ -89,6 +91,8 @@ export default function Porfolio() {
                     <Button
                       size="icon"
                       variant="outline"
+                      type="button"
+                      aria-label={`Open ${image.title}`}
                       className="flex h-10 w-10 items-center justify-center rounded-full border-none border-white/20 bg-white/10 p-0 backdrop-blur-md transition-all hover:bg-white/20"
                     >
                       <ExternalLink className="h-4 w-4 text-white" />

@@ -204,7 +204,25 @@
   animation-duration: 2s;
 }
 
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.33%);
+  }
+}
+
 @layer utilities {
+  .animate-marquee {
+    display: flex;
+    animation: marquee 50s linear infinite;
+  }
+
+  .pause-on-hover:hover {
+    animation-play-state: paused;
+  }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -227,6 +245,17 @@
   .thin-scrollbar::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted-foreground) / 0.4);
     border-radius: 9999px;
+  }
+
+  canvas {
+    background-color: #f0f1f2;
+    background-image: radial-gradient(circle, #dadce0 1px, transparent 0.5px);
+    background-size: 14px 14px;
+  }
+  .dark canvas {
+    background-color: #1a1b1e;
+    background-image: radial-gradient(circle, #3a3d42 1px, transparent 0.5px);
+    background-size: 14px 14px;
   }
 
   .pending-payment-hover:hover {
