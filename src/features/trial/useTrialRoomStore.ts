@@ -1,8 +1,5 @@
 import { create } from "zustand";
-import {
-  DEFAULT_TRIAL_ROOM_CONFIG,
-  TrialRoomConfig,
-} from "./core/TrialConfig";
+import { DEFAULT_TRIAL_ROOM_CONFIG, TrialRoomConfig } from "./core/TrialConfig";
 
 export interface TrialSpawnPoint {
   x: number;
@@ -14,6 +11,12 @@ export interface TrialSpawnRequest {
   requestId: number;
   assetId: string;
   dropPoint: TrialSpawnPoint | null;
+}
+
+export interface LoadedModel {
+  instanceId: string;
+  assetId: string;
+  category: "frame" | "interior" | "material";
 }
 
 interface TrialRoomState {
@@ -40,6 +43,9 @@ interface TrialRoomState {
     dropPoint?: TrialSpawnPoint | null,
   ) => void;
   clearSpawnRequest: () => void;
+  loadedModels: LoadedModel[];
+  addLoadedModel: (model: LoadedModel) => void;
+  removeLoadedModel: (instanceId: string) => void;
 }
 
 export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
@@ -109,4 +115,13 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
   clearSpawnRequest: () => {
     set({ spawnRequest: null });
   },
+  loadedModels: [],
+  addLoadedModel: (model) =>
+    set((state) => ({ loadedModels: [...state.loadedModels, model] })),
+  removeLoadedModel: (instanceId) =>
+    set((state) => ({
+      loadedModels: state.loadedModels.filter(
+        (m) => m.instanceId !== instanceId,
+      ),
+    })),
 }));

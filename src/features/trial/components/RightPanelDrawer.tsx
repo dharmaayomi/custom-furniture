@@ -205,21 +205,6 @@ export const RightPanelDrawer = ({
               </div>
             )}
           </div>
-
-          <div className="border-t border-white/60 px-5 py-4 dark:border-white/10">
-            <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/65 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-              <div>
-                <p className="text-xs font-semibold tracking-[0.14em] uppercase">
-                  Total Estimate
-                </p>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  Same flow as the shared total-price calculation, adapted to
-                  the trial mock data.
-                </p>
-              </div>
-              <p className="text-sm font-black">{formatPrice(totalPrice)}</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

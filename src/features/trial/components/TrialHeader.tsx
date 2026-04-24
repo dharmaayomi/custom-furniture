@@ -1,18 +1,9 @@
 import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import { formatPrice } from "@/lib/price";
-import { Boxes, ListOrdered, Menu, MoveRight, Save } from "lucide-react";
+import { ListOrdered, MoveRight, Save } from "lucide-react";
 import { calculateTrialTotalPrice } from "../trialPrice";
 import { useTrialRoomStore } from "../useTrialRoomStore";
+import { MenuDrawer } from "./MenuDrawer";
 
 export const TrialHeader = () => {
   const activeFrameProductId = useTrialRoomStore(
@@ -38,29 +29,7 @@ export const TrialHeader = () => {
         <div className="bg-primary/10 pointer-events-none absolute top-0 right-12 h-28 w-28 rounded-full blur-3xl" />
 
         <div className="pointer-events-auto relative flex items-center gap-2 rounded-[1.75rem] border border-white/60 bg-white/75 p-2 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/70">
-          <Drawer direction="left">
-            <DrawerTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="size-9 rounded-2xl border-white/50 bg-white/70 shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-              >
-                <Menu className="h-4 w-4 md:h-5 md:w-5" />
-              </Button>
-            </DrawerTrigger>
-            <DrawerContent className="rounded-r-xl sm:max-w-sm md:max-w-70 md:data-[vaul-drawer-direction=left]:w-70!">
-              <DrawerHeader>
-                <DrawerTitle>Are you absolutely sure?</DrawerTitle>
-                <DrawerDescription>
-                  This action cannot be undone.
-                </DrawerDescription>
-              </DrawerHeader>
-              <DrawerFooter>
-                <DrawerClose></DrawerClose>
-              </DrawerFooter>
-            </DrawerContent>
-          </Drawer>
+          <MenuDrawer />
 
           <Button
             id="header-save-button"

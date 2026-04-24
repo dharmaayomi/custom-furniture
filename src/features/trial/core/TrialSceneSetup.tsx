@@ -7,6 +7,8 @@ import { setupTrialRoom } from "./TrialRoomSetup";
 import { DEFAULT_TRIAL_ROOM_CONFIG, TrialRoomConfig } from "./TrialConfig";
 import { setupTrialAutoHideWalls } from "../furniture/WallVisibility";
 import { setupTrialLighting, TrialLightingResult } from "./TrialLightingSetup";
+import { setupTrialSpawnListener } from "./TrialSpawnListener";
+import { clearRegistry } from "../furniture/TrialModelRegistry";
 
 /**
  * TrialSceneSetup.ts
@@ -45,13 +47,19 @@ export const initTrialScene = (
   // scene.clearColor = new BABYLON.Color4(0.95, 0.96, 0.96, 1);
   scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
 
-  const camera = setupTrialCamera(canvas, scene);
+  const camera = setupTrialCamera(canvas, scene, initialRoomConfig);
   const lighting = setupTrialLighting(scene, initialRoomConfig);
   let room = setupTrialRoom(scene, initialRoomConfig);
 
   room.shadowCasters.forEach((mesh) => {
     lighting.shadowGenerator.addShadowCaster(mesh, false);
   });
+
+  const spawnUnsubscribe = setupTrialSpawnListener(
+    scene,
+    lighting.shadowGenerator,
+    initialRoomConfig,
+  );
 
   // Wall auto-hide
   let wallObserver = setupTrialAutoHideWalls(scene, room.walls, camera);
@@ -138,6 +146,8 @@ export const initTrialScene = (
     room.dispose();
     scene.dispose();
     engine.dispose();
+    spawnUnsubscribe();
+    clearRegistry();
   };
 
   return { engine, scene, camera, lighting, updateRoomConfig, dispose };

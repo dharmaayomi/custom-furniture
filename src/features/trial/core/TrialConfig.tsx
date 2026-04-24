@@ -56,7 +56,7 @@ export const TRIAL_WALL_COLOR_OPTIONS = [
 export const TRIAL_CAMERA_CONFIG = {
   alpha: -Math.PI / 2,
   beta: Math.PI / 2,
-  radius: 0.1,
+  radius: 1,
   zoomInRadius: 2.5,
   targetY: 1.2,
   wheelPrecision: 70,
