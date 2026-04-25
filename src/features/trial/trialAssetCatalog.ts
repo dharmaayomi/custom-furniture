@@ -112,7 +112,7 @@ export const TRIAL_PRODUCT_BASES: TrialProductBase[] = [
     productName: "WIC 1228",
     sku: "WIC-1228",
     // productUrl: "/assets/trial/wic-1228.glb",
-    productUrl: "/assets/trial/drawer.3.glb",
+    productUrl: "/assets/trial/drawer.glb",
     description: "Frame lemari walk-in untuk test size berbeda.",
     basePrice: 16800000,
     width: 120,
@@ -259,12 +259,53 @@ export interface TrialAssetItem {
   modelPath: string;
   category: TrialAssetCategory;
   initialRotationY?: number;
+  fitWidthMode?: "keep" | "shrink" | "fill";
+  fitHeightMode?: "keep" | "shrink" | "fill";
+  fitDepthMode?: "keep" | "shrink" | "fill";
   sourceType: "productBase" | "productComponent" | "productMaterial";
   sourceId: string;
 }
 
 const formatSize = (width: number, depth: number, height: number) =>
   `${width} x ${depth} x ${height} cm`;
+
+const INTERIOR_INITIAL_ROTATION_BY_ID: Partial<
+  Record<TrialProductComponent["id"], number>
+> = {
+  "component-drawer": Math.PI,
+};
+
+const INTERIOR_FIT_BY_ID: Partial<
+  Record<
+    TrialProductComponent["id"],
+    Pick<TrialAssetItem, "fitWidthMode" | "fitHeightMode" | "fitDepthMode">
+  >
+> = {
+  "component-drawer": {
+    fitWidthMode: "fill",
+    fitDepthMode: "shrink",
+  },
+  "component-shelf": {
+    fitWidthMode: "fill",
+    fitHeightMode: "keep",
+    fitDepthMode: "shrink",
+  },
+  "component-glass-shelf": {
+    fitWidthMode: "fill",
+    fitHeightMode: "keep",
+    fitDepthMode: "shrink",
+  },
+  "component-hanging-rod": {
+    fitWidthMode: "fill",
+    fitHeightMode: "keep",
+    fitDepthMode: "keep",
+  },
+  "component-vertical-divider": {
+    fitWidthMode: "keep",
+    fitHeightMode: "shrink",
+    fitDepthMode: "fill",
+  },
+};
 
 const productBaseToAsset = (item: TrialProductBase): TrialAssetItem => ({
   id: item.id,
@@ -288,6 +329,10 @@ const productComponentToAsset = (
   image: item.componentImageUrls[0] ?? "/assets/trial/interior.webp",
   modelPath: item.componentUrl,
   category: "interior",
+  initialRotationY: INTERIOR_INITIAL_ROTATION_BY_ID[item.id],
+  fitWidthMode: INTERIOR_FIT_BY_ID[item.id]?.fitWidthMode ?? "keep",
+  fitHeightMode: INTERIOR_FIT_BY_ID[item.id]?.fitHeightMode ?? "keep",
+  fitDepthMode: INTERIOR_FIT_BY_ID[item.id]?.fitDepthMode ?? "keep",
   sourceType: "productComponent",
   sourceId: item.id,
 });
