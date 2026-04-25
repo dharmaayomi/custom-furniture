@@ -45,7 +45,7 @@ interface TrialMeshBounds {
 
 const createInteriorAnchorDebugMarker = (
   scene: BABYLON.Scene,
-  parent: BABYLON.AbstractMesh,
+  parent: BABYLON.TransformNode,
   name: string,
   localAnchor: BABYLON.Vector3,
 ) => {
@@ -135,10 +135,16 @@ const getScaledAxis = (
 };
 
 const getHierarchyBoundsInLocalSpace = (
-  rootMesh: BABYLON.AbstractMesh,
+  rootMesh: BABYLON.TransformNode,
 ): TrialMeshBounds => {
   rootMesh.computeWorldMatrix(true);
-  rootMesh.getChildMeshes().forEach((mesh) => mesh.computeWorldMatrix(true));
+
+  const renderMeshes = rootMesh.getChildMeshes();
+  if (rootMesh instanceof BABYLON.AbstractMesh) {
+    renderMeshes.unshift(rootMesh);
+  }
+
+  renderMeshes.forEach((mesh) => mesh.computeWorldMatrix(true));
 
   const inverseRootWorld = rootMesh.getWorldMatrix().clone();
   inverseRootWorld.invert();
@@ -154,7 +160,7 @@ const getHierarchyBoundsInLocalSpace = (
     Number.NEGATIVE_INFINITY,
   );
 
-  rootMesh.getChildMeshes().forEach((mesh) => {
+  renderMeshes.forEach((mesh) => {
     mesh.refreshBoundingInfo({ applySkeleton: true });
 
     mesh

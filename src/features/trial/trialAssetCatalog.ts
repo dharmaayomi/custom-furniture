@@ -271,9 +271,7 @@ const formatSize = (width: number, depth: number, height: number) =>
 
 const INTERIOR_INITIAL_ROTATION_BY_ID: Partial<
   Record<TrialProductComponent["id"], number>
-> = {
-  "component-drawer": Math.PI,
-};
+> = {};
 
 const INTERIOR_FIT_BY_ID: Partial<
   Record<

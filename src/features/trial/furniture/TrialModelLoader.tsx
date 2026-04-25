@@ -32,11 +32,42 @@ export interface TrialModelLoadOptions {
 
 export interface TrialModelLoadResult {
   container: BABYLON.AssetContainer;
-  rootMesh: BABYLON.AbstractMesh;
+  rootMesh: BABYLON.TransformNode;
   boundingBoxMesh: BABYLON.Mesh | null;
   setOutline: (visible: boolean) => void;
   dispose: () => void;
 }
+
+const getPlacementRoot = (
+  container: BABYLON.AssetContainer,
+): BABYLON.TransformNode | null => {
+  const importRoot = container.meshes[0];
+  if (!importRoot) {
+    return null;
+  }
+
+  const authoredRoot =
+    [
+      ...container.transformNodes,
+      ...container.meshes.filter((mesh) => mesh !== importRoot),
+    ].find((node) => node.parent === importRoot) ?? null;
+
+  if (!authoredRoot) {
+    return importRoot;
+  }
+
+  return authoredRoot;
+};
+
+const getRenderableMeshes = (rootMesh: BABYLON.TransformNode) => {
+  const renderMeshes = rootMesh.getChildMeshes();
+
+  if (rootMesh instanceof BABYLON.AbstractMesh) {
+    renderMeshes.unshift(rootMesh);
+  }
+
+  return renderMeshes;
+};
 
 export const loadProductBase = async (
   scene: BABYLON.Scene,
@@ -60,7 +91,7 @@ export const loadProductBase = async (
     container.lights.forEach((l) => l.dispose());
     container.cameras.forEach((c) => c.dispose());
 
-    const rootMesh = container.meshes[0];
+    const rootMesh = getPlacementRoot(container);
     if (!rootMesh) {
       container.dispose();
       return null;
@@ -86,7 +117,7 @@ export const loadProductBase = async (
     }
 
     // Setup child meshes
-    rootMesh.getChildMeshes().forEach((mesh) => {
+    getRenderableMeshes(rootMesh).forEach((mesh) => {
       mesh.isPickable = true;
       mesh.receiveShadows = true;
 
@@ -100,7 +131,7 @@ export const loadProductBase = async (
     // Step 2:
     // Only the main furniture gets selection outline + drag hitbox.
     // Tambahan stays attached to the furniture and does not need its own drag surface.
-    if (enableInteraction) {
+    if (enableInteraction && rootMesh instanceof BABYLON.AbstractMesh) {
       setOutline = buildOutlineController(scene, rootMesh);
       setOutline(false);
 
