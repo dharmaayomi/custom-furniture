@@ -202,7 +202,7 @@ export const TrialRoomCanvas = () => {
         modelPath: asset.modelPath,
         meshName: `trial-interior-${asset.id}-${requestId}`,
         initialPosition: BABYLON.Vector3.Zero(),
-        initialRotationY: asset.initialRotationY ?? 0,
+        initialRotationY: Math.PI,
         shadowGenerator: lighting.shadowGenerator,
         enableInteraction: false,
         centerOnXAxis: false,
@@ -212,27 +212,19 @@ export const TrialRoomCanvas = () => {
 
       if (!result || !frameProduct) return;
 
-      // Step 3: Parent interior ke frame
       result.rootMesh.parent = frameProduct.rootMesh;
 
       cachedFrameBounds =
         frameProduct.rootMesh.getHierarchyBoundingVectors(true);
 
-      // // 2. Reset Transformasi
-      // result.rootMesh.rotationQuaternion = null;
+      result.rootMesh.rotation.y = Math.PI;
 
-      // // 3. PUTAR 180 DERAJAT (Math.PI adalah 180 derajat dalam radian)
-      // const baseRotation = asset.initialRotationY || 0;
-      // result.rootMesh.rotation.y = baseRotation;
-
-      // const frameWidth =
-      //   Math.round((frameLayout.max.x - frameLayout.min.x) * 1000) / 1000;
       const frameWidth =
         Math.round((cachedFrameBounds.max.x - cachedFrameBounds.min.x) * 1000) /
         1000;
 
       result.rootMesh.position.set(
-        frameWidth,
+        frameWidth / 2,
         CABINET_CONFIG.plinthHeight + CABINET_CONFIG.thickness,
         CABINET_CONFIG.backGap + CABINET_CONFIG.backPanelThick,
       );
@@ -266,8 +258,6 @@ export const TrialRoomCanvas = () => {
       debugMat.emissiveColor = new BABYLON.Color3(0, 1, 0); // Hijau
       debugMat.wireframe = true;
       debugBox.material = debugMat;
-
-      // result.rootMesh.computeWorldMatrix(true);
 
       interiorModels.push(result);
       useTrialRoomStore.getState().addActiveInteriorProductId(assetId);
