@@ -89,6 +89,7 @@ export const loadProductBase = async (
     rootMesh.getChildMeshes().forEach((mesh) => {
       mesh.isPickable = true;
       mesh.receiveShadows = true;
+
       shadowGenerator?.addShadowCaster(mesh, false);
     });
 

@@ -73,6 +73,7 @@ export const buildOutlineController = (
     selectionLayer.clearSelection();
 
     if (visible) {
+      selectionLayer.clearSelection();
       selectionLayer.addSelection(
         selectionGroup.length ? selectionGroup : rootMesh,
       );

@@ -13,14 +13,10 @@ import {
   isTrialDraggableMesh,
   tryStartTrialDragFromPointer,
 } from "./furniture/DragBehavior";
-import {
-  getTrialAssetById,
-  TRIAL_ASSET_DRAG_TYPE,
-} from "./trialAssetCatalog";
-import {
-  TrialSpawnPoint,
-  useTrialRoomStore,
-} from "./useTrialRoomStore";
+import { getTrialAssetById, TRIAL_ASSET_DRAG_TYPE } from "./trialAssetCatalog";
+import { TrialSpawnPoint, useTrialRoomStore } from "./useTrialRoomStore";
+import { frame } from "motion/react";
+import { CABINET_CONFIG } from "./CabinetConfig";
 
 /**
  * TrialRoomCanvas.tsx
@@ -64,7 +60,8 @@ const pickFloorPointFromClient = (
 
 export const TrialRoomCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
+  let cachedFrameBounds: { min: BABYLON.Vector3; max: BABYLON.Vector3 } | null =
+    null;
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -93,6 +90,7 @@ export const TrialRoomCanvas = () => {
       clearInterior();
       frameProduct?.dispose();
       frameProduct = null;
+      cachedFrameBounds = null;
       useTrialRoomStore.getState().setHasFrameProduct(false);
       useTrialRoomStore.getState().setActiveFrameProductId(null);
       useTrialRoomStore.getState().clearActiveInteriorProductIds();
@@ -125,6 +123,7 @@ export const TrialRoomCanvas = () => {
       }
     };
 
+    // FRAME
     const spawnFrame = async (
       requestId: number,
       assetId: string,
@@ -169,48 +168,115 @@ export const TrialRoomCanvas = () => {
       useTrialRoomStore.getState().setHasFrameProduct(true);
       useTrialRoomStore.getState().setActiveFrameProductId(assetId);
       useTrialRoomStore.getState().setSelectedMesh(result.rootMesh.name);
+
+      const frameBounds =
+        frameProduct.rootMesh.getHierarchyBoundingVectors(true);
+
+      // const size = frameBounds.max.subtract(frameBounds.min);
+      // const center = frameBounds.min.add(size.scale(0.5));
+
+      // const debugBox = BABYLON.MeshBuilder.CreateBox(
+      //   "debug-bounds",
+      //   {
+      //     width: size.x,
+      //     height: size.y,
+      //     depth: size.z,
+      //   },
+      //   scene,
+      // );
+      // debugBox.position.copyFrom(center);
+
+      // const debugMat = new BABYLON.StandardMaterial("debug-mat", scene);
+      // debugMat.wireframe = true;
+      // debugMat.emissiveColor = new BABYLON.Color3(0, 1, 0); // hijau
+      // debugBox.material = debugMat;
+      // debugBox.isPickable = false;
     };
 
+    // INTERIOR
     const spawnInterior = async (requestId: number, assetId: string) => {
       const asset = getTrialAssetById(assetId);
-      if (!asset || !frameProduct) {
-        return;
-      }
+      if (!asset || !frameProduct) return;
 
       const result = await loadProductBase(scene, {
         modelPath: asset.modelPath,
         meshName: `trial-interior-${asset.id}-${requestId}`,
         initialPosition: BABYLON.Vector3.Zero(),
-        initialRotationY: asset.initialRotationY,
+        initialRotationY: asset.initialRotationY ?? 0,
         shadowGenerator: lighting.shadowGenerator,
         enableInteraction: false,
         centerOnXAxis: false,
       });
+      const frameLayout =
+        frameProduct.rootMesh.getHierarchyBoundingVectors(true);
 
-      if (!result) {
-        return;
-      }
+      if (!result || !frameProduct) return;
 
-      if (!isMounted || latestSpawnRequestId !== requestId || !frameProduct) {
-        result.dispose();
-        return;
-      }
-
-      // Step 3:
-      // Parent interior to the frame product so it follows the same drag movement.
+      // Step 3: Parent interior ke frame
       result.rootMesh.parent = frameProduct.rootMesh;
-      result.rootMesh.position.copyFromFloats(0, 0, 0);
-      result.rootMesh.rotationQuaternion = null;
-      result.rootMesh.rotation.y = asset.initialRotationY ?? 0;
-      result.rootMesh.computeWorldMatrix(true);
+
+      cachedFrameBounds =
+        frameProduct.rootMesh.getHierarchyBoundingVectors(true);
+
+      // // 2. Reset Transformasi
+      // result.rootMesh.rotationQuaternion = null;
+
+      // // 3. PUTAR 180 DERAJAT (Math.PI adalah 180 derajat dalam radian)
+      // const baseRotation = asset.initialRotationY || 0;
+      // result.rootMesh.rotation.y = baseRotation;
+
+      // const frameWidth =
+      //   Math.round((frameLayout.max.x - frameLayout.min.x) * 1000) / 1000;
+      const frameWidth =
+        Math.round((cachedFrameBounds.max.x - cachedFrameBounds.min.x) * 1000) /
+        1000;
+
+      result.rootMesh.position.set(
+        frameWidth,
+        CABINET_CONFIG.plinthHeight + CABINET_CONFIG.thickness,
+        CABINET_CONFIG.backGap + CABINET_CONFIG.backPanelThick,
+      );
+
+      const debugBox = BABYLON.MeshBuilder.CreateBox(
+        "debug-frame-layout",
+        {
+          width: frameLayout.max.x - frameLayout.min.x,
+          height: frameLayout.max.y - frameLayout.min.y,
+          depth: frameLayout.max.z - frameLayout.min.z,
+        },
+        scene,
+      );
+
+      // Posisikan di tengah bounding box
+      debugBox.position = new BABYLON.Vector3(
+        (frameLayout.min.x + frameLayout.max.x) / 2,
+        (frameLayout.min.y + frameLayout.max.y) / 2,
+        (frameLayout.min.z + frameLayout.max.z) / 2,
+      );
+      console.log("frameWidth:", frameWidth);
+      console.log("frameLayout.min.x:", frameLayout.min.x);
+      console.log("frameLayout.max.x:", frameLayout.max.x);
+      console.log("frame world pos:", frameProduct.rootMesh.position.x);
+      console.log(
+        "interior local pos setelah set:",
+        result.rootMesh.position.x,
+      );
+      // Material hijau wireframe
+      const debugMat = new BABYLON.StandardMaterial("debug-frame-mat", scene);
+      debugMat.emissiveColor = new BABYLON.Color3(0, 1, 0); // Hijau
+      debugMat.wireframe = true;
+      debugBox.material = debugMat;
+
+      // result.rootMesh.computeWorldMatrix(true);
 
       interiorModels.push(result);
       useTrialRoomStore.getState().addActiveInteriorProductId(assetId);
-      useTrialRoomStore.getState().setSelectedMesh(frameProduct.rootMesh.name);
     };
 
     const handleSpawnRequest = async (
-      request: NonNullable<ReturnType<typeof useTrialRoomStore.getState>["spawnRequest"]>,
+      request: NonNullable<
+        ReturnType<typeof useTrialRoomStore.getState>["spawnRequest"]
+      >,
     ) => {
       latestSpawnRequestId = request.requestId;
 
@@ -309,10 +375,12 @@ export const TrialRoomCanvas = () => {
         event.clientY,
       );
 
-      useTrialRoomStore.getState().requestAssetSpawn(
-        assetId,
-        pickedPoint ? toSpawnPoint(pickedPoint) : null,
-      );
+      useTrialRoomStore
+        .getState()
+        .requestAssetSpawn(
+          assetId,
+          pickedPoint ? toSpawnPoint(pickedPoint) : null,
+        );
     };
 
     canvas.addEventListener("dragover", handleCanvasDragOver);

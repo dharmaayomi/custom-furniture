@@ -75,7 +75,7 @@ export const TRIAL_PRODUCT_BASES: TrialProductBase[] = [
     id: "base-wd-602",
     productName: "WD 602",
     sku: "WD-602",
-    productUrl: "/assets/trial/wd-602.glb",
+    productUrl: "/assets/trial/wd-602.2.glb",
     description: "Frame lemari single bay untuk test posisi dasar.",
     basePrice: 7800000,
     width: 60,
@@ -93,7 +93,7 @@ export const TRIAL_PRODUCT_BASES: TrialProductBase[] = [
     id: "base-wd-1808",
     productName: "WD 1808",
     sku: "WD-1808",
-    productUrl: "/assets/trial/wd-1808.glb",
+    productUrl: "/assets/trial/wd-1808.3.glb",
     description: "Frame lemari lebar untuk test swap base furniture.",
     basePrice: 14200000,
     width: 180,
@@ -111,7 +111,8 @@ export const TRIAL_PRODUCT_BASES: TrialProductBase[] = [
     id: "base-wic-1228",
     productName: "WIC 1228",
     sku: "WIC-1228",
-    productUrl: "/assets/trial/wic-1228.glb",
+    // productUrl: "/assets/trial/wic-1228.glb",
+    productUrl: "/assets/trial/drawer.3.glb",
     description: "Frame lemari walk-in untuk test size berbeda.",
     basePrice: 16800000,
     width: 120,
@@ -136,7 +137,7 @@ export const TRIAL_PRODUCT_COMPONENTS: TrialProductComponent[] = [
   {
     id: "component-drawer",
     componentName: "Drawer",
-    componentUrl: "/assets/trial/drawer.glb",
+    componentUrl: "/assets/trial/drawer.3.glb",
     componentCategory: "DRAWER",
     componentDesc: "Modul laci interior untuk frame lemari.",
     componentSku: "COMP-DRW-001",
@@ -166,7 +167,7 @@ export const TRIAL_PRODUCT_COMPONENTS: TrialProductComponent[] = [
   {
     id: "component-hanging-rod",
     componentName: "Hanging Rod",
-    componentUrl: "/assets/trial/hanging-rod.glb",
+    componentUrl: "/assets/trial/hanging-rod.1.glb",
     componentCategory: "HANGING_ROD",
     componentDesc: "Tiang gantung untuk test interior lemari.",
     componentSku: "COMP-HRD-001",
@@ -291,7 +292,9 @@ const productComponentToAsset = (
   sourceId: item.id,
 });
 
-const productMaterialToAsset = (item: TrialProductMaterial): TrialAssetItem => ({
+const productMaterialToAsset = (
+  item: TrialProductMaterial,
+): TrialAssetItem => ({
   id: item.id,
   name: item.materialName,
   size: item.materialCategories.join(", "),
