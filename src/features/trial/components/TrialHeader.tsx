@@ -6,8 +6,8 @@ import { useTrialRoomStore } from "../useTrialRoomStore";
 import { MenuDrawer } from "./MenuDrawer";
 
 export const TrialHeader = () => {
-  const activeFrameProductId = useTrialRoomStore(
-    (state) => state.activeFrameProductId,
+  const activeFrameProductIds = useTrialRoomStore(
+    (state) => state.activeFrameProductIds,
   );
   const activeInteriorProductIds = useTrialRoomStore(
     (state) => state.activeInteriorProductIds,
@@ -17,7 +17,7 @@ export const TrialHeader = () => {
   );
 
   const totalPrice = calculateTrialTotalPrice(
-    activeFrameProductId ? [activeFrameProductId] : [],
+    activeFrameProductIds,
     activeInteriorProductIds,
     activeMaterialProductIds,
   );

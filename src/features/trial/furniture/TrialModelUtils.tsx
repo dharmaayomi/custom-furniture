@@ -7,7 +7,7 @@ import {
   registerTrialDraggableMeshes,
 } from "./DragBehavior";
 
-const getRenderableMeshes = (rootMesh: BABYLON.TransformNode) => {
+export const getRenderableMeshes = (rootMesh: BABYLON.TransformNode) => {
   const renderMeshes = rootMesh.getChildMeshes();
 
   if (rootMesh instanceof BABYLON.AbstractMesh) {
@@ -35,80 +35,111 @@ const getBoundingBoxTransform = (targetMesh: BABYLON.TransformNode) => {
       ? (() => {
           const inverseParentWorld = parent.getWorldMatrix().clone();
           inverseParentWorld.invert();
-          return BABYLON.Vector3.TransformCoordinates(center, inverseParentWorld);
+          return BABYLON.Vector3.TransformCoordinates(
+            center,
+            inverseParentWorld,
+          );
         })()
       : center;
 
   return { size, localCenter };
 };
 
+interface DraggableBoundingBoxController {
+  dragBehavior: BABYLON.PointerDragBehavior;
+  dispose: () => void;
+  mesh: BABYLON.Mesh;
+  sync: () => void;
+}
+
 const createDraggableBoundingBoxBase = (
   scene: BABYLON.Scene,
+  rootInstanceId: string,
   targetMesh: BABYLON.TransformNode,
-  setOutline: (visible: boolean) => void,
-  attachDragBehavior: (
-    options: {
-      targetMesh: BABYLON.TransformNode;
-      hitBox: BABYLON.Mesh;
-    },
-  ) => BABYLON.PointerDragBehavior,
-): BABYLON.Mesh => {
-  const { size, localCenter } = getBoundingBoxTransform(targetMesh);
-
+  attachDragBehavior: (options: {
+    targetMesh: BABYLON.TransformNode;
+    hitBox: BABYLON.Mesh;
+  }) => BABYLON.PointerDragBehavior,
+): DraggableBoundingBoxController => {
   const hitBox = BABYLON.MeshBuilder.CreateBox(
     "trial-drag-hitbox",
-    { width: size.x, height: size.y, depth: size.z },
+    { size: 1 },
     scene,
   );
-  if (targetMesh.parent instanceof BABYLON.TransformNode) {
-    hitBox.parent = targetMesh.parent;
-  }
-  hitBox.position.copyFrom(localCenter);
-
   const mat = new BABYLON.StandardMaterial("hitbox-mat", scene);
   mat.alpha = 0;
   mat.backFaceCulling = false;
   hitBox.material = mat;
-  hitBox.isPickable = true;
+  hitBox.isPickable = false;
+
+  const sync = () => {
+    const { size, localCenter } = getBoundingBoxTransform(targetMesh);
+
+    hitBox.parent =
+      targetMesh.parent instanceof BABYLON.TransformNode ? targetMesh.parent : null;
+    hitBox.rotationQuaternion = null;
+    hitBox.rotation.set(0, 0, 0);
+    hitBox.position.copyFrom(localCenter);
+    hitBox.scaling.set(
+      Math.max(size.x, 0.001),
+      Math.max(size.y, 0.001),
+      Math.max(size.z, 0.001),
+    );
+    hitBox.computeWorldMatrix(true);
+  };
+
+  sync();
 
   const dragBehavior = attachDragBehavior({
     targetMesh,
     hitBox,
   });
-  registerTrialDraggableMeshes(targetMesh, hitBox, dragBehavior);
+  registerTrialDraggableMeshes(
+    rootInstanceId,
+    targetMesh,
+    hitBox,
+    dragBehavior,
+  );
 
   hitBox.actionManager = new BABYLON.ActionManager(scene);
   hitBox.actionManager.registerAction(
     new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, () => {
-      useTrialRoomStore.getState().setSelectedMesh(targetMesh.name);
-      // Outline dikontrol sepenuhnya oleh subscriber di TrialModelLoader
+      useTrialRoomStore.getState().setSelectedMesh(rootInstanceId);
     }),
   );
 
-  return hitBox;
+  return {
+    dragBehavior,
+    dispose: () => {
+      hitBox.dispose();
+      mat.dispose();
+    },
+    mesh: hitBox,
+    sync,
+  };
 };
 
 export const createFrameDraggableBoundingBox = (
   scene: BABYLON.Scene,
+  rootInstanceId: string,
   targetMesh: BABYLON.TransformNode,
-  setOutline: (visible: boolean) => void,
 ) =>
   createDraggableBoundingBoxBase(
     scene,
+    rootInstanceId,
     targetMesh,
-    setOutline,
     attachFrameTrialDragBehavior,
   );
 
 export const createInteriorDraggableBoundingBox = (
   scene: BABYLON.Scene,
+  rootInstanceId: string,
   targetMesh: BABYLON.TransformNode,
-  setOutline: (visible: boolean) => void,
 ) =>
   createDraggableBoundingBoxBase(
     scene,
+    rootInstanceId,
     targetMesh,
-    setOutline,
     attachInteriorTrialDragBehavior,
   );
 

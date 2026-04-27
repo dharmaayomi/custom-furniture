@@ -25,7 +25,7 @@ interface TrialRoomState {
   spawnRequest: TrialSpawnRequest | null;
   draftRoomConfig: TrialRoomConfig;
   appliedRoomConfig: TrialRoomConfig;
-  activeFrameProductId: string | null;
+  activeFrameProductIds: string[];
   activeInteriorProductIds: string[];
   activeMaterialProductIds: string[];
 
@@ -34,7 +34,7 @@ interface TrialRoomState {
   setHasFrameProduct: (hasFrameProduct: boolean) => void;
   setDraftRoomConfig: (patch: Partial<TrialRoomConfig>) => void;
   setAppliedRoomConfig: (nextRoomConfig: TrialRoomConfig) => void;
-  setActiveFrameProductId: (assetId: string | null) => void;
+  setActiveFrameProductIds: (assetIds: string[]) => void;
   addActiveInteriorProductId: (assetId: string) => void;
   clearActiveInteriorProductIds: () => void;
   setActiveMaterialProductIds: (assetIds: string[]) => void;
@@ -54,7 +54,7 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
   spawnRequest: null,
   draftRoomConfig: { ...DEFAULT_TRIAL_ROOM_CONFIG },
   appliedRoomConfig: { ...DEFAULT_TRIAL_ROOM_CONFIG },
-  activeFrameProductId: null,
+  activeFrameProductIds: [],
   activeInteriorProductIds: [],
   activeMaterialProductIds: [],
 
@@ -83,10 +83,10 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
     // The debounced room config is applied separately so the scene updates less often.
     set({ appliedRoomConfig: nextRoomConfig });
   },
-  setActiveFrameProductId: (assetId) => {
+  setActiveFrameProductIds: (assetIds) => {
     // Step 3:
-    // Keep the current frame id in the store so pricing can follow the loaded trial state.
-    set({ activeFrameProductId: assetId });
+    // Keep every loaded frame id in the store so pricing can follow the loaded trial state.
+    set({ activeFrameProductIds: assetIds });
   },
   addActiveInteriorProductId: (assetId) => {
     // Step 4:

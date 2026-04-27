@@ -45,8 +45,8 @@ export const RightPanelDrawer = ({
   onOpenChange,
 }: RightPanelDrawerProps) => {
   const hasFrameProduct = useTrialRoomStore((state) => state.hasFrameProduct);
-  const activeFrameProductId = useTrialRoomStore(
-    (state) => state.activeFrameProductId,
+  const activeFrameProductIds = useTrialRoomStore(
+    (state) => state.activeFrameProductIds,
   );
   const activeInteriorProductIds = useTrialRoomStore(
     (state) => state.activeInteriorProductIds,
@@ -62,14 +62,14 @@ export const RightPanelDrawer = ({
   const assetCategory = getDrawerCategory(selectedTool);
   const cards = assetCategory ? getTrialAssetsByCategory(assetCategory) : [];
   const totalPrice = calculateTrialTotalPrice(
-    activeFrameProductId ? [activeFrameProductId] : [],
+    activeFrameProductIds,
     activeInteriorProductIds,
     activeMaterialProductIds,
   );
 
   // Step 1:
   // Clicking a card uses the default spawn flow.
-  // Frame Lemari goes to the back wall, while Interior Lemari attaches to the existing frame.
+  // Frame Lemari goes to the back wall, while Interior Lemari attaches to the selected frame.
   const handleCardClick = (card: TrialAssetItem, disabled: boolean) => {
     if (disabled) {
       return;

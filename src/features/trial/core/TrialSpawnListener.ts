@@ -45,6 +45,7 @@ export const setupTrialSpawnListener = (
     );
 
     const result = await loadProductBase(scene, {
+      instanceId,
       modelPath: asset.modelPath,
       meshName: instanceId,
       initialPosition: spawnPosition,
