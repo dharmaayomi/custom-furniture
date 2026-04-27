@@ -112,7 +112,7 @@ export const TRIAL_PRODUCT_BASES: TrialProductBase[] = [
     productName: "WIC 1228",
     sku: "WIC-1228",
     // productUrl: "/assets/trial/wic-1228.glb",
-    productUrl: "/assets/trial/drawer.glb",
+    productUrl: "/assets/trial/drawer.3.glb",
     description: "Frame lemari walk-in untuk test size berbeda.",
     basePrice: 16800000,
     width: 120,

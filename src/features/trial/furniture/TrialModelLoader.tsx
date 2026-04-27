@@ -3,7 +3,8 @@ import "@babylonjs/loaders/glTF";
 
 import {
   buildOutlineController,
-  createDraggableBoundingBox,
+  createFrameDraggableBoundingBox,
+  createInteriorDraggableBoundingBox,
 } from "./TrialModelUtils";
 import { useTrialRoomStore } from "../useTrialRoomStore";
 
@@ -26,7 +27,7 @@ export interface TrialModelLoadOptions {
   initialPosition: BABYLON.Vector3;
   initialRotationY?: number;
   shadowGenerator?: BABYLON.ShadowGenerator;
-  enableInteraction?: boolean;
+  interactionMode?: "none" | "frame" | "interior";
   centerOnXAxis?: boolean;
 }
 
@@ -79,7 +80,7 @@ export const loadProductBase = async (
     initialPosition,
     initialRotationY = 0,
     shadowGenerator,
-    enableInteraction = true,
+    interactionMode = "frame",
     centerOnXAxis = true,
   } = options;
 
@@ -131,7 +132,7 @@ export const loadProductBase = async (
     // Step 2:
     // Only the main furniture gets selection outline + drag hitbox.
     // Tambahan stays attached to the furniture and does not need its own drag surface.
-    if (enableInteraction && rootMesh instanceof BABYLON.AbstractMesh) {
+    if (interactionMode !== "none") {
       setOutline = buildOutlineController(scene, rootMesh);
       setOutline(false);
 
@@ -139,7 +140,10 @@ export const loadProductBase = async (
         setOutline(state.selectedMeshName === meshName);
       });
 
-      boundingBoxMesh = createDraggableBoundingBox(scene, rootMesh, setOutline);
+      boundingBoxMesh =
+        interactionMode === "interior"
+          ? createInteriorDraggableBoundingBox(scene, rootMesh, setOutline)
+          : createFrameDraggableBoundingBox(scene, rootMesh, setOutline);
     }
 
     return {

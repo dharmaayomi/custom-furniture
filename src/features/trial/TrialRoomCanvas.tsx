@@ -288,7 +288,7 @@ export const TrialRoomCanvas = () => {
         initialPosition,
         initialRotationY: asset.initialRotationY,
         shadowGenerator: lighting.shadowGenerator,
-        enableInteraction: true,
+        interactionMode: "frame",
         centerOnXAxis: true,
       });
 
@@ -312,76 +312,6 @@ export const TrialRoomCanvas = () => {
     };
 
     // INTERIOR
-    // const spawnInterior = async (requestId: number, assetId: string) => {
-    //   const asset = getTrialAssetById(assetId);
-    //   if (!asset || !frameProduct) return;
-
-    //   const result = await loadProductBase(scene, {
-    //     modelPath: asset.modelPath,
-    //     meshName: `trial-interior-${asset.id}-${requestId}`,
-    //     initialPosition: BABYLON.Vector3.Zero(),
-    //     initialRotationY: Math.PI,
-    //     shadowGenerator: lighting.shadowGenerator,
-    //     enableInteraction: false,
-    //     centerOnXAxis: false,
-    //   });
-    //   const frameLayout =
-    //     frameProduct.rootMesh.getHierarchyBoundingVectors(true);
-
-    //   if (!result || !frameProduct) return;
-
-    //   result.rootMesh.parent = frameProduct.rootMesh;
-
-    //   cachedFrameBounds =
-    //     frameProduct.rootMesh.getHierarchyBoundingVectors(true);
-
-    //   result.rootMesh.rotation.y = Math.PI;
-
-    //   const frameWidth =
-    //     Math.round((cachedFrameBounds.max.x - cachedFrameBounds.min.x) * 1000) /
-    //     1000;
-
-    //   result.rootMesh.position.set(
-    //     frameWidth / 2,
-    //     CABINET_CONFIG.plinthHeight + CABINET_CONFIG.thickness,
-    //     CABINET_CONFIG.backGap + CABINET_CONFIG.backPanelThick,
-    //   );
-
-    //   const debugBox = BABYLON.MeshBuilder.CreateBox(
-    //     "debug-frame-layout",
-    //     {
-    //       width: frameLayout.max.x - frameLayout.min.x,
-    //       height: frameLayout.max.y - frameLayout.min.y,
-    //       depth: frameLayout.max.z - frameLayout.min.z,
-    //     },
-    //     scene,
-    //   );
-
-    //   // Posisikan di tengah bounding box
-    //   debugBox.position = new BABYLON.Vector3(
-    //     (frameLayout.min.x + frameLayout.max.x) / 2,
-    //     (frameLayout.min.y + frameLayout.max.y) / 2,
-    //     (frameLayout.min.z + frameLayout.max.z) / 2,
-    //   );
-    //   console.log("frameWidth:", frameWidth);
-    //   console.log("frameLayout.min.x:", frameLayout.min.x);
-    //   console.log("frameLayout.max.x:", frameLayout.max.x);
-    //   console.log("frame world pos:", frameProduct.rootMesh.position.x);
-    //   console.log(
-    //     "interior local pos setelah set:",
-    //     result.rootMesh.position.x,
-    //   );
-    //   // Material hijau wireframe
-    //   const debugMat = new BABYLON.StandardMaterial("debug-frame-mat", scene);
-    //   debugMat.emissiveColor = new BABYLON.Color3(0, 1, 0); // Hijau
-    //   debugMat.wireframe = true;
-    //   debugBox.material = debugMat;
-
-    //   interiorModels.push(result);
-    //   useTrialRoomStore.getState().addActiveInteriorProductId(assetId);
-    // };
-
-    // INTERIOR
     const spawnInterior = async (requestId: number, assetId: string) => {
       const asset = getTrialAssetById(assetId);
       if (!asset || !frameProduct || !cachedFrameBounds) return;
@@ -392,7 +322,7 @@ export const TrialRoomCanvas = () => {
         initialPosition: BABYLON.Vector3.Zero(),
         initialRotationY: 0,
         shadowGenerator: lighting.shadowGenerator,
-        enableInteraction: false,
+        interactionMode: "interior",
         centerOnXAxis: false,
       });
 

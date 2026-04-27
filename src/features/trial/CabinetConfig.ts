@@ -7,6 +7,6 @@ export const CABINET_CONFIG = {
   shelfThreshold: 0.01,
   rodThreshold: 0.985,
   rodGap: 0.075,
-  drawerGap: 0.04,
+  drawerThreshold: 0.04,
   dividerThreshold: 0.414,
 };

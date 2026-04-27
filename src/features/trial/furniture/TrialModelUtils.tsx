@@ -2,30 +2,68 @@ import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders/glTF";
 import { useTrialRoomStore } from "../useTrialRoomStore";
 import {
-  attachTrialDragBehavior,
+  attachFrameTrialDragBehavior,
+  attachInteriorTrialDragBehavior,
   registerTrialDraggableMeshes,
 } from "./DragBehavior";
 
-// HITBOX
-export const createDraggableBoundingBox = (
-  scene: BABYLON.Scene,
-  targetMesh: BABYLON.AbstractMesh,
-  setOutline: (visible: boolean) => void,
-): BABYLON.Mesh => {
+const getRenderableMeshes = (rootMesh: BABYLON.TransformNode) => {
+  const renderMeshes = rootMesh.getChildMeshes();
+
+  if (rootMesh instanceof BABYLON.AbstractMesh) {
+    renderMeshes.unshift(rootMesh);
+  }
+
+  return renderMeshes;
+};
+
+const getBoundingBoxTransform = (targetMesh: BABYLON.TransformNode) => {
   targetMesh.computeWorldMatrix(true);
-  targetMesh.getChildMeshes().forEach((m) => m.computeWorldMatrix(true));
-  targetMesh.refreshBoundingInfo({ applySkeleton: true });
+  const renderMeshes = getRenderableMeshes(targetMesh);
+  renderMeshes.forEach((mesh) => {
+    mesh.computeWorldMatrix(true);
+    mesh.refreshBoundingInfo({ applySkeleton: true });
+  });
 
   const boundingVectors = targetMesh.getHierarchyBoundingVectors(true);
   const size = boundingVectors.max.subtract(boundingVectors.min);
   const center = boundingVectors.min.add(size.scale(0.5));
+
+  const parent = targetMesh.parent;
+  const localCenter =
+    parent instanceof BABYLON.TransformNode
+      ? (() => {
+          const inverseParentWorld = parent.getWorldMatrix().clone();
+          inverseParentWorld.invert();
+          return BABYLON.Vector3.TransformCoordinates(center, inverseParentWorld);
+        })()
+      : center;
+
+  return { size, localCenter };
+};
+
+const createDraggableBoundingBoxBase = (
+  scene: BABYLON.Scene,
+  targetMesh: BABYLON.TransformNode,
+  setOutline: (visible: boolean) => void,
+  attachDragBehavior: (
+    options: {
+      targetMesh: BABYLON.TransformNode;
+      hitBox: BABYLON.Mesh;
+    },
+  ) => BABYLON.PointerDragBehavior,
+): BABYLON.Mesh => {
+  const { size, localCenter } = getBoundingBoxTransform(targetMesh);
 
   const hitBox = BABYLON.MeshBuilder.CreateBox(
     "trial-drag-hitbox",
     { width: size.x, height: size.y, depth: size.z },
     scene,
   );
-  hitBox.position.copyFrom(center);
+  if (targetMesh.parent instanceof BABYLON.TransformNode) {
+    hitBox.parent = targetMesh.parent;
+  }
+  hitBox.position.copyFrom(localCenter);
 
   const mat = new BABYLON.StandardMaterial("hitbox-mat", scene);
   mat.alpha = 0;
@@ -33,7 +71,7 @@ export const createDraggableBoundingBox = (
   hitBox.material = mat;
   hitBox.isPickable = true;
 
-  const dragBehavior = attachTrialDragBehavior({
+  const dragBehavior = attachDragBehavior({
     targetMesh,
     hitBox,
   });
@@ -50,19 +88,43 @@ export const createDraggableBoundingBox = (
   return hitBox;
 };
 
+export const createFrameDraggableBoundingBox = (
+  scene: BABYLON.Scene,
+  targetMesh: BABYLON.TransformNode,
+  setOutline: (visible: boolean) => void,
+) =>
+  createDraggableBoundingBoxBase(
+    scene,
+    targetMesh,
+    setOutline,
+    attachFrameTrialDragBehavior,
+  );
+
+export const createInteriorDraggableBoundingBox = (
+  scene: BABYLON.Scene,
+  targetMesh: BABYLON.TransformNode,
+  setOutline: (visible: boolean) => void,
+) =>
+  createDraggableBoundingBoxBase(
+    scene,
+    targetMesh,
+    setOutline,
+    attachInteriorTrialDragBehavior,
+  );
+
 // OUTLINE
 const OUTLINE_COLOR = new BABYLON.Color3(1, 0.85, 0);
 const OUTLINE_WIDTH = 2.5;
 export const buildOutlineController = (
   scene: BABYLON.Scene,
-  rootMesh: BABYLON.AbstractMesh,
+  rootMesh: BABYLON.TransformNode,
 ): ((visible: boolean) => void) => {
   const selectionLayer =
     scene.getSelectionOutlineLayerByName("trial-selection-outline") ??
     new BABYLON.SelectionOutlineLayer("trial-selection-outline", scene, {
       mainTextureRatio: 2.0,
     });
-  const selectionGroup = rootMesh.getChildMeshes();
+  const selectionGroup = getRenderableMeshes(rootMesh);
 
   selectionLayer.outlineColor = OUTLINE_COLOR;
   selectionLayer.outlineThickness = OUTLINE_WIDTH;
@@ -72,11 +134,9 @@ export const buildOutlineController = (
   return (visible: boolean) => {
     selectionLayer.clearSelection();
 
-    if (visible) {
+    if (visible && selectionGroup.length > 0) {
       selectionLayer.clearSelection();
-      selectionLayer.addSelection(
-        selectionGroup.length ? selectionGroup : rootMesh,
-      );
+      selectionLayer.addSelection(selectionGroup);
     }
   };
 };
