@@ -419,20 +419,17 @@ export const TrialRoomCanvas = () => {
           const target = getTrialResolvedDragTarget(mesh);
           const instanceId = target?.instanceId ?? null;
           const category = getModelCategory(instanceId);
-          const isSelected = instanceId === selectedInstanceId;
           const isBoundingBox = target?.kind === "bounding-box";
 
           let priority = 0;
           if (category === "interior" && !isBoundingBox) {
-            priority = isSelected ? 500 : 450;
-          } else if (isSelected && isBoundingBox) {
-            priority = 420;
-          } else if (isSelected) {
-            priority = 380;
+            priority = 500;
           } else if (category === "frame" && !isBoundingBox) {
-            priority = 260;
+            priority = 400;
+          } else if (isBoundingBox && instanceId === selectedInstanceId) {
+            priority = 100;
           } else if (mesh.metadata?.side) {
-            priority = 20;
+            priority = 10;
           }
 
           return {
@@ -472,12 +469,14 @@ export const TrialRoomCanvas = () => {
       }
 
       const dragStartObserver = result.dragBehavior.onDragStartObservable.add(() => {
+        result.syncBoundingBox();
         pointerOwnership.owner = "model";
         pointerOwnership.dragInstanceId = result.instanceId;
         setCameraInteractionEnabled(false);
       });
 
       const dragEndObserver = result.dragBehavior.onDragEndObservable.add(() => {
+        result.syncBoundingBox();
         pointerOwnership.owner = "none";
         pointerOwnership.dragInstanceId = null;
         pointerOwnership.activePointerId = null;
@@ -747,11 +746,19 @@ export const TrialRoomCanvas = () => {
 
       const anchorX = targetFrame.bounds.min.x + CABINET_CONFIG.thickness;
       const anchorY = CABINET_CONFIG.plinthHeight + CABINET_CONFIG.thickness;
-      const anchorZ =
+      const baseAnchorZ =
         targetFrame.bounds.min.z +
         CABINET_CONFIG.backGap +
         CABINET_CONFIG.backPanelThick;
-      const localAnchor = new BABYLON.Vector3(anchorX, anchorY, anchorZ);
+      const anchorZ =
+        asset.id === "component-hanging-rod"
+          ? baseAnchorZ + (availableDepth - interiorDepth) / 2
+          : baseAnchorZ;
+      const localAnchor = new BABYLON.Vector3(
+        anchorX - interiorBounds.min.x,
+        anchorY - interiorBounds.min.y,
+        anchorZ - interiorBounds.min.z,
+      );
 
       result.rootMesh.position.copyFrom(localAnchor);
       result.rootMesh.computeWorldMatrix(true);

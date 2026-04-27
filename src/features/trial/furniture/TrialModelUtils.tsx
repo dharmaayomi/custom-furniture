@@ -7,6 +7,9 @@ import {
   registerTrialDraggableMeshes,
 } from "./DragBehavior";
 
+const HITBOX_PADDING_XZ = 0.03;
+const HITBOX_PADDING_Y = 0.05;
+
 export const getRenderableMeshes = (rootMesh: BABYLON.TransformNode) => {
   const renderMeshes = rootMesh.getChildMeshes();
 
@@ -81,9 +84,9 @@ const createDraggableBoundingBoxBase = (
     hitBox.rotation.set(0, 0, 0);
     hitBox.position.copyFrom(localCenter);
     hitBox.scaling.set(
-      Math.max(size.x, 0.001),
-      Math.max(size.y, 0.001),
-      Math.max(size.z, 0.001),
+      Math.max(size.x + HITBOX_PADDING_XZ * 2, 0.001),
+      Math.max(size.y + HITBOX_PADDING_Y * 2, 0.001),
+      Math.max(size.z + HITBOX_PADDING_XZ * 2, 0.001),
     );
     hitBox.computeWorldMatrix(true);
   };

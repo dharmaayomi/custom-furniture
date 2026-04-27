@@ -167,7 +167,7 @@ export const TRIAL_PRODUCT_COMPONENTS: TrialProductComponent[] = [
   {
     id: "component-hanging-rod",
     componentName: "Hanging Rod",
-    componentUrl: "/assets/trial/hanging-rod.1.glb",
+    componentUrl: "/assets/trial/hanging-rod.glb",
     componentCategory: "HANGING_ROD",
     componentDesc: "Tiang gantung untuk test interior lemari.",
     componentSku: "COMP-HRD-001",
@@ -301,7 +301,7 @@ const INTERIOR_FIT_BY_ID: Partial<
   "component-vertical-divider": {
     fitWidthMode: "keep",
     fitHeightMode: "shrink",
-    fitDepthMode: "fill",
+    fitDepthMode: "shrink",
   },
 };
 
