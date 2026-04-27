@@ -14,19 +14,42 @@ import {
   Info,
   Moon,
   Ruler,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
-const selectionActions = [
-  { icon: Trash2, label: "Delete item" },
-  { icon: Copy, label: "Duplicate item" },
-  { icon: Info, label: "View item details" },
-];
+interface TrialFooterProps {
+  hasSelection: boolean;
+  onDeleteSelected: () => void;
+  onDuplicateSelected: () => void;
+  onViewSelectedDetails: () => void;
+}
 
-export const TrialFooter = () => {
+export const TrialFooter = ({
+  hasSelection,
+  onDeleteSelected,
+  onDuplicateSelected,
+  onViewSelectedDetails,
+}: TrialFooterProps) => {
   const { theme, setTheme } = useTheme();
+  const selectionActions = [
+    {
+      icon: Trash2,
+      label: "Delete item",
+      onClick: onDeleteSelected,
+    },
+    {
+      icon: Copy,
+      label: "Duplicate item",
+      onClick: onDuplicateSelected,
+    },
+    {
+      icon: Info,
+      label: "View details",
+      onClick: onViewSelectedDetails,
+    },
+  ];
+
   return (
     // LEFT
     <TooltipProvider>
@@ -76,25 +99,30 @@ export const TrialFooter = () => {
           </div>
 
           {/* MIDDLE */}
-          <div className="pointer-events-auto relative flex items-center gap-2 rounded-[1.75rem] border border-white/60 bg-white/55 p-2 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/70">
-            {selectionActions.map(({ icon: Icon, label }) => (
-              <Tooltip key={label}>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    size="icon"
-                    className="shadow-primary/20 size-9 rounded-2xl shadow-lg"
-                    aria-label={label}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{label}</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
+          {hasSelection ? (
+            <div className="pointer-events-auto relative flex items-center gap-2 rounded-[1.75rem] border border-white/60 bg-white/55 p-2 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/70">
+              {selectionActions.map(({ icon: Icon, label, onClick }) => (
+                <Tooltip key={label}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      className="shadow-primary/20 size-9 rounded-2xl shadow-lg"
+                      aria-label={label}
+                      onClick={onClick}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{label}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          ) : (
+            <div className="flex-1" />
+          )}
 
           {/* RIGHT */}
 

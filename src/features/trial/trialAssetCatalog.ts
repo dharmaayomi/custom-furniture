@@ -355,6 +355,15 @@ export const TRIAL_ASSET_CATALOG: TrialAssetItem[] = [
   ...TRIAL_PRODUCT_MATERIALS.map(productMaterialToAsset),
 ];
 
+export const getTrialProductBaseById = (assetId: string) =>
+  TRIAL_PRODUCT_BASES.find((item) => item.id === assetId) ?? null;
+
+export const getTrialProductComponentById = (assetId: string) =>
+  TRIAL_PRODUCT_COMPONENTS.find((item) => item.id === assetId) ?? null;
+
+export const getTrialProductMaterialById = (assetId: string) =>
+  TRIAL_PRODUCT_MATERIALS.find((item) => item.id === assetId) ?? null;
+
 export const getTrialAssetById = (assetId: string) =>
   TRIAL_ASSET_CATALOG.find((asset) => asset.id === assetId) ?? null;
 

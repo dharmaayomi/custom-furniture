@@ -276,6 +276,7 @@ export const TrialRoomCanvas = () => {
     let isMounted = true;
     const frameInstances: TrialFrameInstance[] = [];
     let currentRoomConfig: TrialRoomConfig = initialRoomConfig;
+    let modelInstanceSerial = 0;
     let pendingFrameLoads = 0;
     const pointerOwnership: TrialPointerOwnership = {
       activePointerId: null,
@@ -296,10 +297,23 @@ export const TrialRoomCanvas = () => {
       }
     };
 
-    const syncFrameStoreState = () => {
+    const createModelInstanceId = (
+      category: "frame" | "interior",
+      assetId: string,
+    ) => {
+      modelInstanceSerial += 1;
+      return `trial-${category}-${assetId}-${modelInstanceSerial}`;
+    };
+
+    const syncLoadedProductStoreState = () => {
       const store = useTrialRoomStore.getState();
       store.setHasFrameProduct(frameInstances.length > 0);
       store.setActiveFrameProductIds(frameInstances.map((frame) => frame.assetId));
+      store.setActiveInteriorProductIds(
+        frameInstances.flatMap((frame) =>
+          frame.interiors.map((interior) => interior.assetId),
+        ),
+      );
     };
 
     const getAllLoadedModels = () =>
@@ -340,6 +354,7 @@ export const TrialRoomCanvas = () => {
       selectedInstanceId = useTrialRoomStore.getState().selectedMeshName,
     ) => {
       selectionLayer.clearSelection();
+      syncDragProxyPickability(selectedInstanceId);
 
       if (!selectedInstanceId) {
         return;
@@ -350,8 +365,6 @@ export const TrialRoomCanvas = () => {
       if (selectedModel && selectedModel.selectionMeshes.length > 0) {
         selectionLayer.addSelection(selectedModel.selectionMeshes);
       }
-
-      syncDragProxyPickability(selectedInstanceId);
     };
 
     const resolveFrameFromSelection = (selectedInstanceId: string | null) => {
@@ -383,15 +396,68 @@ export const TrialRoomCanvas = () => {
       return resolveFrameFromSelection(useTrialRoomStore.getState().selectedMeshName);
     };
 
+    const findFrameIndexByInstanceId = (instanceId: string) =>
+      frameInstances.findIndex((frame) => frame.instanceId === instanceId);
+
+    const findInteriorOwnerFrame = (instanceId: string) =>
+      frameInstances.find((frame) =>
+        frame.interiors.some((interior) => interior.instanceId === instanceId),
+      ) ?? null;
+
+    const disposeInteriorInstance = (
+      frame: TrialFrameInstance,
+      interiorInstanceId: string,
+    ) => {
+      const interiorIndex = frame.interiors.findIndex(
+        (interior) => interior.instanceId === interiorInstanceId,
+      );
+      if (interiorIndex < 0) {
+        return null;
+      }
+
+      const [interior] = frame.interiors.splice(interiorIndex, 1);
+      useTrialRoomStore.getState().removeLoadedModel(interior.instanceId);
+      unregisterModel(interior.instanceId);
+      return interior;
+    };
+
     const disposeFrameInstance = (frame: TrialFrameInstance) => {
       while (frame.interiors.length > 0) {
-        const interior = frame.interiors.pop()!;
-        useTrialRoomStore.getState().removeLoadedModel(interior.instanceId);
-        unregisterModel(interior.instanceId);
+        disposeInteriorInstance(frame, frame.interiors[0]!.instanceId);
       }
 
       useTrialRoomStore.getState().removeLoadedModel(frame.instanceId);
       unregisterModel(frame.instanceId);
+    };
+
+    const deleteSelectedInstance = (targetInstanceId: string) => {
+      const frameIndex = findFrameIndexByInstanceId(targetInstanceId);
+      if (frameIndex >= 0) {
+        const [removedFrame] = frameInstances.splice(frameIndex, 1);
+        const fallbackFrame =
+          frameInstances[frameIndex] ?? frameInstances[frameIndex - 1] ?? null;
+
+        disposeFrameInstance(removedFrame);
+        syncLoadedProductStoreState();
+        useTrialRoomStore
+          .getState()
+          .setSelectedMesh(fallbackFrame?.instanceId ?? null);
+        return true;
+      }
+
+      const ownerFrame = findInteriorOwnerFrame(targetInstanceId);
+      if (!ownerFrame) {
+        return false;
+      }
+
+      const removedInterior = disposeInteriorInstance(ownerFrame, targetInstanceId);
+      if (!removedInterior) {
+        return false;
+      }
+
+      syncLoadedProductStoreState();
+      useTrialRoomStore.getState().setSelectedMesh(ownerFrame.instanceId);
+      return true;
     };
 
     const clearAllFrames = () => {
@@ -399,8 +465,7 @@ export const TrialRoomCanvas = () => {
         disposeFrameInstance(frameInstances.pop()!);
       }
 
-      syncFrameStoreState();
-      useTrialRoomStore.getState().clearActiveInteriorProductIds();
+      syncLoadedProductStoreState();
       useTrialRoomStore.getState().setActiveMaterialProductIds([]);
       useTrialRoomStore.getState().setSelectedMesh(null);
     };
@@ -559,9 +624,17 @@ export const TrialRoomCanvas = () => {
       }
     };
 
+    const finishSelectionActionRequest = (requestId: number) => {
+      const store = useTrialRoomStore.getState();
+
+      if (store.selectionActionRequest?.requestId === requestId) {
+        store.clearSelectionActionRequest();
+      }
+    };
+
     // FRAME
     const spawnFrame = async (
-      requestId: number,
+      _requestId: number,
       assetId: string,
       dropPoint: TrialSpawnPoint | null,
     ) => {
@@ -577,7 +650,7 @@ export const TrialRoomCanvas = () => {
         : getDefaultFrameSpawnPosition(currentRoomConfig, spawnIndex);
 
       try {
-        const instanceId = `trial-frame-${asset.id}-${requestId}`;
+        const instanceId = createModelInstanceId("frame", asset.id);
         const result = await loadProductBase(scene, {
           instanceId,
           modelPath: asset.modelPath,
@@ -617,7 +690,7 @@ export const TrialRoomCanvas = () => {
 
         // Step 2:
         // Frames can coexist, and the newest frame becomes the active insertion target.
-        syncFrameStoreState();
+        syncLoadedProductStoreState();
         useTrialRoomStore.getState().setSelectedMesh(instanceId);
       } finally {
         pendingFrameLoads = Math.max(0, pendingFrameLoads - 1);
@@ -626,13 +699,16 @@ export const TrialRoomCanvas = () => {
 
     // INTERIOR
     const spawnInterior = async (
-      requestId: number,
+      _requestId: number,
       assetId: string,
       targetFrame: TrialFrameInstance,
+      options?: {
+        localPosition?: BABYLON.Vector3;
+      },
     ) => {
       const asset = getTrialAssetById(assetId);
       if (!asset) return;
-      const instanceId = `trial-interior-${asset.id}-${requestId}`;
+      const instanceId = createModelInstanceId("interior", asset.id);
 
       const result = await loadProductBase(scene, {
         instanceId,
@@ -760,7 +836,7 @@ export const TrialRoomCanvas = () => {
         anchorZ - interiorBounds.min.z,
       );
 
-      result.rootMesh.position.copyFrom(localAnchor);
+      result.rootMesh.position.copyFrom(options?.localPosition ?? localAnchor);
       result.rootMesh.computeWorldMatrix(true);
       result.syncBoundingBox();
       registerDragLifecycle(result);
@@ -788,9 +864,49 @@ export const TrialRoomCanvas = () => {
         instanceId,
         result,
       });
-      useTrialRoomStore.getState().addActiveInteriorProductId(assetId);
+      syncLoadedProductStoreState();
       useTrialRoomStore.getState().setSelectedMesh(instanceId);
     };
+
+    const duplicateSelectedInstance = async (
+      requestId: number,
+      targetInstanceId: string,
+    ) => {
+      const sourceFrame =
+        frameInstances.find((frame) => frame.instanceId === targetInstanceId) ?? null;
+      if (sourceFrame) {
+        const frameWidth = sourceFrame.bounds.max.x - sourceFrame.bounds.min.x;
+        const duplicatePosition = sourceFrame.result.rootMesh.position
+          .clone()
+          .add(new BABYLON.Vector3(Math.max(frameWidth + 0.15, 0.45), 0, 0));
+
+        await spawnFrame(requestId, sourceFrame.assetId, toSpawnPoint(duplicatePosition));
+        return true;
+      }
+
+      const ownerFrame = findInteriorOwnerFrame(targetInstanceId);
+      if (!ownerFrame) {
+        return false;
+      }
+
+      const sourceInterior =
+        ownerFrame.interiors.find(
+          (interior) => interior.instanceId === targetInstanceId,
+        ) ?? null;
+      if (!sourceInterior) {
+        return false;
+      }
+
+      const duplicateLocalPosition = sourceInterior.result.rootMesh.position
+        .clone()
+        .add(new BABYLON.Vector3(0, 0.08, 0));
+
+      await spawnInterior(requestId, sourceInterior.assetId, ownerFrame, {
+        localPosition: duplicateLocalPosition,
+      });
+      return true;
+    };
+
     const handleSpawnRequest = async (
       request: NonNullable<
         ReturnType<typeof useTrialRoomStore.getState>["spawnRequest"]
@@ -830,6 +946,21 @@ export const TrialRoomCanvas = () => {
       finishSpawnRequest(request.requestId);
     };
 
+    const handleSelectionActionRequest = async (
+      request: NonNullable<
+        ReturnType<typeof useTrialRoomStore.getState>["selectionActionRequest"]
+      >,
+    ) => {
+      if (request.action === "delete") {
+        deleteSelectedInstance(request.targetInstanceId);
+        finishSelectionActionRequest(request.requestId);
+        return;
+      }
+
+      await duplicateSelectedInstance(request.requestId, request.targetInstanceId);
+      finishSelectionActionRequest(request.requestId);
+    };
+
     const unsubscribeSpawn = useTrialRoomStore.subscribe((state, previous) => {
       if (!state.spawnRequest || state.spawnRequest === previous.spawnRequest) {
         return;
@@ -837,6 +968,18 @@ export const TrialRoomCanvas = () => {
 
       void handleSpawnRequest(state.spawnRequest);
     });
+    const unsubscribeSelectionAction = useTrialRoomStore.subscribe(
+      (state, previous) => {
+        if (
+          !state.selectionActionRequest ||
+          state.selectionActionRequest === previous.selectionActionRequest
+        ) {
+          return;
+        }
+
+        void handleSelectionActionRequest(state.selectionActionRequest);
+      },
+    );
     const unsubscribeSelection = useTrialRoomStore.subscribe((state, previous) => {
       if (state.selectedMeshName === previous.selectedMeshName) {
         return;
@@ -930,6 +1073,7 @@ export const TrialRoomCanvas = () => {
       canvas.removeEventListener("dragover", handleCanvasDragOver);
       canvas.removeEventListener("drop", handleCanvasDrop);
       unsubscribeSpawn();
+      unsubscribeSelectionAction();
       unsubscribeSelection();
       unsubscribeRoomConfig();
       isMounted = false;

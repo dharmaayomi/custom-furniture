@@ -5,7 +5,11 @@ import { calculateTrialTotalPrice } from "../trialPrice";
 import { useTrialRoomStore } from "../useTrialRoomStore";
 import { MenuDrawer } from "./MenuDrawer";
 
-export const TrialHeader = () => {
+interface TrialHeaderProps {
+  onOpenProductList: () => void;
+}
+
+export const TrialHeader = ({ onOpenProductList }: TrialHeaderProps) => {
   const activeFrameProductIds = useTrialRoomStore(
     (state) => state.activeFrameProductIds,
   );
@@ -48,21 +52,28 @@ export const TrialHeader = () => {
             variant="outline"
             size="icon"
             className="size-9 rounded-2xl border-white/50 bg-white/70 shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+            onClick={onOpenProductList}
           >
             <ListOrdered className="h-4 w-4" />
           </Button>
 
-          <div className="from-background/95 to-background/70 border-border/60 flex h-11 items-center gap-3 rounded-2xl border bg-linear-to-r px-3 shadow-none sm:px-4 dark:from-slate-950/50 dark:to-slate-950/40">
+          <button
+            type="button"
+            onClick={onOpenProductList}
+            className="from-background/95 to-background/70 border-border/60 flex h-11 items-center gap-3 rounded-2xl border bg-linear-to-r px-3 text-left shadow-none sm:px-4 dark:from-slate-950/50 dark:to-slate-950/40"
+            aria-label="Open trial product list"
+          >
             <div className="min-w-0">
               <div className="text-foreground text-sm font-black sm:text-base">
                 {formatPrice(totalPrice)}
               </div>
             </div>
-          </div>
+          </button>
 
           <Button
             type="button"
             className="group shadow-primary/20 rounded-2xl px-3 text-sm font-bold shadow-lg sm:px-5"
+            onClick={onOpenProductList}
           >
             <span className="hidden sm:inline">Summary</span>
             <MoveRight className="transition-transform duration-200 group-hover:translate-x-0.5" />

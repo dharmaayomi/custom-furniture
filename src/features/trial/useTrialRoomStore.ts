@@ -19,10 +19,17 @@ export interface LoadedModel {
   category: "frame" | "interior" | "material";
 }
 
+export interface TrialSelectionActionRequest {
+  action: "delete" | "duplicate";
+  requestId: number;
+  targetInstanceId: string;
+}
+
 interface TrialRoomState {
   selectedMeshName: string | null;
   hasFrameProduct: boolean;
   spawnRequest: TrialSpawnRequest | null;
+  selectionActionRequest: TrialSelectionActionRequest | null;
   draftRoomConfig: TrialRoomConfig;
   appliedRoomConfig: TrialRoomConfig;
   activeFrameProductIds: string[];
@@ -35,6 +42,7 @@ interface TrialRoomState {
   setDraftRoomConfig: (patch: Partial<TrialRoomConfig>) => void;
   setAppliedRoomConfig: (nextRoomConfig: TrialRoomConfig) => void;
   setActiveFrameProductIds: (assetIds: string[]) => void;
+  setActiveInteriorProductIds: (assetIds: string[]) => void;
   addActiveInteriorProductId: (assetId: string) => void;
   clearActiveInteriorProductIds: () => void;
   setActiveMaterialProductIds: (assetIds: string[]) => void;
@@ -43,6 +51,11 @@ interface TrialRoomState {
     dropPoint?: TrialSpawnPoint | null,
   ) => void;
   clearSpawnRequest: () => void;
+  requestSelectionAction: (
+    action: TrialSelectionActionRequest["action"],
+    targetInstanceId: string,
+  ) => void;
+  clearSelectionActionRequest: () => void;
   loadedModels: LoadedModel[];
   addLoadedModel: (model: LoadedModel) => void;
   removeLoadedModel: (instanceId: string) => void;
@@ -52,6 +65,7 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
   selectedMeshName: null,
   hasFrameProduct: false,
   spawnRequest: null,
+  selectionActionRequest: null,
   draftRoomConfig: { ...DEFAULT_TRIAL_ROOM_CONFIG },
   appliedRoomConfig: { ...DEFAULT_TRIAL_ROOM_CONFIG },
   activeFrameProductIds: [],
@@ -88,6 +102,9 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
     // Keep every loaded frame id in the store so pricing can follow the loaded trial state.
     set({ activeFrameProductIds: assetIds });
   },
+  setActiveInteriorProductIds: (assetIds) => {
+    set({ activeInteriorProductIds: assetIds });
+  },
   addActiveInteriorProductId: (assetId) => {
     // Step 4:
     // Interior items can be repeated, so we keep them as an ordered list.
@@ -114,6 +131,18 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
   },
   clearSpawnRequest: () => {
     set({ spawnRequest: null });
+  },
+  requestSelectionAction: (action, targetInstanceId) => {
+    set((state) => ({
+      selectionActionRequest: {
+        action,
+        requestId: (state.selectionActionRequest?.requestId ?? 0) + 1,
+        targetInstanceId,
+      },
+    }));
+  },
+  clearSelectionActionRequest: () => {
+    set({ selectionActionRequest: null });
   },
   loadedModels: [],
   addLoadedModel: (model) =>
