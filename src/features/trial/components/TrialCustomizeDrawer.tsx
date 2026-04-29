@@ -151,7 +151,7 @@ export const TrialCustomizeDrawer = ({
       <div className="bg-primary/10 pointer-events-none absolute top-10 right-8 h-28 w-28 rounded-full blur-3xl" />
       <div className="bg-primary/10 pointer-events-none absolute bottom-12 left-6 h-24 w-24 rounded-full blur-3xl" />
 
-      <div className="relative flex h-full w-full min-w-0 flex-col">
+      <div className="relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
         {isMobile ? (
           <DrawerHeader className="border-b border-white/60 px-4 pt-3 pb-4 dark:border-white/10">
             <div className="flex items-start justify-between gap-3 text-left">
@@ -221,7 +221,7 @@ export const TrialCustomizeDrawer = ({
           </div>
         )}
 
-        <div className="relative flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
+        <div className="relative min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
           <div className="space-y-4">
             <section className="rounded-[1.5rem] border border-white/60 bg-white/65 p-4 dark:border-white/10 dark:bg-white/5">
               <div className="mb-4 flex items-center gap-2">
@@ -454,7 +454,7 @@ export const TrialCustomizeDrawer = ({
             : "pointer-events-none opacity-0"
         }`}
       >
-        <div className="w-102">{content}</div>
+        <div className="h-full min-h-0 w-102">{content}</div>
       </div>
     </div>
   );

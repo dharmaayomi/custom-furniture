@@ -40,84 +40,6 @@ if (typeof window !== "undefined") {
   (window as any).earcut = earcut;
 }
 
-const createTintableLuminanceTexture = (
-  scene: BABYLON.Scene,
-  name: string,
-  path: string,
-  uScale: number,
-  vScale: number,
-  onReady: (texture: BABYLON.DynamicTexture) => void,
-) => {
-  let dynamicTexture: BABYLON.DynamicTexture | null = null;
-  let cancelled = false;
-
-  const image = new window.Image();
-  image.decoding = "async";
-  image.onload = () => {
-    if (cancelled) {
-      return;
-    }
-
-    const width = image.naturalWidth || image.width;
-    const height = image.naturalHeight || image.height;
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-
-    const canvasContext = canvas.getContext("2d", { willReadFrequently: true });
-    if (!canvasContext) {
-      return;
-    }
-
-    canvasContext.drawImage(image, 0, 0, width, height);
-    const imageData = canvasContext.getImageData(0, 0, width, height);
-    const { data } = imageData;
-
-    for (let index = 0; index < data.length; index += 4) {
-      const luminance = Math.round(
-        data[index] * 0.299 +
-          data[index + 1] * 0.587 +
-          data[index + 2] * 0.114,
-      );
-
-      data[index] = luminance;
-      data[index + 1] = luminance;
-      data[index + 2] = luminance;
-    }
-
-    canvasContext.putImageData(imageData, 0, 0);
-
-    dynamicTexture = new BABYLON.DynamicTexture(
-      name,
-      { width, height },
-      scene,
-      false,
-    );
-    const textureContext =
-      dynamicTexture.getContext() as CanvasRenderingContext2D;
-    textureContext.drawImage(canvas, 0, 0, width, height);
-    dynamicTexture.update(false);
-    dynamicTexture.uScale = uScale;
-    dynamicTexture.vScale = vScale;
-    dynamicTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
-    dynamicTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
-    dynamicTexture.anisotropicFilteringLevel = 8;
-
-    onReady(dynamicTexture);
-  };
-  image.onerror = () => {
-    console.error(`Failed to load tintable texture: ${path}`);
-  };
-  image.src = path;
-
-  return {
-    dispose: () => {
-      cancelled = true;
-      dynamicTexture?.dispose();
-    },
-  };
-};
-
 const createMaterial = (
   scene: BABYLON.Scene,
   name: string,
@@ -132,6 +54,41 @@ const createMaterial = (
   material.roughness = 0.9;
   material.metallic = 0;
   material.backFaceCulling = false;
+  return material;
+};
+
+const createWallSurfaceMaterial = (
+  scene: BABYLON.Scene,
+  name: string,
+  horizontalSpan: number,
+  verticalSpan: number,
+  wallColor: string,
+) => {
+  const wallTileWorldSize = 1;
+  const uScale = Math.max(horizontalSpan / wallTileWorldSize, 0.001);
+  const vScale = Math.max(verticalSpan / wallTileWorldSize, 0.001);
+
+  const material = new BABYLON.PBRMaterial(name, scene);
+  material.albedoTexture = createTexture(
+    scene,
+    TRIAL_TEXTURES.wall,
+    uScale,
+    vScale,
+  );
+  material.albedoColor = hexToColor3(wallColor);
+  material.bumpTexture = createTexture(
+    scene,
+    TRIAL_TEXTURES.bump_wall,
+    uScale,
+    vScale,
+  );
+  material.bumpTexture.level = 1;
+  material.invertNormalMapX = true;
+  material.invertNormalMapY = true;
+  material.roughness = 0.85;
+  material.metallic = 0;
+  material.backFaceCulling = false;
+
   return material;
 };
 
@@ -344,31 +301,20 @@ export const setupTrialRoom = (
 
   const innerWallHeight = height - wallThickness - floorThickness;
 
-  const innerWallMat = new BABYLON.PBRMaterial("inner-wall-mat", scene);
-  innerWallMat.albedoColor = hexToColor3(wallColor);
-  const wallDetailTexture = createTintableLuminanceTexture(
+  const widthWallMat = createWallSurfaceMaterial(
     scene,
-    "inner-wall-detail",
-    TRIAL_TEXTURES.wall,
-    4.0,
-    3.0,
-    (texture) => {
-      innerWallMat.albedoTexture = texture;
-    },
+    "inner-wall-width-mat",
+    width,
+    innerWallHeight,
+    wallColor,
   );
-  const wallNormalTexture = new BABYLON.Texture(TRIAL_TEXTURES.bump_wall, scene);
-  wallNormalTexture.uScale = 4.0;
-  wallNormalTexture.vScale = 3.0;
-  wallNormalTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
-  wallNormalTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
-  wallNormalTexture.anisotropicFilteringLevel = 8;
-  innerWallMat.bumpTexture = wallNormalTexture;
-  innerWallMat.bumpTexture.level = 0.9;
-  innerWallMat.invertNormalMapX = true;
-  innerWallMat.invertNormalMapY = true;
-  innerWallMat.roughness = 0.85;
-  innerWallMat.metallic = 0;
-  innerWallMat.backFaceCulling = false;
+  const depthWallMat = createWallSurfaceMaterial(
+    scene,
+    "inner-wall-depth-mat",
+    depth,
+    innerWallHeight,
+    wallColor,
+  );
 
   const innerCeilingMat = new BABYLON.PBRMaterial("inner-ceiling-mat", scene);
   innerCeilingMat.albedoColor = hexToColor3(wallColor);
@@ -504,9 +450,9 @@ export const setupTrialRoom = (
   const innerWallY = floorThickness + innerWallHeight / 2;
   const innerSurfaceThickness = 0.002;
 
-  const innerBackWall = BABYLON.MeshBuilder.CreateBox(
+  const innerBackWall = BABYLON.MeshBuilder.CreatePlane(
     "inner_wall_back",
-    { width, height: innerWallHeight, depth: innerSurfaceThickness },
+    { width, height: innerWallHeight },
     scene,
   );
   innerBackWall.position.set(
@@ -514,15 +460,15 @@ export const setupTrialRoom = (
     innerWallY,
     depth / 2 - innerSurfaceThickness / 2,
   );
-  // innerBackWall.material = makeWallMat("mat-back", width); // 6.8
-  innerBackWall.material = innerWallMat;
+  innerBackWall.rotation.y = Math.PI;
+  innerBackWall.material = widthWallMat;
 
   innerBackWall.receiveShadows = true;
   innerBackWall.metadata = { side: "back" };
 
-  const innerFrontWall = BABYLON.MeshBuilder.CreateBox(
+  const innerFrontWall = BABYLON.MeshBuilder.CreatePlane(
     "inner_wall_front",
-    { width, height: innerWallHeight, depth: innerSurfaceThickness },
+    { width, height: innerWallHeight },
     scene,
   );
   innerFrontWall.position.set(
@@ -530,14 +476,13 @@ export const setupTrialRoom = (
     innerWallY,
     -depth / 2 + innerSurfaceThickness / 2,
   );
-  innerFrontWall.material = innerWallMat;
-  // innerFrontWall.material = makeWallMat("mat-front", width); // 6.8
+  innerFrontWall.material = widthWallMat;
   innerFrontWall.receiveShadows = true;
   innerFrontWall.metadata = { side: "front" };
 
-  const innerLeftWall = BABYLON.MeshBuilder.CreateBox(
+  const innerLeftWall = BABYLON.MeshBuilder.CreatePlane(
     "inner_wall_left",
-    { width: innerSurfaceThickness, height: innerWallHeight, depth },
+    { width: depth, height: innerWallHeight },
     scene,
   );
   innerLeftWall.position.set(
@@ -545,14 +490,14 @@ export const setupTrialRoom = (
     innerWallY,
     0,
   );
-  innerLeftWall.material = innerWallMat;
-  // innerLeftWall.material = makeWallMat("mat-left", depth);
+  innerLeftWall.rotation.y = Math.PI / 2;
+  innerLeftWall.material = depthWallMat;
   innerLeftWall.receiveShadows = true;
   innerLeftWall.metadata = { side: "left" };
 
-  const innerRightWall = BABYLON.MeshBuilder.CreateBox(
+  const innerRightWall = BABYLON.MeshBuilder.CreatePlane(
     "inner_wall_right",
-    { width: innerSurfaceThickness, height: innerWallHeight, depth },
+    { width: depth, height: innerWallHeight },
     scene,
   );
   innerRightWall.position.set(
@@ -560,8 +505,8 @@ export const setupTrialRoom = (
     innerWallY,
     0,
   );
-  innerRightWall.material = innerWallMat;
-  // innerRightWall.material = makeWallMat("mat-right", depth);
+  innerRightWall.rotation.y = -Math.PI / 2;
+  innerRightWall.material = depthWallMat;
   innerRightWall.receiveShadows = true;
   innerRightWall.metadata = { side: "right" };
 
@@ -634,11 +579,10 @@ export const setupTrialRoom = (
     shadowCasters,
     dispose: () => {
       allMeshes.forEach((mesh) => mesh.dispose());
-      wallDetailTexture.dispose();
-      wallNormalTexture.dispose();
       vinylTexture.dispose();
       frameMat.dispose();
-      innerWallMat.dispose();
+      widthWallMat.dispose(true, true);
+      depthWallMat.dispose(true, true);
       innerCeilingMat.dispose();
       floorVinylMat.dispose();
     },

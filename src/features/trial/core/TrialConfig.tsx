@@ -11,10 +11,10 @@ export interface TrialRoomConfig {
 }
 
 export const TRIAL_TEXTURES = {
-  wall: "/assets/texture/white-wall-textures.jpg.jpeg",
+  wall: "/assets/texture/white-texture-1.png",
   ceiling: "/assets/texture/gray-abstract-texture.jpg",
   trim: "/assets/texture/light-wood-texture.jpg",
-  bump_wall: "/assets/texture/white-wall.png",
+  bump_wall: "/assets/texture/white-map-1.png",
 } as const;
 
 export const DEFAULT_TRIAL_ROOM_CONFIG: TrialRoomConfig = {
