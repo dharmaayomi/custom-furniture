@@ -144,33 +144,40 @@ export const TrialProductList = ({
   const itemCount = loadedModels.length;
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} direction="right">
-      <DrawerContent className="-ml-6 rounded-l-xl border-l border-white/60 bg-white/80 text-slate-950 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl sm:max-w-none md:w-102! dark:border-white/10 dark:bg-slate-950 dark:text-slate-50">
+    <Drawer
+      open={open}
+      onOpenChange={onOpenChange}
+      direction="right"
+      handleOnly
+    >
+      <DrawerContent className="w-125! rounded-l-xl border-l border-white/60 bg-white/80 text-slate-950 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl sm:max-w-md! md:max-w-105! dark:border-white/10 dark:bg-slate-950 dark:text-slate-50">
         <div className="bg-primary/10 pointer-events-none absolute top-8 right-8 h-28 w-28 rounded-full blur-3xl" />
         <div className="bg-primary/10 pointer-events-none absolute bottom-12 left-6 h-24 w-24 rounded-full blur-3xl" />
 
-        <div className="relative flex h-full w-102 flex-col">
-          <DrawerHeader className="flex items-start justify-between gap-3 border-b border-white/60 px-7 pt-7 pb-4 dark:border-white/10">
-            <div className="space-y-2">
-              <p className="text-xs font-medium tracking-[0.22em] text-slate-500 uppercase dark:text-slate-400">
-                Trial Summary
-              </p>
-              <DrawerTitle className="text-xl font-black">
-                Your Products
-              </DrawerTitle>
-            </div>
+        <div className="relative flex h-full w-full flex-col">
+          <DrawerHeader className="border-b border-white/60 px-7 pt-7 pb-4 dark:border-white/10">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-2">
+                <p className="text-xs font-medium tracking-[0.22em] text-slate-500 uppercase dark:text-slate-400">
+                  Trial Summary
+                </p>
+                <DrawerTitle className="text-xl font-black">
+                  Your Products
+                </DrawerTitle>
+              </div>
 
-            <DrawerClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="size-9 rounded-2xl border-white/50 bg-white/70 shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-                aria-label="Close product list"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </DrawerClose>
+              <DrawerClose asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-9 rounded-2xl border-white/50 bg-white/70 shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                  aria-label="Close product list"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </DrawerClose>
+            </div>
           </DrawerHeader>
 
           <div className="relative flex-1 overflow-y-auto px-5 py-5">

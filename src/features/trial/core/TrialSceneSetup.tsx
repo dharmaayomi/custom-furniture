@@ -1,8 +1,6 @@
 import * as BABYLON from "@babylonjs/core";
 import { setupTrialCamera } from "./TrialCameraSetup";
-
 import { setupTrialRoom } from "./TrialRoomSetup";
-
 import { setupTrialAutoHideWalls } from "../furniture/WallVisibility";
 import { DEFAULT_TRIAL_ROOM_CONFIG, TrialRoomConfig } from "./TrialConfig";
 import { setupTrialLighting, TrialLightingResult } from "./TrialLightingSetup";
@@ -17,7 +15,6 @@ import { setupTrialLighting, TrialLightingResult } from "./TrialLightingSetup";
  *   4. Konfigurasi post-processing (tone mapping)
  *   5. Return TrialSceneContext — semua yang dibutuhkan layer di atasnya
  *
- * Tidak tahu tentang furniture, model, atau store.
  */
 
 export interface TrialSceneContext {

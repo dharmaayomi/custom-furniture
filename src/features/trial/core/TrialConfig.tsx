@@ -14,6 +14,7 @@ export const TRIAL_TEXTURES = {
   wall: "/assets/texture/pale-stucco-pattern.jpg",
   ceiling: "/assets/texture/gray-abstract-texture.jpg",
   trim: "/assets/texture/light-wood-texture.jpg",
+  bump_wall: "/assets/texture/texture-of-dry-concrete-wall.webp",
 } as const;
 
 export const DEFAULT_TRIAL_ROOM_CONFIG: TrialRoomConfig = {
