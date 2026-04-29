@@ -40,6 +40,84 @@ if (typeof window !== "undefined") {
   (window as any).earcut = earcut;
 }
 
+const createTintableLuminanceTexture = (
+  scene: BABYLON.Scene,
+  name: string,
+  path: string,
+  uScale: number,
+  vScale: number,
+  onReady: (texture: BABYLON.DynamicTexture) => void,
+) => {
+  let dynamicTexture: BABYLON.DynamicTexture | null = null;
+  let cancelled = false;
+
+  const image = new window.Image();
+  image.decoding = "async";
+  image.onload = () => {
+    if (cancelled) {
+      return;
+    }
+
+    const width = image.naturalWidth || image.width;
+    const height = image.naturalHeight || image.height;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const canvasContext = canvas.getContext("2d", { willReadFrequently: true });
+    if (!canvasContext) {
+      return;
+    }
+
+    canvasContext.drawImage(image, 0, 0, width, height);
+    const imageData = canvasContext.getImageData(0, 0, width, height);
+    const { data } = imageData;
+
+    for (let index = 0; index < data.length; index += 4) {
+      const luminance = Math.round(
+        data[index] * 0.299 +
+          data[index + 1] * 0.587 +
+          data[index + 2] * 0.114,
+      );
+
+      data[index] = luminance;
+      data[index + 1] = luminance;
+      data[index + 2] = luminance;
+    }
+
+    canvasContext.putImageData(imageData, 0, 0);
+
+    dynamicTexture = new BABYLON.DynamicTexture(
+      name,
+      { width, height },
+      scene,
+      false,
+    );
+    const textureContext =
+      dynamicTexture.getContext() as CanvasRenderingContext2D;
+    textureContext.drawImage(canvas, 0, 0, width, height);
+    dynamicTexture.update(false);
+    dynamicTexture.uScale = uScale;
+    dynamicTexture.vScale = vScale;
+    dynamicTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    dynamicTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+    dynamicTexture.anisotropicFilteringLevel = 8;
+
+    onReady(dynamicTexture);
+  };
+  image.onerror = () => {
+    console.error(`Failed to load tintable texture: ${path}`);
+  };
+  image.src = path;
+
+  return {
+    dispose: () => {
+      cancelled = true;
+      dynamicTexture?.dispose();
+    },
+  };
+};
+
 const createMaterial = (
   scene: BABYLON.Scene,
   name: string,
@@ -267,11 +345,27 @@ export const setupTrialRoom = (
   const innerWallHeight = height - wallThickness - floorThickness;
 
   const innerWallMat = new BABYLON.PBRMaterial("inner-wall-mat", scene);
-  const wallTexture = new BABYLON.Texture(TRIAL_TEXTURES.wall, scene);
-  wallTexture.uScale = 4.0;
-  wallTexture.vScale = 3.0;
-  innerWallMat.albedoTexture = wallTexture;
   innerWallMat.albedoColor = hexToColor3(wallColor);
+  const wallDetailTexture = createTintableLuminanceTexture(
+    scene,
+    "inner-wall-detail",
+    TRIAL_TEXTURES.wall,
+    4.0,
+    3.0,
+    (texture) => {
+      innerWallMat.albedoTexture = texture;
+    },
+  );
+  const wallNormalTexture = new BABYLON.Texture(TRIAL_TEXTURES.bump_wall, scene);
+  wallNormalTexture.uScale = 4.0;
+  wallNormalTexture.vScale = 3.0;
+  wallNormalTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+  wallNormalTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+  wallNormalTexture.anisotropicFilteringLevel = 8;
+  innerWallMat.bumpTexture = wallNormalTexture;
+  innerWallMat.bumpTexture.level = 0.9;
+  innerWallMat.invertNormalMapX = true;
+  innerWallMat.invertNormalMapY = true;
   innerWallMat.roughness = 0.85;
   innerWallMat.metallic = 0;
   innerWallMat.backFaceCulling = false;
@@ -540,7 +634,8 @@ export const setupTrialRoom = (
     shadowCasters,
     dispose: () => {
       allMeshes.forEach((mesh) => mesh.dispose());
-      wallTexture.dispose();
+      wallDetailTexture.dispose();
+      wallNormalTexture.dispose();
       vinylTexture.dispose();
       frameMat.dispose();
       innerWallMat.dispose();

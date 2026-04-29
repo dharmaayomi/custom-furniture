@@ -9,6 +9,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/useMobile";
 import { formatPrice } from "@/lib/price";
 
 import {
@@ -87,22 +88,29 @@ export const TrialProductInfo = ({
   selectedModel,
   onOpenChange,
 }: TrialProductInfoProps) => {
+  const isMobile = useIsMobile();
   const productInfo = resolveTrialProductInfo(selectedModel);
 
   return (
     <Drawer
       open={open}
       onOpenChange={onOpenChange}
-      direction="right"
+      direction={isMobile ? "bottom" : "right"}
       handleOnly
     >
-      <DrawerContent className="w-125! rounded-l-xl border-l border-white/60 bg-white/80 text-slate-950 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl sm:max-w-md! md:max-w-105! dark:border-white/10 dark:bg-slate-950 dark:text-slate-50">
+      <DrawerContent
+        className={`border-white/60 bg-white/80 text-slate-950 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950 dark:text-slate-50 ${
+          isMobile
+            ? "max-h-[82vh] rounded-t-[1.75rem] border-t shadow-[0_-20px_60px_-30px_rgba(15,23,42,0.45)]"
+            : "w-125! rounded-l-xl border-l shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] sm:max-w-md! md:max-w-105!"
+        }`}
+      >
         <div className="bg-primary/10 pointer-events-none absolute top-8 right-8 h-28 w-28 rounded-full blur-3xl" />
         <div className="bg-primary/10 pointer-events-none absolute bottom-12 left-6 h-24 w-24 rounded-full blur-3xl" />
 
         <div className="relative flex h-full w-full flex-col">
-          <DrawerHeader className="border-b border-white/60 px-7 pt-7 pb-4 dark:border-white/10">
-            <div className="flex items-start justify-between gap-3">
+          <DrawerHeader className="border-b border-white/60 px-4 pt-3 pb-4 dark:border-white/10 md:px-7 md:pt-7">
+            <div className="flex items-start justify-between gap-3 text-left">
               <div className="space-y-2">
                 <p className="text-xs font-medium tracking-[0.22em] text-slate-500 uppercase dark:text-slate-400">
                   Selected Product
@@ -126,7 +134,7 @@ export const TrialProductInfo = ({
             </div>
           </DrawerHeader>
 
-          <div className="relative flex-1 overflow-y-auto px-5 py-5">
+          <div className="relative flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
             {productInfo ? (
               <div className="space-y-4">
                 <div className="overflow-hidden rounded-[1.75rem] border border-white/60 bg-white/65 p-3 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-white/5">
@@ -141,7 +149,7 @@ export const TrialProductInfo = ({
                   </div>
                 </div>
 
-                <div className="rounded-[1.75rem] border border-white/60 bg-white/65 p-5 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-white/5">
+                <div className="rounded-[1.75rem] border border-white/60 bg-white/65 p-4 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] md:p-5 dark:border-white/10 dark:bg-white/5">
                   <div className="mb-3 inline-flex rounded-full border border-white/60 bg-white/75 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-slate-600 uppercase dark:border-white/10 dark:bg-white/10 dark:text-slate-300">
                     {productInfo.badge}
                   </div>

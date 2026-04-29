@@ -20,11 +20,13 @@ import { useMemo, useState } from "react";
 import { useTrialRoomStore } from "./useTrialRoomStore";
 import { TrialProductInfo } from "./components/TrialProductInfo";
 import { TrialProductList } from "./components/TrialProductList";
+import { useIsMobile } from "@/hooks/useMobile";
 
 type TrialSidePanel = "sidebar" | "customize" | null;
 type TrialOverlayDrawer = "productInfo" | "productList" | null;
 
 export const TrialPage = () => {
+  const isMobile = useIsMobile();
   const [selectedTool, setSelectedTool] = useState<TrialToolType>(null);
   const [activeSidePanel, setActiveSidePanel] = useState<TrialSidePanel>(null);
   const [activeOverlayDrawer, setActiveOverlayDrawer] =
@@ -94,7 +96,9 @@ export const TrialPage = () => {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-100">
       <div
-        className={`relative min-w-0 flex-1 bg-gray-200 ${isAnyLayoutPanelOpen ? "mr-4" : ""}`}
+        className={`relative min-w-0 flex-1 bg-gray-200 ${
+          isAnyLayoutPanelOpen && !isMobile ? "mr-4" : ""
+        }`}
       >
         <TrialHeader
           onOpenProductList={() => {

@@ -5,6 +5,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useIsMobile } from "@/hooks/useMobile";
 import { Wrench } from "lucide-react";
 import React from "react";
 
@@ -48,12 +49,20 @@ export const RightPanel = ({
   isSidebarOpen,
   onCustomizeClick,
 }: RightPanelProps) => {
+  const isMobile = useIsMobile();
+
   return (
     <TooltipProvider>
       <div
-        className="absolute top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-3"
+        className="absolute top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-2 md:gap-3"
         style={{
-          right: isSidebarOpen ? "2.5rem" : "2rem",
+          right: isSidebarOpen
+            ? isMobile
+              ? "1rem"
+              : "2.5rem"
+            : isMobile
+              ? "0.75rem"
+              : "2rem",
         }}
       >
         <div className="bg-primary/10 pointer-events-none absolute -top-8 -right-3 h-24 w-24 rounded-full blur-3xl" />
@@ -69,7 +78,7 @@ export const RightPanel = ({
                     type="button"
                     variant={selectedTool === tool.id ? "default" : "outline"}
                     onClick={() => onToolClick(tool.id)}
-                    className={`size-9 rounded-2xl transition-all ${
+                    className={`size-8 rounded-2xl transition-all md:size-9 ${
                       selectedTool === tool.id
                         ? "shadow-primary/20 border-transparent shadow-lg"
                         : "border-white/50 bg-white/70 shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
@@ -93,7 +102,7 @@ export const RightPanel = ({
               <Button
                 type="button"
                 onClick={onCustomizeClick}
-                className="shadow-chart-2/20 bg-chart-2 size-9 rounded-2xl shadow-lg"
+                className="shadow-chart-2/20 bg-chart-2 size-8 rounded-2xl shadow-lg md:size-9"
                 size="icon"
               >
                 <Wrench size={20} />
