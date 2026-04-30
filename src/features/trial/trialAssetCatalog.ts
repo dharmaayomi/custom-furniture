@@ -111,7 +111,8 @@ export const TRIAL_PRODUCT_BASES: TrialProductBase[] = [
     id: "base-wic-1228",
     productName: "WIC 1228",
     sku: "WIC-1228",
-    productUrl: "/assets/trial/wic-1228.glb",
+    // productUrl: "/assets/trial/wic-1228.glb",
+    productUrl: "/assets/trial/FULL-WIC.glb",
     description: "Frame lemari walk-in untuk test size berbeda.",
     basePrice: 16800000,
     width: 120,
@@ -258,12 +259,51 @@ export interface TrialAssetItem {
   modelPath: string;
   category: TrialAssetCategory;
   initialRotationY?: number;
+  fitWidthMode?: "keep" | "shrink" | "fill";
+  fitHeightMode?: "keep" | "shrink" | "fill";
+  fitDepthMode?: "keep" | "shrink" | "fill";
   sourceType: "productBase" | "productComponent" | "productMaterial";
   sourceId: string;
 }
 
 const formatSize = (width: number, depth: number, height: number) =>
   `${width} x ${depth} x ${height} cm`;
+
+const INTERIOR_INITIAL_ROTATION_BY_ID: Partial<
+  Record<TrialProductComponent["id"], number>
+> = {};
+
+const INTERIOR_FIT_BY_ID: Partial<
+  Record<
+    TrialProductComponent["id"],
+    Pick<TrialAssetItem, "fitWidthMode" | "fitHeightMode" | "fitDepthMode">
+  >
+> = {
+  "component-drawer": {
+    fitWidthMode: "fill",
+    fitDepthMode: "shrink",
+  },
+  "component-shelf": {
+    fitWidthMode: "fill",
+    fitHeightMode: "keep",
+    fitDepthMode: "shrink",
+  },
+  "component-glass-shelf": {
+    fitWidthMode: "fill",
+    fitHeightMode: "keep",
+    fitDepthMode: "shrink",
+  },
+  "component-hanging-rod": {
+    fitWidthMode: "fill",
+    fitHeightMode: "keep",
+    fitDepthMode: "keep",
+  },
+  "component-vertical-divider": {
+    fitWidthMode: "keep",
+    fitHeightMode: "shrink",
+    fitDepthMode: "shrink",
+  },
+};
 
 const productBaseToAsset = (item: TrialProductBase): TrialAssetItem => ({
   id: item.id,
@@ -287,11 +327,17 @@ const productComponentToAsset = (
   image: item.componentImageUrls[0] ?? "/assets/trial/interior.webp",
   modelPath: item.componentUrl,
   category: "interior",
+  initialRotationY: INTERIOR_INITIAL_ROTATION_BY_ID[item.id],
+  fitWidthMode: INTERIOR_FIT_BY_ID[item.id]?.fitWidthMode ?? "keep",
+  fitHeightMode: INTERIOR_FIT_BY_ID[item.id]?.fitHeightMode ?? "keep",
+  fitDepthMode: INTERIOR_FIT_BY_ID[item.id]?.fitDepthMode ?? "keep",
   sourceType: "productComponent",
   sourceId: item.id,
 });
 
-const productMaterialToAsset = (item: TrialProductMaterial): TrialAssetItem => ({
+const productMaterialToAsset = (
+  item: TrialProductMaterial,
+): TrialAssetItem => ({
   id: item.id,
   name: item.materialName,
   size: item.materialCategories.join(", "),
@@ -308,6 +354,15 @@ export const TRIAL_ASSET_CATALOG: TrialAssetItem[] = [
   ...TRIAL_PRODUCT_COMPONENTS.map(productComponentToAsset),
   ...TRIAL_PRODUCT_MATERIALS.map(productMaterialToAsset),
 ];
+
+export const getTrialProductBaseById = (assetId: string) =>
+  TRIAL_PRODUCT_BASES.find((item) => item.id === assetId) ?? null;
+
+export const getTrialProductComponentById = (assetId: string) =>
+  TRIAL_PRODUCT_COMPONENTS.find((item) => item.id === assetId) ?? null;
+
+export const getTrialProductMaterialById = (assetId: string) =>
+  TRIAL_PRODUCT_MATERIALS.find((item) => item.id === assetId) ?? null;
 
 export const getTrialAssetById = (assetId: string) =>
   TRIAL_ASSET_CATALOG.find((asset) => asset.id === assetId) ?? null;

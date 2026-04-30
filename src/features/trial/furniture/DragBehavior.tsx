@@ -2,7 +2,7 @@ import * as BABYLON from "@babylonjs/core";
 import { useTrialRoomStore } from "../useTrialRoomStore";
 
 interface AttachTrialDragBehaviorOptions {
-  targetMesh: BABYLON.AbstractMesh;
+  targetMesh: BABYLON.TransformNode;
   hitBox: BABYLON.Mesh;
 }
 
@@ -10,7 +10,15 @@ interface TrialDragMetadata {
   kind?: string;
   dragBehavior?: BABYLON.PointerDragBehavior;
   dragHitBox?: BABYLON.Mesh;
+  dragRootInstanceId?: string;
   dragRootName?: string;
+}
+
+export interface TrialResolvedDragTarget {
+  dragBehavior: BABYLON.PointerDragBehavior;
+  dragHitBox: BABYLON.Mesh;
+  instanceId: string;
+  kind?: string;
 }
 
 const getTrialDragMetadata = (
@@ -23,7 +31,59 @@ const getTrialDragMetadata = (
   return mesh.metadata as TrialDragMetadata;
 };
 
-export const attachTrialDragBehavior = ({
+export const getTrialResolvedDragTarget = (
+  mesh?: BABYLON.Nullable<BABYLON.AbstractMesh>,
+): TrialResolvedDragTarget | null => {
+  const metadata = getTrialDragMetadata(mesh);
+  if (
+    !metadata?.dragBehavior ||
+    !metadata.dragHitBox ||
+    !metadata.dragRootInstanceId
+  ) {
+    return null;
+  }
+
+  return {
+    dragBehavior: metadata.dragBehavior,
+    dragHitBox: metadata.dragHitBox,
+    instanceId: metadata.dragRootInstanceId,
+    kind: metadata.kind,
+  };
+};
+
+const toParentLocalDelta = (
+  targetMesh: BABYLON.TransformNode,
+  worldDelta: BABYLON.Vector3,
+) => {
+  const parent = targetMesh.parent;
+
+  if (!(parent instanceof BABYLON.TransformNode)) {
+    return worldDelta.clone();
+  }
+
+  const inverseParentWorld = parent.getWorldMatrix().clone();
+  inverseParentWorld.invert();
+
+  return BABYLON.Vector3.TransformNormal(worldDelta, inverseParentWorld);
+};
+
+const getParentLocalYAxisInWorld = (targetMesh: BABYLON.TransformNode) => {
+  const parent = targetMesh.parent;
+
+  if (!(parent instanceof BABYLON.TransformNode)) {
+    return BABYLON.Axis.Y.clone();
+  }
+
+  const axis = BABYLON.Vector3.TransformNormal(
+    BABYLON.Axis.Y,
+    parent.getWorldMatrix(),
+  );
+
+  axis.normalize();
+  return axis;
+};
+
+export const attachFrameTrialDragBehavior = ({
   targetMesh,
   hitBox,
 }: AttachTrialDragBehaviorOptions): BABYLON.PointerDragBehavior => {
@@ -35,8 +95,34 @@ export const attachTrialDragBehavior = ({
   dragBehavior.detachCameraControls = true;
 
   dragBehavior.onDragObservable.add((event) => {
-    targetMesh.position.addInPlace(event.delta);
-    hitBox.position.addInPlace(event.delta);
+    const localDelta = toParentLocalDelta(targetMesh, event.delta);
+
+    targetMesh.position.addInPlace(localDelta);
+    hitBox.position.addInPlace(localDelta);
+  });
+
+  hitBox.addBehavior(dragBehavior);
+
+  return dragBehavior;
+};
+
+export const attachInteriorTrialDragBehavior = ({
+  targetMesh,
+  hitBox,
+}: AttachTrialDragBehaviorOptions): BABYLON.PointerDragBehavior => {
+  const dragBehavior = new BABYLON.PointerDragBehavior({
+    dragAxis: getParentLocalYAxisInWorld(targetMesh),
+  });
+  dragBehavior.moveAttached = false;
+  dragBehavior.useObjectOrientationForDragging = false;
+  dragBehavior.detachCameraControls = true;
+
+  dragBehavior.onDragObservable.add((event) => {
+    const localDelta = toParentLocalDelta(targetMesh, event.delta);
+    const yOnlyDelta = new BABYLON.Vector3(0, localDelta.y, 0);
+
+    targetMesh.position.addInPlace(yOnlyDelta);
+    hitBox.position.addInPlace(yOnlyDelta);
   });
 
   hitBox.addBehavior(dragBehavior);
@@ -45,7 +131,8 @@ export const attachTrialDragBehavior = ({
 };
 
 export const registerTrialDraggableMeshes = (
-  rootMesh: BABYLON.AbstractMesh,
+  rootInstanceId: string,
+  rootMesh: BABYLON.TransformNode,
   hitBox: BABYLON.Mesh,
   dragBehavior: BABYLON.PointerDragBehavior,
 ) => {
@@ -55,11 +142,14 @@ export const registerTrialDraggableMeshes = (
       ...(kind ? { kind } : {}),
       dragBehavior,
       dragHitBox: hitBox,
+      dragRootInstanceId: rootInstanceId,
       dragRootName: rootMesh.name,
     };
   };
 
-  applyMetadata(rootMesh);
+  if (rootMesh instanceof BABYLON.AbstractMesh) {
+    applyMetadata(rootMesh);
+  }
   rootMesh.getChildMeshes().forEach((mesh) => applyMetadata(mesh));
   applyMetadata(hitBox, "bounding-box");
 };
@@ -67,44 +157,55 @@ export const registerTrialDraggableMeshes = (
 export const isTrialDraggableMesh = (
   mesh?: BABYLON.Nullable<BABYLON.AbstractMesh>,
 ) => {
-  const metadata = getTrialDragMetadata(mesh);
-  return Boolean(metadata?.dragBehavior && metadata?.dragHitBox);
+  return Boolean(getTrialResolvedDragTarget(mesh));
 };
 
-export const tryStartTrialDragFromPointer = (
-  pointerInfo: BABYLON.PointerInfo,
+export const tryStartTrialDragFromPick = (
+  pickInfo: BABYLON.PickingInfo,
+  pointerEvent?: PointerEvent,
 ) => {
-  const pickedMesh = pointerInfo.pickInfo?.pickedMesh;
-  const metadata = getTrialDragMetadata(pickedMesh);
-  const pointerEvent = pointerInfo.event as PointerEvent | undefined;
-  const pickInfo = pointerInfo.pickInfo;
-
   if (
-    pointerInfo.type !== BABYLON.PointerEventTypes.POINTERDOWN ||
-    !metadata?.dragBehavior ||
-    !metadata.dragHitBox ||
     !pickInfo?.hit ||
+    !pickInfo.pickedMesh ||
     !pickInfo.pickedPoint ||
     !pickInfo.ray
   ) {
     return false;
   }
 
-  if (metadata.kind === "bounding-box") {
-    if (metadata.dragRootName) {
-      useTrialRoomStore.getState().setSelectedMesh(metadata.dragRootName);
-    }
+  const target = getTrialResolvedDragTarget(pickInfo.pickedMesh);
+  if (!target) {
+    return false;
+  }
+
+  useTrialRoomStore.getState().setSelectedMesh(target.instanceId);
+
+  if (target.kind === "bounding-box") {
+    target.dragBehavior.startDrag(
+      pointerEvent?.pointerId,
+      pickInfo.ray,
+      pickInfo.pickedPoint,
+    );
     return true;
   }
 
-  if (metadata.dragRootName) {
-    useTrialRoomStore.getState().setSelectedMesh(metadata.dragRootName);
-  }
-
-  metadata.dragBehavior.startDrag(
+  target.dragBehavior.startDrag(
     pointerEvent?.pointerId,
     pickInfo.ray,
     pickInfo.pickedPoint,
   );
   return true;
+};
+
+export const tryStartTrialDragFromPointer = (
+  pointerInfo: BABYLON.PointerInfo,
+) => {
+  if (pointerInfo.type !== BABYLON.PointerEventTypes.POINTERDOWN) {
+    return false;
+  }
+
+  return tryStartTrialDragFromPick(
+    pointerInfo.pickInfo!,
+    pointerInfo.event as PointerEvent | undefined,
+  );
 };

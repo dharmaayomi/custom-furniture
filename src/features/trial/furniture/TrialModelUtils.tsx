@@ -2,67 +2,163 @@ import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders/glTF";
 import { useTrialRoomStore } from "../useTrialRoomStore";
 import {
-  attachTrialDragBehavior,
+  attachFrameTrialDragBehavior,
+  attachInteriorTrialDragBehavior,
   registerTrialDraggableMeshes,
 } from "./DragBehavior";
 
-// HITBOX
-export const createDraggableBoundingBox = (
-  scene: BABYLON.Scene,
-  targetMesh: BABYLON.AbstractMesh,
-  setOutline: (visible: boolean) => void,
-): BABYLON.Mesh => {
+const HITBOX_PADDING_XZ = 0.03;
+const HITBOX_PADDING_Y = 0.05;
+
+export const getRenderableMeshes = (rootMesh: BABYLON.TransformNode) => {
+  const renderMeshes = rootMesh.getChildMeshes();
+
+  if (rootMesh instanceof BABYLON.AbstractMesh) {
+    renderMeshes.unshift(rootMesh);
+  }
+
+  return renderMeshes;
+};
+
+const getBoundingBoxTransform = (targetMesh: BABYLON.TransformNode) => {
   targetMesh.computeWorldMatrix(true);
-  targetMesh.getChildMeshes().forEach((m) => m.computeWorldMatrix(true));
-  targetMesh.refreshBoundingInfo({ applySkeleton: true });
+  const renderMeshes = getRenderableMeshes(targetMesh);
+  renderMeshes.forEach((mesh) => {
+    mesh.computeWorldMatrix(true);
+    mesh.refreshBoundingInfo({ applySkeleton: true });
+  });
 
   const boundingVectors = targetMesh.getHierarchyBoundingVectors(true);
   const size = boundingVectors.max.subtract(boundingVectors.min);
   const center = boundingVectors.min.add(size.scale(0.5));
 
+  const parent = targetMesh.parent;
+  const localCenter =
+    parent instanceof BABYLON.TransformNode
+      ? (() => {
+          const inverseParentWorld = parent.getWorldMatrix().clone();
+          inverseParentWorld.invert();
+          return BABYLON.Vector3.TransformCoordinates(
+            center,
+            inverseParentWorld,
+          );
+        })()
+      : center;
+
+  return { size, localCenter };
+};
+
+interface DraggableBoundingBoxController {
+  dragBehavior: BABYLON.PointerDragBehavior;
+  dispose: () => void;
+  mesh: BABYLON.Mesh;
+  sync: () => void;
+}
+
+const createDraggableBoundingBoxBase = (
+  scene: BABYLON.Scene,
+  rootInstanceId: string,
+  targetMesh: BABYLON.TransformNode,
+  attachDragBehavior: (options: {
+    targetMesh: BABYLON.TransformNode;
+    hitBox: BABYLON.Mesh;
+  }) => BABYLON.PointerDragBehavior,
+): DraggableBoundingBoxController => {
   const hitBox = BABYLON.MeshBuilder.CreateBox(
     "trial-drag-hitbox",
-    { width: size.x, height: size.y, depth: size.z },
+    { size: 1 },
     scene,
   );
-  hitBox.position.copyFrom(center);
-
   const mat = new BABYLON.StandardMaterial("hitbox-mat", scene);
   mat.alpha = 0;
   mat.backFaceCulling = false;
   hitBox.material = mat;
-  hitBox.isPickable = true;
+  hitBox.isPickable = false;
 
-  const dragBehavior = attachTrialDragBehavior({
+  const sync = () => {
+    const { size, localCenter } = getBoundingBoxTransform(targetMesh);
+
+    hitBox.parent =
+      targetMesh.parent instanceof BABYLON.TransformNode ? targetMesh.parent : null;
+    hitBox.rotationQuaternion = null;
+    hitBox.rotation.set(0, 0, 0);
+    hitBox.position.copyFrom(localCenter);
+    hitBox.scaling.set(
+      Math.max(size.x + HITBOX_PADDING_XZ * 2, 0.001),
+      Math.max(size.y + HITBOX_PADDING_Y * 2, 0.001),
+      Math.max(size.z + HITBOX_PADDING_XZ * 2, 0.001),
+    );
+    hitBox.computeWorldMatrix(true);
+  };
+
+  sync();
+
+  const dragBehavior = attachDragBehavior({
     targetMesh,
     hitBox,
   });
-  registerTrialDraggableMeshes(targetMesh, hitBox, dragBehavior);
+  registerTrialDraggableMeshes(
+    rootInstanceId,
+    targetMesh,
+    hitBox,
+    dragBehavior,
+  );
 
   hitBox.actionManager = new BABYLON.ActionManager(scene);
   hitBox.actionManager.registerAction(
     new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, () => {
-      useTrialRoomStore.getState().setSelectedMesh(targetMesh.name);
-      // Outline dikontrol sepenuhnya oleh subscriber di TrialModelLoader
+      useTrialRoomStore.getState().setSelectedMesh(rootInstanceId);
     }),
   );
 
-  return hitBox;
+  return {
+    dragBehavior,
+    dispose: () => {
+      hitBox.dispose();
+      mat.dispose();
+    },
+    mesh: hitBox,
+    sync,
+  };
 };
+
+export const createFrameDraggableBoundingBox = (
+  scene: BABYLON.Scene,
+  rootInstanceId: string,
+  targetMesh: BABYLON.TransformNode,
+) =>
+  createDraggableBoundingBoxBase(
+    scene,
+    rootInstanceId,
+    targetMesh,
+    attachFrameTrialDragBehavior,
+  );
+
+export const createInteriorDraggableBoundingBox = (
+  scene: BABYLON.Scene,
+  rootInstanceId: string,
+  targetMesh: BABYLON.TransformNode,
+) =>
+  createDraggableBoundingBoxBase(
+    scene,
+    rootInstanceId,
+    targetMesh,
+    attachInteriorTrialDragBehavior,
+  );
 
 // OUTLINE
 const OUTLINE_COLOR = new BABYLON.Color3(1, 0.85, 0);
 const OUTLINE_WIDTH = 2.5;
 export const buildOutlineController = (
   scene: BABYLON.Scene,
-  rootMesh: BABYLON.AbstractMesh,
+  rootMesh: BABYLON.TransformNode,
 ): ((visible: boolean) => void) => {
   const selectionLayer =
     scene.getSelectionOutlineLayerByName("trial-selection-outline") ??
     new BABYLON.SelectionOutlineLayer("trial-selection-outline", scene, {
       mainTextureRatio: 2.0,
     });
-  const selectionGroup = rootMesh.getChildMeshes();
+  const selectionGroup = getRenderableMeshes(rootMesh);
 
   selectionLayer.outlineColor = OUTLINE_COLOR;
   selectionLayer.outlineThickness = OUTLINE_WIDTH;
@@ -72,10 +168,9 @@ export const buildOutlineController = (
   return (visible: boolean) => {
     selectionLayer.clearSelection();
 
-    if (visible) {
-      selectionLayer.addSelection(
-        selectionGroup.length ? selectionGroup : rootMesh,
-      );
+    if (visible && selectionGroup.length > 0) {
+      selectionLayer.clearSelection();
+      selectionLayer.addSelection(selectionGroup);
     }
   };
 };

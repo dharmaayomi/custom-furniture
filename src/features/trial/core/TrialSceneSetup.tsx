@@ -1,14 +1,9 @@
 import * as BABYLON from "@babylonjs/core";
-import { GridMaterial } from "@babylonjs/materials/grid";
 import { setupTrialCamera } from "./TrialCameraSetup";
-
 import { setupTrialRoom } from "./TrialRoomSetup";
-
-import { DEFAULT_TRIAL_ROOM_CONFIG, TrialRoomConfig } from "./TrialConfig";
 import { setupTrialAutoHideWalls } from "../furniture/WallVisibility";
+import { DEFAULT_TRIAL_ROOM_CONFIG, TrialRoomConfig } from "./TrialConfig";
 import { setupTrialLighting, TrialLightingResult } from "./TrialLightingSetup";
-import { setupTrialSpawnListener } from "./TrialSpawnListener";
-import { clearRegistry } from "../furniture/TrialModelRegistry";
 
 /**
  * TrialSceneSetup.ts
@@ -20,7 +15,6 @@ import { clearRegistry } from "../furniture/TrialModelRegistry";
  *   4. Konfigurasi post-processing (tone mapping)
  *   5. Return TrialSceneContext — semua yang dibutuhkan layer di atasnya
  *
- * Tidak tahu tentang furniture, model, atau store.
  */
 
 export interface TrialSceneContext {
@@ -54,12 +48,6 @@ export const initTrialScene = (
   room.shadowCasters.forEach((mesh) => {
     lighting.shadowGenerator.addShadowCaster(mesh, false);
   });
-
-  const spawnUnsubscribe = setupTrialSpawnListener(
-    scene,
-    lighting.shadowGenerator,
-    initialRoomConfig,
-  );
 
   // Wall auto-hide
   let wallObserver = setupTrialAutoHideWalls(scene, room.walls, camera);
@@ -146,8 +134,6 @@ export const initTrialScene = (
     room.dispose();
     scene.dispose();
     engine.dispose();
-    spawnUnsubscribe();
-    clearRegistry();
   };
 
   return { engine, scene, camera, lighting, updateRoomConfig, dispose };

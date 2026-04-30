@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import * as BABYLON from "@babylonjs/core";
+import { toast } from "sonner";
 
 import { getBackWallPosition, initTrialScene } from "./core/TrialSceneSetup";
 import { TrialRoomConfig } from "./core/TrialConfig";
@@ -10,17 +11,18 @@ import {
   TrialModelLoadResult,
 } from "./furniture/TrialModelLoader";
 import {
-  isTrialDraggableMesh,
-  tryStartTrialDragFromPointer,
+  getTrialResolvedDragTarget,
+  tryStartTrialDragFromPick,
 } from "./furniture/DragBehavior";
 import {
-  getTrialAssetById,
-  TRIAL_ASSET_DRAG_TYPE,
-} from "./trialAssetCatalog";
-import {
-  TrialSpawnPoint,
-  useTrialRoomStore,
-} from "./useTrialRoomStore";
+  clearRegistry,
+  getModel,
+  registerModel,
+  unregisterModel,
+} from "./furniture/TrialModelRegistry";
+import { getTrialAssetById, TRIAL_ASSET_DRAG_TYPE } from "./trialAssetCatalog";
+import { TrialSpawnPoint, useTrialRoomStore } from "./useTrialRoomStore";
+import { CABINET_CONFIG } from "./CabinetConfig";
 
 /**
  * TrialRoomCanvas.tsx
@@ -42,6 +44,174 @@ const toSpawnPoint = (point: BABYLON.Vector3): TrialSpawnPoint => ({
   z: point.z,
 });
 
+interface TrialMeshBounds {
+  min: BABYLON.Vector3;
+  max: BABYLON.Vector3;
+}
+
+interface TrialInteriorInstance {
+  assetId: string;
+  instanceId: string;
+  result: TrialModelLoadResult;
+}
+
+interface TrialFrameInstance {
+  assetId: string;
+  bounds: TrialMeshBounds;
+  instanceId: string;
+  interiors: TrialInteriorInstance[];
+  result: TrialModelLoadResult;
+}
+
+interface TrialInteractionPick {
+  instanceId: string | null;
+  kind?: string;
+  mesh: BABYLON.AbstractMesh;
+  pickInfo: BABYLON.PickingInfo;
+}
+
+interface TrialPointerOwnership {
+  activePointerId: number | null;
+  dragInstanceId: string | null;
+  owner: "none" | "model";
+}
+
+const createInteriorAnchorDebugMarker = (
+  scene: BABYLON.Scene,
+  parent: BABYLON.TransformNode,
+  name: string,
+  localAnchor: BABYLON.Vector3,
+) => {
+  const markerRoot = new BABYLON.TransformNode(`${name}-anchor-root`, scene);
+  markerRoot.parent = parent;
+  markerRoot.position.copyFrom(localAnchor);
+
+  const marker = BABYLON.MeshBuilder.CreateSphere(
+    `${name}-anchor-point`,
+    { diameter: 0.035 },
+    scene,
+  );
+  marker.parent = markerRoot;
+  marker.isPickable = false;
+
+  const markerMaterial = new BABYLON.StandardMaterial(
+    `${name}-anchor-mat`,
+    scene,
+  );
+  markerMaterial.emissiveColor = new BABYLON.Color3(1, 0.4, 0.1);
+  markerMaterial.disableLighting = true;
+  marker.material = markerMaterial;
+
+  const axisLength = 0.18;
+  const axisDefinitions = [
+    {
+      suffix: "x",
+      points: [BABYLON.Vector3.Zero(), new BABYLON.Vector3(axisLength, 0, 0)],
+      color: new BABYLON.Color3(1, 0.9, 0.1),
+    },
+    {
+      suffix: "y",
+      points: [BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, axisLength, 0)],
+      color: new BABYLON.Color3(0.2, 1, 0.3),
+    },
+    {
+      suffix: "z",
+      points: [BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, 0, axisLength)],
+      color: new BABYLON.Color3(0.2, 0.7, 1),
+    },
+  ];
+
+  const axisLines = axisDefinitions.map(({ suffix, points, color }) => {
+    const line = BABYLON.MeshBuilder.CreateLines(
+      `${name}-anchor-axis-${suffix}`,
+      { points },
+      scene,
+    );
+    line.parent = markerRoot;
+    line.color = color;
+    line.isPickable = false;
+    return line;
+  });
+
+  return {
+    dispose: () => {
+      axisLines.forEach((line) => line.dispose());
+      markerMaterial.dispose();
+      marker.dispose();
+      markerRoot.dispose();
+    },
+  };
+};
+
+const toCentimeters = (valueInMeters: number) =>
+  Math.round(valueInMeters * 100);
+
+const getScaledAxis = (
+  currentScale: number,
+  measuredSize: number,
+  targetSize: number,
+  mode: "keep" | "shrink" | "fill",
+) => {
+  if (measuredSize <= 0 || targetSize <= 0) {
+    return currentScale;
+  }
+
+  if (mode === "fill") {
+    return currentScale * (targetSize / measuredSize);
+  }
+
+  if (mode === "shrink" && measuredSize > targetSize) {
+    return currentScale * (targetSize / measuredSize);
+  }
+
+  return currentScale;
+};
+
+const getHierarchyBoundsInLocalSpace = (
+  rootMesh: BABYLON.TransformNode,
+): TrialMeshBounds => {
+  rootMesh.computeWorldMatrix(true);
+
+  const renderMeshes = rootMesh.getChildMeshes();
+  if (rootMesh instanceof BABYLON.AbstractMesh) {
+    renderMeshes.unshift(rootMesh);
+  }
+
+  renderMeshes.forEach((mesh) => mesh.computeWorldMatrix(true));
+
+  const inverseRootWorld = rootMesh.getWorldMatrix().clone();
+  inverseRootWorld.invert();
+
+  const min = new BABYLON.Vector3(
+    Number.POSITIVE_INFINITY,
+    Number.POSITIVE_INFINITY,
+    Number.POSITIVE_INFINITY,
+  );
+  const max = new BABYLON.Vector3(
+    Number.NEGATIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+  );
+
+  renderMeshes.forEach((mesh) => {
+    mesh.refreshBoundingInfo({ applySkeleton: true });
+
+    mesh
+      .getBoundingInfo()
+      .boundingBox.vectorsWorld.forEach((worldCorner: BABYLON.Vector3) => {
+        const localCorner = BABYLON.Vector3.TransformCoordinates(
+          worldCorner,
+          inverseRootWorld,
+        );
+
+        min.minimizeInPlace(localCorner);
+        max.maximizeInPlace(localCorner);
+      });
+  });
+
+  return { min, max };
+};
+
 const hasTrialAssetDragType = (event: DragEvent) =>
   Array.from(event.dataTransfer?.types ?? []).includes(TRIAL_ASSET_DRAG_TYPE);
 
@@ -62,60 +232,407 @@ const pickFloorPointFromClient = (
   return pickInfo?.hit && pickInfo.pickedPoint ? pickInfo.pickedPoint : null;
 };
 
+const getDefaultFrameSpawnPosition = (
+  roomConfig: TrialRoomConfig,
+  frameIndex: number,
+) => {
+  const position = getBackWallPosition(roomConfig, 0.01);
+
+  if (frameIndex === 0) {
+    return position;
+  }
+
+  const step = Math.ceil(frameIndex / 2);
+  const direction = frameIndex % 2 === 0 ? 1 : -1;
+  position.x += direction * step * 0.9;
+
+  return position;
+};
+
 export const TrialRoomCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
   useEffect(() => {
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const initialRoomConfig = useTrialRoomStore.getState().appliedRoomConfig;
     const {
+      camera,
       scene,
       lighting,
       updateRoomConfig,
       dispose: disposeScene,
     } = initTrialScene(canvas, initialRoomConfig);
+    const selectionLayer =
+      scene.getSelectionOutlineLayerByName("trial-selection-outline") ??
+      new BABYLON.SelectionOutlineLayer("trial-selection-outline", scene, {
+        mainTextureRatio: 2.0,
+      });
+    selectionLayer.outlineColor = new BABYLON.Color3(1, 0.85, 0);
+    selectionLayer.outlineThickness = 2.5;
+    selectionLayer.occlusionStrength = 0.6;
+    selectionLayer.occlusionThreshold = 0.05;
 
     let isMounted = true;
-    let latestSpawnRequestId = 0;
-    let frameProduct: TrialModelLoadResult | null = null;
-    const interiorModels: TrialModelLoadResult[] = [];
+    const frameInstances: TrialFrameInstance[] = [];
     let currentRoomConfig: TrialRoomConfig = initialRoomConfig;
+    let modelInstanceSerial = 0;
+    let pendingFrameLoads = 0;
+    const pointerOwnership: TrialPointerOwnership = {
+      activePointerId: null,
+      dragInstanceId: null,
+      owner: "none",
+    };
 
-    const clearInterior = () => {
-      while (interiorModels.length > 0) {
-        interiorModels.pop()?.dispose();
+    const setCameraInteractionEnabled = (enabled: boolean) => {
+      if (enabled) {
+        if (!camera.inputs.attachedToElement) {
+          camera.attachControl(canvas, true);
+        }
+        return;
+      }
+
+      if (camera.inputs.attachedToElement) {
+        camera.detachControl();
       }
     };
 
-    const clearFrameProduct = () => {
-      clearInterior();
-      frameProduct?.dispose();
-      frameProduct = null;
-      useTrialRoomStore.getState().setHasFrameProduct(false);
-      useTrialRoomStore.getState().setActiveFrameProductId(null);
-      useTrialRoomStore.getState().clearActiveInteriorProductIds();
+    const createModelInstanceId = (
+      category: "frame" | "interior",
+      assetId: string,
+    ) => {
+      modelInstanceSerial += 1;
+      return `trial-${category}-${assetId}-${modelInstanceSerial}`;
+    };
+
+    const syncLoadedProductStoreState = () => {
+      const store = useTrialRoomStore.getState();
+      store.setHasFrameProduct(frameInstances.length > 0);
+      store.setActiveFrameProductIds(
+        frameInstances.map((frame) => frame.assetId),
+      );
+      store.setActiveInteriorProductIds(
+        frameInstances.flatMap((frame) =>
+          frame.interiors.map((interior) => interior.assetId),
+        ),
+      );
+    };
+
+    const getAllLoadedModels = () =>
+      frameInstances.flatMap((frame) => [
+        frame.result,
+        ...frame.interiors.map((interior) => interior.result),
+      ]);
+
+    const getModelCategory = (instanceId: string | null) => {
+      if (!instanceId) {
+        return null;
+      }
+
+      for (const frame of frameInstances) {
+        if (frame.instanceId === instanceId) {
+          return "frame" as const;
+        }
+
+        if (
+          frame.interiors.some((interior) => interior.instanceId === instanceId)
+        ) {
+          return "interior" as const;
+        }
+      }
+
+      return null;
+    };
+
+    const syncDragProxyPickability = (
+      selectedInstanceId = useTrialRoomStore.getState().selectedMeshName,
+    ) => {
+      getAllLoadedModels().forEach((model) => {
+        if (model.boundingBoxMesh) {
+          model.boundingBoxMesh.isPickable =
+            model.instanceId === selectedInstanceId;
+        }
+      });
+    };
+
+    const syncSelectionOutline = (
+      selectedInstanceId = useTrialRoomStore.getState().selectedMeshName,
+    ) => {
+      selectionLayer.clearSelection();
+      syncDragProxyPickability(selectedInstanceId);
+
+      if (!selectedInstanceId) {
+        return;
+      }
+
+      const selectedModel = getModel(selectedInstanceId);
+
+      if (selectedModel && selectedModel.selectionMeshes.length > 0) {
+        selectionLayer.addSelection(selectedModel.selectionMeshes);
+      }
+    };
+
+    const resolveFrameFromSelection = (selectedInstanceId: string | null) => {
+      if (!selectedInstanceId) {
+        return null;
+      }
+
+      const selectedFrame = frameInstances.find(
+        (frame) => frame.instanceId === selectedInstanceId,
+      );
+      if (selectedFrame) {
+        return selectedFrame;
+      }
+
+      return (
+        frameInstances.find((frame) =>
+          frame.interiors.some(
+            (interior) => interior.instanceId === selectedInstanceId,
+          ),
+        ) ?? null
+      );
+    };
+
+    const resolveInteriorTargetFrame = () => {
+      if (frameInstances.length === 1) {
+        return frameInstances[0];
+      }
+
+      return resolveFrameFromSelection(
+        useTrialRoomStore.getState().selectedMeshName,
+      );
+    };
+
+    const findFrameIndexByInstanceId = (instanceId: string) =>
+      frameInstances.findIndex((frame) => frame.instanceId === instanceId);
+
+    const findInteriorOwnerFrame = (instanceId: string) =>
+      frameInstances.find((frame) =>
+        frame.interiors.some((interior) => interior.instanceId === instanceId),
+      ) ?? null;
+
+    const disposeInteriorInstance = (
+      frame: TrialFrameInstance,
+      interiorInstanceId: string,
+    ) => {
+      const interiorIndex = frame.interiors.findIndex(
+        (interior) => interior.instanceId === interiorInstanceId,
+      );
+      if (interiorIndex < 0) {
+        return null;
+      }
+
+      const [interior] = frame.interiors.splice(interiorIndex, 1);
+      useTrialRoomStore.getState().removeLoadedModel(interior.instanceId);
+      unregisterModel(interior.instanceId);
+      return interior;
+    };
+
+    const disposeFrameInstance = (frame: TrialFrameInstance) => {
+      while (frame.interiors.length > 0) {
+        disposeInteriorInstance(frame, frame.interiors[0]!.instanceId);
+      }
+
+      useTrialRoomStore.getState().removeLoadedModel(frame.instanceId);
+      unregisterModel(frame.instanceId);
+    };
+
+    const deleteSelectedInstance = (targetInstanceId: string) => {
+      const frameIndex = findFrameIndexByInstanceId(targetInstanceId);
+      if (frameIndex >= 0) {
+        const [removedFrame] = frameInstances.splice(frameIndex, 1);
+        const fallbackFrame =
+          frameInstances[frameIndex] ?? frameInstances[frameIndex - 1] ?? null;
+
+        disposeFrameInstance(removedFrame);
+        syncLoadedProductStoreState();
+        useTrialRoomStore
+          .getState()
+          .setSelectedMesh(fallbackFrame?.instanceId ?? null);
+        return true;
+      }
+
+      const ownerFrame = findInteriorOwnerFrame(targetInstanceId);
+      if (!ownerFrame) {
+        return false;
+      }
+
+      const removedInterior = disposeInteriorInstance(
+        ownerFrame,
+        targetInstanceId,
+      );
+      if (!removedInterior) {
+        return false;
+      }
+
+      syncLoadedProductStoreState();
+      useTrialRoomStore.getState().setSelectedMesh(ownerFrame.instanceId);
+      return true;
+    };
+
+    const clearAllFrames = () => {
+      while (frameInstances.length > 0) {
+        disposeFrameInstance(frameInstances.pop()!);
+      }
+
+      syncLoadedProductStoreState();
       useTrialRoomStore.getState().setActiveMaterialProductIds([]);
       useTrialRoomStore.getState().setSelectedMesh(null);
     };
 
-    const onPointerDown = (pointerInfo: BABYLON.PointerInfo) => {
-      const hitMesh = pointerInfo.pickInfo?.pickedMesh;
-      const isDraggableMesh = isTrialDraggableMesh(hitMesh);
+    const resolveInteractionPick = (
+      clientX: number,
+      clientY: number,
+    ): TrialInteractionPick | null => {
+      const picks =
+        scene.multiPick(clientX, clientY, (mesh) => mesh.isPickable) ?? [];
+      const selectedInstanceId = useTrialRoomStore.getState().selectedMeshName;
 
-      if (isDraggableMesh) {
-        tryStartTrialDragFromPointer(pointerInfo);
+      const scoredPicks = picks
+        .filter((pick) => pick.hit && pick.pickedMesh)
+        .map((pick) => {
+          const mesh = pick.pickedMesh!;
+          const target = getTrialResolvedDragTarget(mesh);
+          const instanceId = target?.instanceId ?? null;
+          const category = getModelCategory(instanceId);
+          const isBoundingBox = target?.kind === "bounding-box";
+
+          let priority = 0;
+          if (category === "interior" && !isBoundingBox) {
+            priority = 500;
+          } else if (category === "frame" && !isBoundingBox) {
+            priority = 400;
+          } else if (isBoundingBox && instanceId === selectedInstanceId) {
+            priority = 100;
+          } else if (mesh.metadata?.side) {
+            priority = 10;
+          }
+
+          return {
+            category,
+            instanceId,
+            isBoundingBox,
+            mesh,
+            pick,
+            priority,
+          };
+        })
+        .filter((candidate) => candidate.priority > 0)
+        .sort((left, right) => {
+          if (right.priority !== left.priority) {
+            return right.priority - left.priority;
+          }
+
+          return left.pick.distance - right.pick.distance;
+        });
+
+      if (scoredPicks.length === 0) {
+        return null;
+      }
+
+      const winner = scoredPicks[0];
+      return {
+        instanceId: winner.instanceId,
+        kind: winner.isBoundingBox
+          ? "bounding-box"
+          : (winner.category ?? undefined),
+        mesh: winner.mesh,
+        pickInfo: winner.pick,
+      };
+    };
+
+    const registerDragLifecycle = (result: TrialModelLoadResult) => {
+      if (!result.dragBehavior) {
         return;
       }
 
-      useTrialRoomStore.getState().setSelectedMesh(null);
+      const dragStartObserver = result.dragBehavior.onDragStartObservable.add(
+        () => {
+          result.syncBoundingBox();
+          pointerOwnership.owner = "model";
+          pointerOwnership.dragInstanceId = result.instanceId;
+          setCameraInteractionEnabled(false);
+        },
+      );
+
+      const dragEndObserver = result.dragBehavior.onDragEndObservable.add(
+        () => {
+          result.syncBoundingBox();
+          pointerOwnership.owner = "none";
+          pointerOwnership.dragInstanceId = null;
+          pointerOwnership.activePointerId = null;
+          setCameraInteractionEnabled(true);
+        },
+      );
+
+      const disposeModel = result.dispose;
+      result.dispose = () => {
+        result.dragBehavior?.onDragStartObservable.remove(dragStartObserver);
+        result.dragBehavior?.onDragEndObservable.remove(dragEndObserver);
+        disposeModel();
+      };
     };
 
-    const pointerObserver = scene.onPointerObservable.add(
-      onPointerDown,
+    const prePointerObserver = scene.onPrePointerObservable.add(
+      (pointerInfo) => {
+        if (pointerInfo.type !== BABYLON.PointerEventTypes.POINTERDOWN) {
+          return;
+        }
+
+        const pointerEvent = pointerInfo.event as PointerEvent;
+        if (pointerEvent.button !== 0) {
+          return;
+        }
+
+        const resolvedPick = resolveInteractionPick(
+          scene.pointerX,
+          scene.pointerY,
+        );
+        if (!resolvedPick?.instanceId) {
+          pointerOwnership.activePointerId = null;
+          pointerOwnership.dragInstanceId = null;
+          pointerOwnership.owner = "none";
+          useTrialRoomStore.getState().setSelectedMesh(null);
+          return;
+        }
+
+        const selectedInstanceId =
+          useTrialRoomStore.getState().selectedMeshName;
+        const canStartDrag =
+          selectedInstanceId === resolvedPick.instanceId &&
+          getTrialResolvedDragTarget(resolvedPick.mesh) !== null;
+
+        useTrialRoomStore.getState().setSelectedMesh(resolvedPick.instanceId);
+
+        if (!canStartDrag) {
+          return;
+        }
+
+        pointerOwnership.activePointerId = pointerEvent.pointerId;
+        pointerOwnership.dragInstanceId = resolvedPick.instanceId;
+        setCameraInteractionEnabled(false);
+        pointerEvent.preventDefault();
+        tryStartTrialDragFromPick(resolvedPick.pickInfo, pointerEvent);
+      },
       BABYLON.PointerEventTypes.POINTERDOWN,
     );
+
+    const pointerObserver = scene.onPointerObservable.add((pointerInfo) => {
+      if (pointerInfo.type !== BABYLON.PointerEventTypes.POINTERUP) {
+        return;
+      }
+
+      const pointerEvent = pointerInfo.event as PointerEvent;
+      if (pointerOwnership.activePointerId !== pointerEvent.pointerId) {
+        return;
+      }
+
+      if (pointerOwnership.owner === "none") {
+        pointerOwnership.activePointerId = null;
+        pointerOwnership.dragInstanceId = null;
+        setCameraInteractionEnabled(true);
+      }
+    }, BABYLON.PointerEventTypes.POINTERUP);
 
     const finishSpawnRequest = (requestId: number) => {
       const store = useTrialRoomStore.getState();
@@ -125,8 +642,17 @@ export const TrialRoomCanvas = () => {
       }
     };
 
+    const finishSelectionActionRequest = (requestId: number) => {
+      const store = useTrialRoomStore.getState();
+
+      if (store.selectionActionRequest?.requestId === requestId) {
+        store.clearSelectionActionRequest();
+      }
+    };
+
+    // FRAME
     const spawnFrame = async (
-      requestId: number,
+      _requestId: number,
       assetId: string,
       dropPoint: TrialSpawnPoint | null,
     ) => {
@@ -135,85 +661,288 @@ export const TrialRoomCanvas = () => {
         return;
       }
 
-      // Step 1:
-      // A new frame item replaces the old frame product and resets all interior items.
-      clearFrameProduct();
-
+      const spawnIndex = frameInstances.length + pendingFrameLoads;
+      pendingFrameLoads += 1;
       const initialPosition = dropPoint
         ? toVector3(dropPoint)
-        : getBackWallPosition(currentRoomConfig, 0.01);
+        : getDefaultFrameSpawnPosition(currentRoomConfig, spawnIndex);
 
-      const result = await loadProductBase(scene, {
-        modelPath: asset.modelPath,
-        meshName: "trial-product-base",
-        initialPosition,
-        initialRotationY: asset.initialRotationY,
-        shadowGenerator: lighting.shadowGenerator,
-        enableInteraction: true,
-        centerOnXAxis: true,
-      });
+      try {
+        const instanceId = createModelInstanceId("frame", asset.id);
+        const result = await loadProductBase(scene, {
+          instanceId,
+          modelPath: asset.modelPath,
+          meshName: instanceId,
+          initialPosition,
+          initialRotationY: Math.PI,
+          shadowGenerator: lighting.shadowGenerator,
+          interactionMode: "frame",
+          centerOnXAxis: true,
+        });
 
-      if (!result) {
-        return;
+        if (!result) {
+          return;
+        }
+
+        if (!isMounted) {
+          result.dispose();
+          return;
+        }
+
+        if (!dropPoint && spawnIndex === 0) {
+          const initialBounds = getHierarchyBoundsInLocalSpace(result.rootMesh);
+          const frameWidth = initialBounds.max.x - initialBounds.min.x;
+
+          result.rootMesh.position.x = frameWidth / 2;
+          result.rootMesh.computeWorldMatrix(true);
+        }
+
+        result.syncBoundingBox();
+        registerDragLifecycle(result);
+        registerModel(instanceId, result);
+        useTrialRoomStore.getState().addLoadedModel({
+          instanceId,
+          assetId,
+          category: "frame",
+        });
+
+        frameInstances.push({
+          assetId,
+          bounds: getHierarchyBoundsInLocalSpace(result.rootMesh),
+          instanceId,
+          interiors: [],
+          result,
+        });
+
+        // Step 2:
+        // Frames can coexist, and the newest frame becomes the active insertion target.
+        syncLoadedProductStoreState();
+        useTrialRoomStore.getState().setSelectedMesh(instanceId);
+      } finally {
+        pendingFrameLoads = Math.max(0, pendingFrameLoads - 1);
       }
-
-      if (!isMounted || latestSpawnRequestId !== requestId) {
-        result.dispose();
-        return;
-      }
-
-      frameProduct = result;
-
-      // Step 2:
-      // Once the frame exists, Interior Lemari becomes available in the panel.
-      useTrialRoomStore.getState().setHasFrameProduct(true);
-      useTrialRoomStore.getState().setActiveFrameProductId(assetId);
-      useTrialRoomStore.getState().setSelectedMesh(result.rootMesh.name);
     };
 
-    const spawnInterior = async (requestId: number, assetId: string) => {
+    // INTERIOR
+    const spawnInterior = async (
+      _requestId: number,
+      assetId: string,
+      targetFrame: TrialFrameInstance,
+      options?: {
+        localPosition?: BABYLON.Vector3;
+      },
+    ) => {
       const asset = getTrialAssetById(assetId);
-      if (!asset || !frameProduct) {
-        return;
-      }
+      if (!asset) return;
+      const instanceId = createModelInstanceId("interior", asset.id);
 
       const result = await loadProductBase(scene, {
+        instanceId,
         modelPath: asset.modelPath,
-        meshName: `trial-interior-${asset.id}-${requestId}`,
+        meshName: instanceId,
         initialPosition: BABYLON.Vector3.Zero(),
-        initialRotationY: asset.initialRotationY,
+        initialRotationY: 0,
         shadowGenerator: lighting.shadowGenerator,
-        enableInteraction: false,
+        interactionMode: "interior",
         centerOnXAxis: false,
       });
 
-      if (!result) {
-        return;
-      }
-
-      if (!isMounted || latestSpawnRequestId !== requestId || !frameProduct) {
+      if (!result) return;
+      if (!isMounted) {
         result.dispose();
         return;
       }
 
-      // Step 3:
-      // Parent interior to the frame product so it follows the same drag movement.
-      result.rootMesh.parent = frameProduct.rootMesh;
-      result.rootMesh.position.copyFromFloats(0, 0, 0);
+      result.rootMesh.parent = targetFrame.result.rootMesh;
       result.rootMesh.rotationQuaternion = null;
-      result.rootMesh.rotation.y = asset.initialRotationY ?? 0;
+      result.rootMesh.rotation.set(0, asset.initialRotationY ?? 0, 0);
       result.rootMesh.computeWorldMatrix(true);
 
-      interiorModels.push(result);
-      useTrialRoomStore.getState().addActiveInteriorProductId(assetId);
-      useTrialRoomStore.getState().setSelectedMesh(frameProduct.rootMesh.name);
+      let interiorBounds = getHierarchyBoundsInLocalSpace(result.rootMesh);
+      const frameWidth = targetFrame.bounds.max.x - targetFrame.bounds.min.x;
+      const frameHeight = targetFrame.bounds.max.y - targetFrame.bounds.min.y;
+      const frameDepth = targetFrame.bounds.max.z - targetFrame.bounds.min.z;
+      const availableWidth = frameWidth - CABINET_CONFIG.thickness * 2;
+      const availableHeight =
+        frameHeight -
+        CABINET_CONFIG.plinthHeight -
+        CABINET_CONFIG.thickness * 2;
+      const availableDepth =
+        frameDepth - CABINET_CONFIG.backGap - CABINET_CONFIG.backPanelThick;
+      const originalInteriorWidth = interiorBounds.max.x - interiorBounds.min.x;
+      const originalInteriorHeight =
+        interiorBounds.max.y - interiorBounds.min.y;
+      const originalInteriorDepth = interiorBounds.max.z - interiorBounds.min.z;
+
+      const nextScaleX = getScaledAxis(
+        result.rootMesh.scaling.x,
+        originalInteriorWidth,
+        availableWidth,
+        asset.fitWidthMode ?? "keep",
+      );
+      const nextScaleY = getScaledAxis(
+        result.rootMesh.scaling.y,
+        originalInteriorHeight,
+        availableHeight,
+        asset.fitHeightMode ?? "keep",
+      );
+      const nextScaleZ = getScaledAxis(
+        result.rootMesh.scaling.z,
+        originalInteriorDepth,
+        availableDepth,
+        asset.fitDepthMode ?? "keep",
+      );
+
+      const scalingChanged =
+        Math.abs(nextScaleX - result.rootMesh.scaling.x) > 0.0001 ||
+        Math.abs(nextScaleY - result.rootMesh.scaling.y) > 0.0001 ||
+        Math.abs(nextScaleZ - result.rootMesh.scaling.z) > 0.0001;
+
+      if (scalingChanged) {
+        result.rootMesh.scaling.set(nextScaleX, nextScaleY, nextScaleZ);
+        result.rootMesh.computeWorldMatrix(true);
+        interiorBounds = getHierarchyBoundsInLocalSpace(result.rootMesh);
+      }
+
+      const fittedInteriorWidth = interiorBounds.max.x - interiorBounds.min.x;
+      const interiorHeight = interiorBounds.max.y - interiorBounds.min.y;
+      const interiorDepth = interiorBounds.max.z - interiorBounds.min.z;
+      const fitIssues: string[] = [];
+
+      if (interiorHeight > availableHeight + 0.0001) {
+        fitIssues.push(
+          `height ${toCentimeters(interiorHeight)}cm > ${toCentimeters(availableHeight)}cm`,
+        );
+      }
+
+      if (interiorDepth > availableDepth + 0.0001) {
+        fitIssues.push(
+          `depth ${toCentimeters(interiorDepth)}cm > ${toCentimeters(availableDepth)}cm`,
+        );
+      }
+
+      if (fitIssues.length > 0) {
+        const frameAsset = getTrialAssetById(targetFrame.assetId);
+
+        toast("Interior does not fit this frame", {
+          description: `${asset.name} cannot fit inside ${frameAsset?.name ?? "the current frame"}: ${fitIssues.join(", ")}.`,
+        });
+
+        console.warn("[TrialRoomCanvas] Interior fit rejected", {
+          frameAssetId: frameAsset?.id ?? null,
+          interiorAssetId: asset.id,
+          availableWidth,
+          availableHeight,
+          availableDepth,
+          interiorWidth: fittedInteriorWidth,
+          originalInteriorWidth,
+          originalInteriorHeight,
+          originalInteriorDepth,
+          interiorHeight,
+          interiorDepth,
+        });
+
+        result.dispose();
+        return;
+      }
+
+      const anchorX = targetFrame.bounds.min.x + CABINET_CONFIG.thickness;
+      const anchorY = CABINET_CONFIG.plinthHeight + CABINET_CONFIG.thickness;
+      const baseAnchorZ =
+        targetFrame.bounds.min.z +
+        CABINET_CONFIG.backGap +
+        CABINET_CONFIG.backPanelThick;
+      const anchorZ =
+        asset.id === "component-hanging-rod"
+          ? baseAnchorZ + (availableDepth - interiorDepth) / 2
+          : baseAnchorZ;
+      const localAnchor = new BABYLON.Vector3(
+        anchorX - interiorBounds.min.x,
+        anchorY - interiorBounds.min.y,
+        anchorZ - interiorBounds.min.z,
+      );
+
+      result.rootMesh.position.copyFrom(options?.localPosition ?? localAnchor);
+      result.rootMesh.computeWorldMatrix(true);
+      result.syncBoundingBox();
+      registerDragLifecycle(result);
+      registerModel(instanceId, result);
+      useTrialRoomStore.getState().addLoadedModel({
+        instanceId,
+        assetId,
+        category: "interior",
+      });
+
+      const anchorDebug = createInteriorAnchorDebugMarker(
+        scene,
+        targetFrame.result.rootMesh,
+        result.rootMesh.name,
+        localAnchor,
+      );
+      const disposeInterior = result.dispose;
+      result.dispose = () => {
+        anchorDebug.dispose();
+        disposeInterior();
+      };
+
+      targetFrame.interiors.push({
+        assetId,
+        instanceId,
+        result,
+      });
+      syncLoadedProductStoreState();
+      useTrialRoomStore.getState().setSelectedMesh(instanceId);
+    };
+
+    const duplicateSelectedInstance = async (
+      requestId: number,
+      targetInstanceId: string,
+    ) => {
+      const sourceFrame =
+        frameInstances.find((frame) => frame.instanceId === targetInstanceId) ??
+        null;
+      if (sourceFrame) {
+        const frameWidth = sourceFrame.bounds.max.x - sourceFrame.bounds.min.x;
+        const duplicatePosition = sourceFrame.result.rootMesh.position
+          .clone()
+          .add(new BABYLON.Vector3(Math.max(frameWidth + 0.15, 0.45), 0, 0));
+
+        await spawnFrame(
+          requestId,
+          sourceFrame.assetId,
+          toSpawnPoint(duplicatePosition),
+        );
+        return true;
+      }
+
+      const ownerFrame = findInteriorOwnerFrame(targetInstanceId);
+      if (!ownerFrame) {
+        return false;
+      }
+
+      const sourceInterior =
+        ownerFrame.interiors.find(
+          (interior) => interior.instanceId === targetInstanceId,
+        ) ?? null;
+      if (!sourceInterior) {
+        return false;
+      }
+
+      const duplicateLocalPosition = sourceInterior.result.rootMesh.position
+        .clone()
+        .add(new BABYLON.Vector3(0, 0.08, 0));
+
+      await spawnInterior(requestId, sourceInterior.assetId, ownerFrame, {
+        localPosition: duplicateLocalPosition,
+      });
+      return true;
     };
 
     const handleSpawnRequest = async (
-      request: NonNullable<ReturnType<typeof useTrialRoomStore.getState>["spawnRequest"]>,
+      request: NonNullable<
+        ReturnType<typeof useTrialRoomStore.getState>["spawnRequest"]
+      >,
     ) => {
-      latestSpawnRequestId = request.requestId;
-
       const asset = getTrialAssetById(request.assetId);
       if (!asset) {
         finishSpawnRequest(request.requestId);
@@ -226,18 +955,44 @@ export const TrialRoomCanvas = () => {
       }
 
       if (asset.category === "interior") {
-        if (!frameProduct) {
+        const targetFrame = resolveInteriorTargetFrame();
+        if (!targetFrame) {
+          if (frameInstances.length > 1) {
+            toast("Select a frame first", {
+              description:
+                "When multiple frames are loaded, interior items attach to the selected frame only.",
+            });
+          }
+
           finishSpawnRequest(request.requestId);
           return;
         }
 
-        await spawnInterior(request.requestId, request.assetId);
+        await spawnInterior(request.requestId, request.assetId, targetFrame);
         finishSpawnRequest(request.requestId);
         return;
       }
 
       await spawnFrame(request.requestId, request.assetId, request.dropPoint);
       finishSpawnRequest(request.requestId);
+    };
+
+    const handleSelectionActionRequest = async (
+      request: NonNullable<
+        ReturnType<typeof useTrialRoomStore.getState>["selectionActionRequest"]
+      >,
+    ) => {
+      if (request.action === "delete") {
+        deleteSelectedInstance(request.targetInstanceId);
+        finishSelectionActionRequest(request.requestId);
+        return;
+      }
+
+      await duplicateSelectedInstance(
+        request.requestId,
+        request.targetInstanceId,
+      );
+      finishSelectionActionRequest(request.requestId);
     };
 
     const unsubscribeSpawn = useTrialRoomStore.subscribe((state, previous) => {
@@ -247,6 +1002,29 @@ export const TrialRoomCanvas = () => {
 
       void handleSpawnRequest(state.spawnRequest);
     });
+    const unsubscribeSelectionAction = useTrialRoomStore.subscribe(
+      (state, previous) => {
+        if (
+          !state.selectionActionRequest ||
+          state.selectionActionRequest === previous.selectionActionRequest
+        ) {
+          return;
+        }
+
+        void handleSelectionActionRequest(state.selectionActionRequest);
+      },
+    );
+    const unsubscribeSelection = useTrialRoomStore.subscribe(
+      (state, previous) => {
+        if (state.selectedMeshName === previous.selectedMeshName) {
+          return;
+        }
+
+        syncSelectionOutline(state.selectedMeshName);
+      },
+    );
+
+    syncSelectionOutline(useTrialRoomStore.getState().selectedMeshName);
 
     const unsubscribeRoomConfig = useTrialRoomStore.subscribe(
       (state, previous) => {
@@ -297,7 +1075,7 @@ export const TrialRoomCanvas = () => {
         }
 
         // Step 4:
-        // Interior always attaches to the current frame, so drop position is ignored.
+        // Interior attaches to the selected frame, or the only frame when just one exists.
         useTrialRoomStore.getState().requestAssetSpawn(assetId, null);
         return;
       }
@@ -309,16 +1087,21 @@ export const TrialRoomCanvas = () => {
         event.clientY,
       );
 
-      useTrialRoomStore.getState().requestAssetSpawn(
-        assetId,
-        pickedPoint ? toSpawnPoint(pickedPoint) : null,
-      );
+      useTrialRoomStore
+        .getState()
+        .requestAssetSpawn(
+          assetId,
+          pickedPoint ? toSpawnPoint(pickedPoint) : null,
+        );
     };
 
     canvas.addEventListener("dragover", handleCanvasDragOver);
     canvas.addEventListener("drop", handleCanvasDrop);
 
     return () => {
+      if (prePointerObserver) {
+        scene.onPrePointerObservable.remove(prePointerObserver);
+      }
       if (pointerObserver) {
         scene.onPointerObservable.remove(pointerObserver);
       }
@@ -326,9 +1109,13 @@ export const TrialRoomCanvas = () => {
       canvas.removeEventListener("dragover", handleCanvasDragOver);
       canvas.removeEventListener("drop", handleCanvasDrop);
       unsubscribeSpawn();
+      unsubscribeSelectionAction();
+      unsubscribeSelection();
       unsubscribeRoomConfig();
       isMounted = false;
-      clearFrameProduct();
+      setCameraInteractionEnabled(true);
+      clearAllFrames();
+      clearRegistry();
       disposeScene();
     };
   }, []);

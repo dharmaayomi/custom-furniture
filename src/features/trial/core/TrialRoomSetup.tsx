@@ -57,6 +57,41 @@ const createMaterial = (
   return material;
 };
 
+const createWallSurfaceMaterial = (
+  scene: BABYLON.Scene,
+  name: string,
+  horizontalSpan: number,
+  verticalSpan: number,
+  wallColor: string,
+) => {
+  const wallTileWorldSize = 1;
+  const uScale = Math.max(horizontalSpan / wallTileWorldSize, 0.001);
+  const vScale = Math.max(verticalSpan / wallTileWorldSize, 0.001);
+
+  const material = new BABYLON.PBRMaterial(name, scene);
+  material.albedoTexture = createTexture(
+    scene,
+    TRIAL_TEXTURES.wall,
+    uScale,
+    vScale,
+  );
+  material.albedoColor = hexToColor3(wallColor);
+  material.bumpTexture = createTexture(
+    scene,
+    TRIAL_TEXTURES.bump_wall,
+    uScale,
+    vScale,
+  );
+  material.bumpTexture.level = 1;
+  material.invertNormalMapX = true;
+  material.invertNormalMapY = true;
+  material.roughness = 0.85;
+  material.metallic = 0;
+  material.backFaceCulling = false;
+
+  return material;
+};
+
 /**
  * Membuat Panel Solid dengan Miter Joint di keempat sisi.
  * Presisi untuk Dinding, Lantai, dan Plafon agar bertemu di 45 derajat.
@@ -266,15 +301,20 @@ export const setupTrialRoom = (
 
   const innerWallHeight = height - wallThickness - floorThickness;
 
-  const innerWallMat = new BABYLON.PBRMaterial("inner-wall-mat", scene);
-  const wallTexture = new BABYLON.Texture(TRIAL_TEXTURES.wall, scene);
-  wallTexture.uScale = 4.0;
-  wallTexture.vScale = 3.0;
-  innerWallMat.albedoTexture = wallTexture;
-  innerWallMat.albedoColor = hexToColor3(wallColor);
-  innerWallMat.roughness = 0.85;
-  innerWallMat.metallic = 0;
-  innerWallMat.backFaceCulling = false;
+  const widthWallMat = createWallSurfaceMaterial(
+    scene,
+    "inner-wall-width-mat",
+    width,
+    innerWallHeight,
+    wallColor,
+  );
+  const depthWallMat = createWallSurfaceMaterial(
+    scene,
+    "inner-wall-depth-mat",
+    depth,
+    innerWallHeight,
+    wallColor,
+  );
 
   const innerCeilingMat = new BABYLON.PBRMaterial("inner-ceiling-mat", scene);
   innerCeilingMat.albedoColor = hexToColor3(wallColor);
@@ -410,9 +450,9 @@ export const setupTrialRoom = (
   const innerWallY = floorThickness + innerWallHeight / 2;
   const innerSurfaceThickness = 0.002;
 
-  const innerBackWall = BABYLON.MeshBuilder.CreateBox(
+  const innerBackWall = BABYLON.MeshBuilder.CreatePlane(
     "inner_wall_back",
-    { width, height: innerWallHeight, depth: innerSurfaceThickness },
+    { width, height: innerWallHeight },
     scene,
   );
   innerBackWall.position.set(
@@ -420,15 +460,15 @@ export const setupTrialRoom = (
     innerWallY,
     depth / 2 - innerSurfaceThickness / 2,
   );
-  // innerBackWall.material = makeWallMat("mat-back", width); // 6.8
-  innerBackWall.material = innerWallMat;
+  innerBackWall.rotation.y = Math.PI;
+  innerBackWall.material = widthWallMat;
 
   innerBackWall.receiveShadows = true;
   innerBackWall.metadata = { side: "back" };
 
-  const innerFrontWall = BABYLON.MeshBuilder.CreateBox(
+  const innerFrontWall = BABYLON.MeshBuilder.CreatePlane(
     "inner_wall_front",
-    { width, height: innerWallHeight, depth: innerSurfaceThickness },
+    { width, height: innerWallHeight },
     scene,
   );
   innerFrontWall.position.set(
@@ -436,14 +476,13 @@ export const setupTrialRoom = (
     innerWallY,
     -depth / 2 + innerSurfaceThickness / 2,
   );
-  innerFrontWall.material = innerWallMat;
-  // innerFrontWall.material = makeWallMat("mat-front", width); // 6.8
+  innerFrontWall.material = widthWallMat;
   innerFrontWall.receiveShadows = true;
   innerFrontWall.metadata = { side: "front" };
 
-  const innerLeftWall = BABYLON.MeshBuilder.CreateBox(
+  const innerLeftWall = BABYLON.MeshBuilder.CreatePlane(
     "inner_wall_left",
-    { width: innerSurfaceThickness, height: innerWallHeight, depth },
+    { width: depth, height: innerWallHeight },
     scene,
   );
   innerLeftWall.position.set(
@@ -451,14 +490,14 @@ export const setupTrialRoom = (
     innerWallY,
     0,
   );
-  innerLeftWall.material = innerWallMat;
-  // innerLeftWall.material = makeWallMat("mat-left", depth);
+  innerLeftWall.rotation.y = Math.PI / 2;
+  innerLeftWall.material = depthWallMat;
   innerLeftWall.receiveShadows = true;
   innerLeftWall.metadata = { side: "left" };
 
-  const innerRightWall = BABYLON.MeshBuilder.CreateBox(
+  const innerRightWall = BABYLON.MeshBuilder.CreatePlane(
     "inner_wall_right",
-    { width: innerSurfaceThickness, height: innerWallHeight, depth },
+    { width: depth, height: innerWallHeight },
     scene,
   );
   innerRightWall.position.set(
@@ -466,8 +505,8 @@ export const setupTrialRoom = (
     innerWallY,
     0,
   );
-  innerRightWall.material = innerWallMat;
-  // innerRightWall.material = makeWallMat("mat-right", depth);
+  innerRightWall.rotation.y = -Math.PI / 2;
+  innerRightWall.material = depthWallMat;
   innerRightWall.receiveShadows = true;
   innerRightWall.metadata = { side: "right" };
 
@@ -540,10 +579,10 @@ export const setupTrialRoom = (
     shadowCasters,
     dispose: () => {
       allMeshes.forEach((mesh) => mesh.dispose());
-      wallTexture.dispose();
       vinylTexture.dispose();
       frameMat.dispose();
-      innerWallMat.dispose();
+      widthWallMat.dispose(true, true);
+      depthWallMat.dispose(true, true);
       innerCeilingMat.dispose();
       floorVinylMat.dispose();
     },

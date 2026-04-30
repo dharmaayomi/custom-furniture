@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  DoorClosed,
-  Grid,
   LampFloor,
   LayoutTemplate,
   Package,
@@ -11,7 +9,6 @@ import {
 import { TrialRoomCanvas } from "./TrialRoomCanvas";
 import {
   RightPanel,
-  TrialActivePanel,
   TrialTool,
   TrialToolType,
 } from "./components/RightPanel";
@@ -19,33 +16,57 @@ import { RightPanelDrawer } from "./components/RightPanelDrawer";
 import { TrialHeader } from "./components/TrialHeader";
 import { TrialFooter } from "./components/TrialFooter";
 import { TrialCustomizeDrawer } from "./components/TrialCustomizeDrawer";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTrialRoomStore } from "./useTrialRoomStore";
+import { TrialProductInfo } from "./components/TrialProductInfo";
+import { TrialProductList } from "./components/TrialProductList";
+import { useIsMobile } from "@/hooks/useMobile";
+
+type TrialSidePanel = "sidebar" | "customize" | null;
+type TrialOverlayDrawer = "productInfo" | "productList" | null;
 
 export const TrialPage = () => {
+  const isMobile = useIsMobile();
   const [selectedTool, setSelectedTool] = useState<TrialToolType>(null);
-  const [activePanel, setActivePanel] = useState<TrialActivePanel>(null);
-  const isAnyPanelOpen = activePanel !== null;
-  const isSidebarPanelOpen = activePanel === "sidebar";
-  const isCustomizePanelOpen = activePanel === "customize";
+  const [activeSidePanel, setActiveSidePanel] = useState<TrialSidePanel>(null);
+  const [activeOverlayDrawer, setActiveOverlayDrawer] =
+    useState<TrialOverlayDrawer>(null);
+  const isAnyLayoutPanelOpen = activeSidePanel !== null;
+  const isSidebarPanelOpen = activeSidePanel === "sidebar";
+  const isCustomizePanelOpen = activeSidePanel === "customize";
+  const isProductListPanelOpen = activeOverlayDrawer === "productList";
+  const isProductInfoPanelOpen = activeOverlayDrawer === "productInfo";
+  const loadedModels = useTrialRoomStore((state) => state.loadedModels);
+  const selectedInstanceId = useTrialRoomStore((state) => state.selectedMeshName);
+  const requestSelectionAction = useTrialRoomStore(
+    (state) => state.requestSelectionAction,
+  );
+  const selectedModel = useMemo(
+    () =>
+      loadedModels.find((model) => model.instanceId === selectedInstanceId) ?? null,
+    [loadedModels, selectedInstanceId],
+  );
+  const hasSelection = selectedModel !== null;
 
   const handleToolClick = (toolId: TrialToolType) => {
-    if (activePanel === "sidebar" && selectedTool === toolId) {
-      closePanel();
+    if (activeSidePanel === "sidebar" && selectedTool === toolId) {
+      closeSidePanel();
     } else {
       setSelectedTool(toolId);
-      openPanel("sidebar");
+      openSidePanel("sidebar");
     }
   };
-  const openPanel = (panel: TrialActivePanel) => {
-    setActivePanel(panel);
+  const openSidePanel = (panel: Exclude<TrialSidePanel, null>) => {
+    setActiveSidePanel(panel);
   };
-  const closePanel = () => {
-    setActivePanel(null);
+  const closeSidePanel = () => {
+    setActiveSidePanel(null);
     setSelectedTool(null);
   };
   const handleCustomizeClick = () => {
-    openPanel("customize");
+    openSidePanel("customize");
   };
+
   const tools: TrialTool[] = [
     {
       id: "frame",
@@ -75,20 +96,49 @@ export const TrialPage = () => {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-100">
       <div
-        className={`relative min-w-0 flex-1 bg-gray-200 ${isAnyPanelOpen ? "mr-4" : ""}`}
+        className={`relative min-w-0 flex-1 bg-gray-200 ${
+          isAnyLayoutPanelOpen && !isMobile ? "mr-4" : ""
+        }`}
       >
-        <TrialHeader />
+        <TrialHeader
+          onOpenProductList={() => {
+            setActiveOverlayDrawer("productList");
+          }}
+        />
         <RightPanel
           tools={tools}
           selectedTool={selectedTool}
           onToolClick={handleToolClick}
-          isSidebarOpen={isAnyPanelOpen}
+          isSidebarOpen={isAnyLayoutPanelOpen}
           onCustomizeClick={handleCustomizeClick}
         />
         <div className="relative h-screen flex-1">
           <TrialRoomCanvas />
         </div>
-        <TrialFooter />
+        <TrialFooter
+          hasSelection={hasSelection}
+          onDeleteSelected={() => {
+            if (!selectedModel) {
+              return;
+            }
+
+            requestSelectionAction("delete", selectedModel.instanceId);
+          }}
+          onDuplicateSelected={() => {
+            if (!selectedModel) {
+              return;
+            }
+
+            requestSelectionAction("duplicate", selectedModel.instanceId);
+          }}
+          onViewSelectedDetails={() => {
+            if (!selectedModel) {
+              return;
+            }
+
+            setActiveOverlayDrawer("productInfo");
+          }}
+        />
       </div>
       {isSidebarPanelOpen ? (
         <RightPanelDrawer
@@ -97,7 +147,7 @@ export const TrialPage = () => {
           tools={tools}
           onOpenChange={(open) => {
             if (!open) {
-              closePanel();
+              closeSidePanel();
             }
           }}
         />
@@ -106,11 +156,24 @@ export const TrialPage = () => {
           open={isCustomizePanelOpen}
           onOpenChange={(open) => {
             if (!open) {
-              closePanel();
+              closeSidePanel();
             }
           }}
         />
       )}
+      <TrialProductInfo
+        open={isProductInfoPanelOpen}
+        selectedModel={selectedModel}
+        onOpenChange={(open) => {
+          setActiveOverlayDrawer(open ? "productInfo" : null);
+        }}
+      />
+      <TrialProductList
+        open={isProductListPanelOpen}
+        onOpenChange={(open) => {
+          setActiveOverlayDrawer(open ? "productList" : null);
+        }}
+      />
     </div>
   );
 };

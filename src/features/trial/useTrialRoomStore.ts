@@ -19,13 +19,20 @@ export interface LoadedModel {
   category: "frame" | "interior" | "material";
 }
 
+export interface TrialSelectionActionRequest {
+  action: "delete" | "duplicate";
+  requestId: number;
+  targetInstanceId: string;
+}
+
 interface TrialRoomState {
   selectedMeshName: string | null;
   hasFrameProduct: boolean;
   spawnRequest: TrialSpawnRequest | null;
+  selectionActionRequest: TrialSelectionActionRequest | null;
   draftRoomConfig: TrialRoomConfig;
   appliedRoomConfig: TrialRoomConfig;
-  activeFrameProductId: string | null;
+  activeFrameProductIds: string[];
   activeInteriorProductIds: string[];
   activeMaterialProductIds: string[];
 
@@ -34,7 +41,8 @@ interface TrialRoomState {
   setHasFrameProduct: (hasFrameProduct: boolean) => void;
   setDraftRoomConfig: (patch: Partial<TrialRoomConfig>) => void;
   setAppliedRoomConfig: (nextRoomConfig: TrialRoomConfig) => void;
-  setActiveFrameProductId: (assetId: string | null) => void;
+  setActiveFrameProductIds: (assetIds: string[]) => void;
+  setActiveInteriorProductIds: (assetIds: string[]) => void;
   addActiveInteriorProductId: (assetId: string) => void;
   clearActiveInteriorProductIds: () => void;
   setActiveMaterialProductIds: (assetIds: string[]) => void;
@@ -43,6 +51,11 @@ interface TrialRoomState {
     dropPoint?: TrialSpawnPoint | null,
   ) => void;
   clearSpawnRequest: () => void;
+  requestSelectionAction: (
+    action: TrialSelectionActionRequest["action"],
+    targetInstanceId: string,
+  ) => void;
+  clearSelectionActionRequest: () => void;
   loadedModels: LoadedModel[];
   addLoadedModel: (model: LoadedModel) => void;
   removeLoadedModel: (instanceId: string) => void;
@@ -52,9 +65,10 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
   selectedMeshName: null,
   hasFrameProduct: false,
   spawnRequest: null,
+  selectionActionRequest: null,
   draftRoomConfig: { ...DEFAULT_TRIAL_ROOM_CONFIG },
   appliedRoomConfig: { ...DEFAULT_TRIAL_ROOM_CONFIG },
-  activeFrameProductId: null,
+  activeFrameProductIds: [],
   activeInteriorProductIds: [],
   activeMaterialProductIds: [],
 
@@ -83,10 +97,13 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
     // The debounced room config is applied separately so the scene updates less often.
     set({ appliedRoomConfig: nextRoomConfig });
   },
-  setActiveFrameProductId: (assetId) => {
+  setActiveFrameProductIds: (assetIds) => {
     // Step 3:
-    // Keep the current frame id in the store so pricing can follow the loaded trial state.
-    set({ activeFrameProductId: assetId });
+    // Keep every loaded frame id in the store so pricing can follow the loaded trial state.
+    set({ activeFrameProductIds: assetIds });
+  },
+  setActiveInteriorProductIds: (assetIds) => {
+    set({ activeInteriorProductIds: assetIds });
   },
   addActiveInteriorProductId: (assetId) => {
     // Step 4:
@@ -114,6 +131,18 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
   },
   clearSpawnRequest: () => {
     set({ spawnRequest: null });
+  },
+  requestSelectionAction: (action, targetInstanceId) => {
+    set((state) => ({
+      selectionActionRequest: {
+        action,
+        requestId: (state.selectionActionRequest?.requestId ?? 0) + 1,
+        targetInstanceId,
+      },
+    }));
+  },
+  clearSelectionActionRequest: () => {
+    set({ selectionActionRequest: null });
   },
   loadedModels: [],
   addLoadedModel: (model) =>

@@ -2,10 +2,10 @@ import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders/glTF";
 
 import {
-  buildOutlineController,
-  createDraggableBoundingBox,
+  createFrameDraggableBoundingBox,
+  createInteriorDraggableBoundingBox,
+  getRenderableMeshes,
 } from "./TrialModelUtils";
-import { useTrialRoomStore } from "../useTrialRoomStore";
 
 /**
  * TrialModelLoader.ts
@@ -21,34 +21,60 @@ import { useTrialRoomStore } from "../useTrialRoomStore";
  */
 
 export interface TrialModelLoadOptions {
+  instanceId: string;
   modelPath: string;
   meshName: string;
   initialPosition: BABYLON.Vector3;
   initialRotationY?: number;
   shadowGenerator?: BABYLON.ShadowGenerator;
-  enableInteraction?: boolean;
+  interactionMode?: "none" | "frame" | "interior";
   centerOnXAxis?: boolean;
 }
 
 export interface TrialModelLoadResult {
   container: BABYLON.AssetContainer;
-  rootMesh: BABYLON.AbstractMesh;
+  dragBehavior: BABYLON.PointerDragBehavior | null;
+  instanceId: string;
+  rootMesh: BABYLON.TransformNode;
   boundingBoxMesh: BABYLON.Mesh | null;
-  setOutline: (visible: boolean) => void;
+  selectionMeshes: BABYLON.AbstractMesh[];
+  syncBoundingBox: () => void;
   dispose: () => void;
 }
+
+const getPlacementRoot = (
+  container: BABYLON.AssetContainer,
+): BABYLON.TransformNode | null => {
+  const importRoot = container.meshes[0];
+  if (!importRoot) {
+    return null;
+  }
+
+  const authoredRoot =
+    [
+      ...container.transformNodes,
+      ...container.meshes.filter((mesh) => mesh !== importRoot),
+    ].find((node) => node.parent === importRoot) ?? null;
+
+  if (!authoredRoot) {
+    return importRoot;
+  }
+
+  return authoredRoot;
+};
 
 export const loadProductBase = async (
   scene: BABYLON.Scene,
   options: TrialModelLoadOptions,
 ): Promise<TrialModelLoadResult | null> => {
   const {
+    instanceId,
     modelPath,
     meshName,
     initialPosition,
     initialRotationY = 0,
     shadowGenerator,
-    enableInteraction = true,
+    interactionMode = "frame",
     centerOnXAxis = true,
   } = options;
 
@@ -60,14 +86,14 @@ export const loadProductBase = async (
     container.lights.forEach((l) => l.dispose());
     container.cameras.forEach((c) => c.dispose());
 
-    const rootMesh = container.meshes[0];
+    const rootMesh = getPlacementRoot(container);
     if (!rootMesh) {
       container.dispose();
       return null;
     }
 
     rootMesh.name = meshName;
-    rootMesh.metadata = { kind: meshName };
+    rootMesh.metadata = { instanceId, kind: meshName };
 
     // Terapkan posisi & rotasi yang sudah dihitung oleh pemanggil
     rootMesh.rotationQuaternion = null;
@@ -86,38 +112,43 @@ export const loadProductBase = async (
     }
 
     // Setup child meshes
-    rootMesh.getChildMeshes().forEach((mesh) => {
+    getRenderableMeshes(rootMesh).forEach((mesh) => {
       mesh.isPickable = true;
       mesh.receiveShadows = true;
+
       shadowGenerator?.addShadowCaster(mesh, false);
     });
 
-    let setOutline = (_visible: boolean) => {};
-    let unsubscribe = () => {};
     let boundingBoxMesh: BABYLON.Mesh | null = null;
+    let dragBehavior: BABYLON.PointerDragBehavior | null = null;
+    let disposeBoundingBox = () => {};
+    let syncBoundingBox = () => {};
 
     // Step 2:
     // Only the main furniture gets selection outline + drag hitbox.
     // Tambahan stays attached to the furniture and does not need its own drag surface.
-    if (enableInteraction) {
-      setOutline = buildOutlineController(scene, rootMesh);
-      setOutline(false);
+    if (interactionMode !== "none") {
+      const boundingBoxController =
+        interactionMode === "interior"
+          ? createInteriorDraggableBoundingBox(scene, instanceId, rootMesh)
+          : createFrameDraggableBoundingBox(scene, instanceId, rootMesh);
 
-      unsubscribe = useTrialRoomStore.subscribe((state) => {
-        setOutline(state.selectedMeshName === meshName);
-      });
-
-      boundingBoxMesh = createDraggableBoundingBox(scene, rootMesh, setOutline);
+      boundingBoxMesh = boundingBoxController.mesh;
+      dragBehavior = boundingBoxController.dragBehavior;
+      disposeBoundingBox = boundingBoxController.dispose;
+      syncBoundingBox = boundingBoxController.sync;
     }
 
     return {
       container,
+      dragBehavior,
+      instanceId,
       rootMesh,
       boundingBoxMesh,
-      setOutline,
+      selectionMeshes: getRenderableMeshes(rootMesh),
+      syncBoundingBox,
       dispose: () => {
-        unsubscribe();
-        boundingBoxMesh?.dispose();
+        disposeBoundingBox();
         container.dispose();
       },
     };

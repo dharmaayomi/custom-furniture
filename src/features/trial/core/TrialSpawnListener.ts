@@ -45,11 +45,17 @@ export const setupTrialSpawnListener = (
     );
 
     const result = await loadProductBase(scene, {
+      instanceId,
       modelPath: asset.modelPath,
       meshName: instanceId,
       initialPosition: spawnPosition,
       shadowGenerator,
-      enableInteraction: asset.category !== "material",
+      interactionMode:
+        asset.category === "material"
+          ? "none"
+          : asset.category === "interior"
+            ? "interior"
+            : "frame",
       centerOnXAxis: asset.category === "frame",
     });
 
