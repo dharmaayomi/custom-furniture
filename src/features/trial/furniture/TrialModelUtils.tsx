@@ -79,7 +79,9 @@ const createDraggableBoundingBoxBase = (
     const { size, localCenter } = getBoundingBoxTransform(targetMesh);
 
     hitBox.parent =
-      targetMesh.parent instanceof BABYLON.TransformNode ? targetMesh.parent : null;
+      targetMesh.parent instanceof BABYLON.TransformNode
+        ? targetMesh.parent
+        : null;
     hitBox.rotationQuaternion = null;
     hitBox.rotation.set(0, 0, 0);
     hitBox.position.copyFrom(localCenter);

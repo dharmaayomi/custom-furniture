@@ -308,6 +308,7 @@ export const setupTrialRoom = (
     innerWallHeight,
     wallColor,
   );
+  widthWallMat.zOffset = -0.005;
   const depthWallMat = createWallSurfaceMaterial(
     scene,
     "inner-wall-depth-mat",
@@ -315,12 +316,14 @@ export const setupTrialRoom = (
     innerWallHeight,
     wallColor,
   );
+  depthWallMat.zOffset = -0.005;
 
   const innerCeilingMat = new BABYLON.PBRMaterial("inner-ceiling-mat", scene);
-  innerCeilingMat.albedoColor = hexToColor3(wallColor);
+  innerCeilingMat.albedoColor = hexToColor3("#cccccc");
   innerCeilingMat.roughness = 0.75;
   innerCeilingMat.metallic = 0;
   innerCeilingMat.backFaceCulling = false;
+  innerCeilingMat.zOffset = -0.005;
 
   // 1. LANTAI (Floor)
   const floor = createSolidMiterPanel(
@@ -448,7 +451,7 @@ export const setupTrialRoom = (
   });
 
   const innerWallY = floorThickness + innerWallHeight / 2;
-  const innerSurfaceThickness = 0.002;
+  const innerSurfaceThickness = 0.02;
 
   const innerBackWall = BABYLON.MeshBuilder.CreatePlane(
     "inner_wall_back",
