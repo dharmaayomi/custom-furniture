@@ -308,7 +308,9 @@ export const TrialRoomCanvas = () => {
     const syncLoadedProductStoreState = () => {
       const store = useTrialRoomStore.getState();
       store.setHasFrameProduct(frameInstances.length > 0);
-      store.setActiveFrameProductIds(frameInstances.map((frame) => frame.assetId));
+      store.setActiveFrameProductIds(
+        frameInstances.map((frame) => frame.assetId),
+      );
       store.setActiveInteriorProductIds(
         frameInstances.flatMap((frame) =>
           frame.interiors.map((interior) => interior.assetId),
@@ -332,7 +334,9 @@ export const TrialRoomCanvas = () => {
           return "frame" as const;
         }
 
-        if (frame.interiors.some((interior) => interior.instanceId === instanceId)) {
+        if (
+          frame.interiors.some((interior) => interior.instanceId === instanceId)
+        ) {
           return "interior" as const;
         }
       }
@@ -345,7 +349,8 @@ export const TrialRoomCanvas = () => {
     ) => {
       getAllLoadedModels().forEach((model) => {
         if (model.boundingBoxMesh) {
-          model.boundingBoxMesh.isPickable = model.instanceId === selectedInstanceId;
+          model.boundingBoxMesh.isPickable =
+            model.instanceId === selectedInstanceId;
         }
       });
     };
@@ -393,7 +398,9 @@ export const TrialRoomCanvas = () => {
         return frameInstances[0];
       }
 
-      return resolveFrameFromSelection(useTrialRoomStore.getState().selectedMeshName);
+      return resolveFrameFromSelection(
+        useTrialRoomStore.getState().selectedMeshName,
+      );
     };
 
     const findFrameIndexByInstanceId = (instanceId: string) =>
@@ -450,7 +457,10 @@ export const TrialRoomCanvas = () => {
         return false;
       }
 
-      const removedInterior = disposeInteriorInstance(ownerFrame, targetInstanceId);
+      const removedInterior = disposeInteriorInstance(
+        ownerFrame,
+        targetInstanceId,
+      );
       if (!removedInterior) {
         return false;
       }
@@ -474,7 +484,8 @@ export const TrialRoomCanvas = () => {
       clientX: number,
       clientY: number,
     ): TrialInteractionPick | null => {
-      const picks = scene.multiPick(clientX, clientY, (mesh) => mesh.isPickable) ?? [];
+      const picks =
+        scene.multiPick(clientX, clientY, (mesh) => mesh.isPickable) ?? [];
       const selectedInstanceId = useTrialRoomStore.getState().selectedMeshName;
 
       const scoredPicks = picks
@@ -522,7 +533,9 @@ export const TrialRoomCanvas = () => {
       const winner = scoredPicks[0];
       return {
         instanceId: winner.instanceId,
-        kind: winner.isBoundingBox ? "bounding-box" : winner.category ?? undefined,
+        kind: winner.isBoundingBox
+          ? "bounding-box"
+          : (winner.category ?? undefined),
         mesh: winner.mesh,
         pickInfo: winner.pick,
       };
@@ -533,20 +546,24 @@ export const TrialRoomCanvas = () => {
         return;
       }
 
-      const dragStartObserver = result.dragBehavior.onDragStartObservable.add(() => {
-        result.syncBoundingBox();
-        pointerOwnership.owner = "model";
-        pointerOwnership.dragInstanceId = result.instanceId;
-        setCameraInteractionEnabled(false);
-      });
+      const dragStartObserver = result.dragBehavior.onDragStartObservable.add(
+        () => {
+          result.syncBoundingBox();
+          pointerOwnership.owner = "model";
+          pointerOwnership.dragInstanceId = result.instanceId;
+          setCameraInteractionEnabled(false);
+        },
+      );
 
-      const dragEndObserver = result.dragBehavior.onDragEndObservable.add(() => {
-        result.syncBoundingBox();
-        pointerOwnership.owner = "none";
-        pointerOwnership.dragInstanceId = null;
-        pointerOwnership.activePointerId = null;
-        setCameraInteractionEnabled(true);
-      });
+      const dragEndObserver = result.dragBehavior.onDragEndObservable.add(
+        () => {
+          result.syncBoundingBox();
+          pointerOwnership.owner = "none";
+          pointerOwnership.dragInstanceId = null;
+          pointerOwnership.activePointerId = null;
+          setCameraInteractionEnabled(true);
+        },
+      );
 
       const disposeModel = result.dispose;
       result.dispose = () => {
@@ -567,7 +584,10 @@ export const TrialRoomCanvas = () => {
           return;
         }
 
-        const resolvedPick = resolveInteractionPick(scene.pointerX, scene.pointerY);
+        const resolvedPick = resolveInteractionPick(
+          scene.pointerX,
+          scene.pointerY,
+        );
         if (!resolvedPick?.instanceId) {
           pointerOwnership.activePointerId = null;
           pointerOwnership.dragInstanceId = null;
@@ -576,7 +596,8 @@ export const TrialRoomCanvas = () => {
           return;
         }
 
-        const selectedInstanceId = useTrialRoomStore.getState().selectedMeshName;
+        const selectedInstanceId =
+          useTrialRoomStore.getState().selectedMeshName;
         const canStartDrag =
           selectedInstanceId === resolvedPick.instanceId &&
           getTrialResolvedDragTarget(resolvedPick.mesh) !== null;
@@ -596,25 +617,22 @@ export const TrialRoomCanvas = () => {
       BABYLON.PointerEventTypes.POINTERDOWN,
     );
 
-    const pointerObserver = scene.onPointerObservable.add(
-      (pointerInfo) => {
-        if (pointerInfo.type !== BABYLON.PointerEventTypes.POINTERUP) {
-          return;
-        }
+    const pointerObserver = scene.onPointerObservable.add((pointerInfo) => {
+      if (pointerInfo.type !== BABYLON.PointerEventTypes.POINTERUP) {
+        return;
+      }
 
-        const pointerEvent = pointerInfo.event as PointerEvent;
-        if (pointerOwnership.activePointerId !== pointerEvent.pointerId) {
-          return;
-        }
+      const pointerEvent = pointerInfo.event as PointerEvent;
+      if (pointerOwnership.activePointerId !== pointerEvent.pointerId) {
+        return;
+      }
 
-        if (pointerOwnership.owner === "none") {
-          pointerOwnership.activePointerId = null;
-          pointerOwnership.dragInstanceId = null;
-          setCameraInteractionEnabled(true);
-        }
-      },
-      BABYLON.PointerEventTypes.POINTERUP,
-    );
+      if (pointerOwnership.owner === "none") {
+        pointerOwnership.activePointerId = null;
+        pointerOwnership.dragInstanceId = null;
+        setCameraInteractionEnabled(true);
+      }
+    }, BABYLON.PointerEventTypes.POINTERUP);
 
     const finishSpawnRequest = (requestId: number) => {
       const store = useTrialRoomStore.getState();
@@ -669,6 +687,14 @@ export const TrialRoomCanvas = () => {
         if (!isMounted) {
           result.dispose();
           return;
+        }
+
+        if (!dropPoint && spawnIndex === 0) {
+          const initialBounds = getHierarchyBoundsInLocalSpace(result.rootMesh);
+          const frameWidth = initialBounds.max.x - initialBounds.min.x;
+
+          result.rootMesh.position.x = frameWidth / 2;
+          result.rootMesh.computeWorldMatrix(true);
         }
 
         result.syncBoundingBox();
@@ -873,14 +899,19 @@ export const TrialRoomCanvas = () => {
       targetInstanceId: string,
     ) => {
       const sourceFrame =
-        frameInstances.find((frame) => frame.instanceId === targetInstanceId) ?? null;
+        frameInstances.find((frame) => frame.instanceId === targetInstanceId) ??
+        null;
       if (sourceFrame) {
         const frameWidth = sourceFrame.bounds.max.x - sourceFrame.bounds.min.x;
         const duplicatePosition = sourceFrame.result.rootMesh.position
           .clone()
           .add(new BABYLON.Vector3(Math.max(frameWidth + 0.15, 0.45), 0, 0));
 
-        await spawnFrame(requestId, sourceFrame.assetId, toSpawnPoint(duplicatePosition));
+        await spawnFrame(
+          requestId,
+          sourceFrame.assetId,
+          toSpawnPoint(duplicatePosition),
+        );
         return true;
       }
 
@@ -957,7 +988,10 @@ export const TrialRoomCanvas = () => {
         return;
       }
 
-      await duplicateSelectedInstance(request.requestId, request.targetInstanceId);
+      await duplicateSelectedInstance(
+        request.requestId,
+        request.targetInstanceId,
+      );
       finishSelectionActionRequest(request.requestId);
     };
 
@@ -980,13 +1014,15 @@ export const TrialRoomCanvas = () => {
         void handleSelectionActionRequest(state.selectionActionRequest);
       },
     );
-    const unsubscribeSelection = useTrialRoomStore.subscribe((state, previous) => {
-      if (state.selectedMeshName === previous.selectedMeshName) {
-        return;
-      }
+    const unsubscribeSelection = useTrialRoomStore.subscribe(
+      (state, previous) => {
+        if (state.selectedMeshName === previous.selectedMeshName) {
+          return;
+        }
 
-      syncSelectionOutline(state.selectedMeshName);
-    });
+        syncSelectionOutline(state.selectedMeshName);
+      },
+    );
 
     syncSelectionOutline(useTrialRoomStore.getState().selectedMeshName);
 
