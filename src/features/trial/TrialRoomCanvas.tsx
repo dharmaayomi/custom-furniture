@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import * as BABYLON from "@babylonjs/core";
 import { toast } from "sonner";
+import { useTheme } from "next-themes";
 
 import { getBackWallPosition, initTrialScene } from "./core/TrialSceneSetup";
 import { TrialRoomConfig } from "./core/TrialConfig";
@@ -23,6 +24,7 @@ import {
 import { getTrialAssetById, TRIAL_ASSET_DRAG_TYPE } from "./trialAssetCatalog";
 import { TrialSpawnPoint, useTrialRoomStore } from "./useTrialRoomStore";
 import { CABINET_CONFIG } from "./CabinetConfig";
+import { TrialThemeMode } from "./core/TrialLightingSetup";
 
 /**
  * TrialRoomCanvas.tsx
@@ -251,6 +253,17 @@ const getDefaultFrameSpawnPosition = (
 
 export const TrialRoomCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const updateThemeModeRef = useRef<((themeMode: TrialThemeMode) => void) | null>(
+    null,
+  );
+  const { resolvedTheme } = useTheme();
+  const themeMode: TrialThemeMode =
+    resolvedTheme === "dark" ? "dark" : "light";
+
+  useEffect(() => {
+    updateThemeModeRef.current?.(themeMode);
+  }, [themeMode]);
+
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -261,8 +274,10 @@ export const TrialRoomCanvas = () => {
       scene,
       lighting,
       updateRoomConfig,
+      updateThemeMode,
       dispose: disposeScene,
-    } = initTrialScene(canvas, initialRoomConfig);
+    } = initTrialScene(canvas, initialRoomConfig, themeMode);
+    updateThemeModeRef.current = updateThemeMode;
     const selectionLayer =
       scene.getSelectionOutlineLayerByName("trial-selection-outline") ??
       new BABYLON.SelectionOutlineLayer("trial-selection-outline", scene, {
@@ -1113,6 +1128,7 @@ export const TrialRoomCanvas = () => {
       unsubscribeSelection();
       unsubscribeRoomConfig();
       isMounted = false;
+      updateThemeModeRef.current = null;
       setCameraInteractionEnabled(true);
       clearAllFrames();
       clearRegistry();

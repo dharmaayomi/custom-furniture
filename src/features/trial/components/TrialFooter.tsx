@@ -31,7 +31,7 @@ export const TrialFooter = ({
   onDuplicateSelected,
   onViewSelectedDetails,
 }: TrialFooterProps) => {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const selectionActions = [
     {
       icon: Trash2,
@@ -68,7 +68,7 @@ export const TrialFooter = ({
                     size="icon"
                     className="size-9 rounded-2xl border-white/50 bg-white/70 shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
                     onClick={() =>
-                      setTheme(theme === "dark" ? "light" : "dark")
+                      setTheme(resolvedTheme === "dark" ? "light" : "dark")
                     }
                     aria-label="Night mode"
                     title="Night mode"

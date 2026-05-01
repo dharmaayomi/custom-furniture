@@ -94,9 +94,9 @@ export const TrialPage = () => {
     },
   ];
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-gray-100">
+    <div className="flex h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950">
       <div
-        className={`relative min-w-0 flex-1 bg-gray-200 ${
+        className={`relative min-w-0 flex-1 bg-slate-200 transition-colors dark:bg-slate-900 ${
           isAnyLayoutPanelOpen && !isMobile ? "mr-4" : ""
         }`}
       >

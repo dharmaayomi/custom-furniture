@@ -540,7 +540,7 @@ export const setupTrialRoom = (
 
   const innerBackWall = BABYLON.MeshBuilder.CreatePlane(
     "inner_wall_back",
-    { width, height: innerWallHeight },
+    { width: width, height: innerWallHeight },
     scene,
   );
   innerBackWall.position.set(
@@ -556,7 +556,7 @@ export const setupTrialRoom = (
 
   const innerFrontWall = BABYLON.MeshBuilder.CreatePlane(
     "inner_wall_front",
-    { width, height: innerWallHeight },
+    { width: width, height: innerWallHeight },
     scene,
   );
   innerFrontWall.position.set(
