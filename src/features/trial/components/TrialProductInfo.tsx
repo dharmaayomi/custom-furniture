@@ -16,7 +16,7 @@ import {
   getTrialProductBaseById,
   getTrialProductComponentById,
   getTrialProductMaterialById,
-} from "../trialAssetCatalog";
+} from "../core/trialAssetCatalog";
 import { LoadedModel } from "../store/useTrialRoomStore";
 
 interface TrialProductInfoProps {

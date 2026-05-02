@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/price";
 import { ListOrdered, MoveRight, Save } from "lucide-react";
-import { calculateTrialTotalPrice } from "../trialPrice";
+import { calculateTrialTotalPrice } from "../utils/trialPrice";
 import { useTrialRoomStore } from "../store/useTrialRoomStore";
 import { MenuDrawer } from "./MenuDrawer";
 

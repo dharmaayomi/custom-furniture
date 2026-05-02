@@ -1,10 +1,10 @@
 import * as BABYLON from "@babylonjs/core";
-import { TrialRoomConfig } from "./TrialConfig";
-import { getBackWallPosition } from "./TrialSceneSetup";
+import { TrialRoomConfig } from "../core/TrialConfig";
+import { getBackWallPosition } from "../core/TrialSceneSetup";
 import { useTrialRoomStore } from "../store/useTrialRoomStore";
-import { getTrialAssetById } from "../trialAssetCatalog";
-import { registerAsset } from "../furniture/TrialModelRegistry";
-import { LoadAsset } from "../furniture/AssetLoader";
+import { getTrialAssetById } from "../core/trialAssetCatalog";
+import { registerAsset } from "../asset/TrialModelRegistry";
+import { LoadAsset } from "../asset/AssetLoader";
 
 const resolveSpawnPosition = (
   category: "frame" | "interior" | "material",

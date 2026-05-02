@@ -1,7 +1,7 @@
 import * as BABYLON from "@babylonjs/core";
 import { setupTrialCamera } from "./TrialCameraSetup";
 import { setupTrialRoom } from "./TrialRoomSetup";
-import { setupTrialAutoHideWalls } from "../furniture/WallVisibility";
+import { setupTrialAutoHideWalls } from "../system/WallVisibility";
 import { DEFAULT_TRIAL_ROOM_CONFIG, TrialRoomConfig } from "./TrialConfig";
 import {
   setupTrialLighting,

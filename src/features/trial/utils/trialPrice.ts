@@ -2,7 +2,7 @@ import {
   TRIAL_PRODUCT_BASES,
   TRIAL_PRODUCT_COMPONENTS,
   TRIAL_PRODUCT_MATERIALS,
-} from "./trialAssetCatalog";
+} from "../core/trialAssetCatalog";
 
 /**
  * Step 1:
@@ -11,15 +11,21 @@ import {
  */
 
 const getTrialProductBasePrice = (assetId: string) => {
-  return TRIAL_PRODUCT_BASES.find((item) => item.id === assetId)?.basePrice ?? 0;
+  return (
+    TRIAL_PRODUCT_BASES.find((item) => item.id === assetId)?.basePrice ?? 0
+  );
 };
 
 const getTrialProductComponentPrice = (assetId: string) => {
-  return TRIAL_PRODUCT_COMPONENTS.find((item) => item.id === assetId)?.price ?? 0;
+  return (
+    TRIAL_PRODUCT_COMPONENTS.find((item) => item.id === assetId)?.price ?? 0
+  );
 };
 
 const getTrialProductMaterialPrice = (assetId: string) => {
-  return TRIAL_PRODUCT_MATERIALS.find((item) => item.id === assetId)?.price ?? 0;
+  return (
+    TRIAL_PRODUCT_MATERIALS.find((item) => item.id === assetId)?.price ?? 0
+  );
 };
 
 export const calculateTrialTotalPrice = (

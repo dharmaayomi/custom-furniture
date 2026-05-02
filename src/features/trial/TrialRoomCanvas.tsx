@@ -7,18 +7,21 @@ import { useTheme } from "next-themes";
 
 import { getBackWallPosition, initTrialScene } from "./core/TrialSceneSetup";
 import { CABINET_CONFIG, TrialRoomConfig } from "./core/TrialConfig";
-import { LoadAsset, AssetLoadResult } from "./furniture/AssetLoader";
+import { LoadAsset, AssetLoadResult } from "./asset/AssetLoader";
 import {
   getTrialResolvedDragTarget,
   tryStartTrialDragFromPick,
-} from "./furniture/DragBehavior";
+} from "./asset/DragBehavior";
 import {
   clearRegistry,
   getAsset,
   registerAsset,
   unregisterAsset,
-} from "./furniture/TrialModelRegistry";
-import { getTrialAssetById, TRIAL_ASSET_DRAG_TYPE } from "./trialAssetCatalog";
+} from "./asset/TrialModelRegistry";
+import {
+  getTrialAssetById,
+  TRIAL_ASSET_DRAG_TYPE,
+} from "./core/trialAssetCatalog";
 import { SpawnPoint, useTrialRoomStore } from "./store/useTrialRoomStore";
 import { TrialThemeMode } from "./core/TrialLightingSetup";
 import { createInteriorAnchorHelper } from "./utils/DebugUtils";

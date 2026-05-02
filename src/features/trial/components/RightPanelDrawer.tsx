@@ -21,7 +21,7 @@ import {
   TRIAL_ASSET_DRAG_TYPE,
   TrialAssetCategory,
   TrialAssetItem,
-} from "../trialAssetCatalog";
+} from "../core/trialAssetCatalog";
 import { useTrialRoomStore } from "../store/useTrialRoomStore";
 
 interface RightPanelDrawerProps {
