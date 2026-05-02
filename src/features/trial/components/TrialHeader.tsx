@@ -13,8 +13,8 @@ export const TrialHeader = ({ onOpenProductList }: TrialHeaderProps) => {
   const activeFrameProductIds = useTrialRoomStore(
     (state) => state.activeFrameProductIds,
   );
-  const activeInteriorProductIds = useTrialRoomStore(
-    (state) => state.activeInteriorProductIds,
+  const activeComponentProductIds = useTrialRoomStore(
+    (state) => state.activeComponentProductIds,
   );
   const activeMaterialProductIds = useTrialRoomStore(
     (state) => state.activeMaterialProductIds,
@@ -22,7 +22,7 @@ export const TrialHeader = ({ onOpenProductList }: TrialHeaderProps) => {
 
   const totalPrice = calculateTrialTotalPrice(
     activeFrameProductIds,
-    activeInteriorProductIds,
+    activeComponentProductIds,
     activeMaterialProductIds,
   );
 

@@ -69,9 +69,9 @@ export const TrialPage = () => {
       category: "Product Base",
     },
     {
-      id: "interior",
+      id: "component",
       icon: LayoutTemplate,
-      label: "Interior Lemari",
+      label: "Component Lemari",
       category: "Product Component",
     },
     {

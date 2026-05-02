@@ -2,12 +2,12 @@ import * as BABYLON from "@babylonjs/core";
 import { TrialRoomConfig } from "../core/TrialConfig";
 import { getBackWallPosition } from "../core/TrialSceneSetup";
 import { useTrialRoomStore } from "../store/useTrialRoomStore";
-import { getTrialAssetById } from "../core/trialAssetCatalog";
+import { getTrialAssetById } from "../core/AssetCatalog";
 import { registerAsset } from "../asset/TrialModelRegistry";
 import { LoadAsset } from "../asset/AssetLoader";
 
 const resolveSpawnPosition = (
-  category: "frame" | "interior" | "material",
+  category: "frame" | "component" | "material",
   dropPoint: { x: number; y: number; z: number } | null,
   roomConfig: TrialRoomConfig,
 ): BABYLON.Vector3 => {
@@ -18,7 +18,7 @@ const resolveSpawnPosition = (
   switch (category) {
     case "frame":
       return getBackWallPosition(roomConfig);
-    case "interior":
+    case "component":
     case "material":
     default:
       return new BABYLON.Vector3(0, roomConfig.floorThickness, 0);
@@ -53,8 +53,8 @@ export const setupTrialSpawnListener = (
       interactionMode:
         asset.category === "material"
           ? "none"
-          : asset.category === "interior"
-            ? "interior"
+          : asset.category === "component"
+            ? "component"
             : "frame",
       centerOnXAxis: asset.category === "frame",
     });

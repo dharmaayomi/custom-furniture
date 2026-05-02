@@ -3,7 +3,7 @@ import "@babylonjs/loaders/glTF";
 
 import {
   createFrameDraggableBoundingBox,
-  createInteriorDraggableBoundingBox,
+  createComponentDraggableBoundingBox,
   getRenderableMeshes,
 } from "./TrialModelUtils";
 
@@ -27,7 +27,7 @@ export interface AssetLoadOptions {
   initialPosition: BABYLON.Vector3;
   initialRotationY?: number;
   shadowGenerator?: BABYLON.ShadowGenerator;
-  interactionMode?: "none" | "frame" | "interior";
+  interactionMode?: "none" | "frame" | "component";
   centerOnXAxis?: boolean;
 }
 
@@ -129,8 +129,8 @@ export const LoadAsset = async (
     // Tambahan stays attached to the furniture and does not need its own drag surface.
     if (interactionMode !== "none") {
       const boundingBoxController =
-        interactionMode === "interior"
-          ? createInteriorDraggableBoundingBox(scene, instanceId, rootMesh)
+        interactionMode === "component"
+          ? createComponentDraggableBoundingBox(scene, instanceId, rootMesh)
           : createFrameDraggableBoundingBox(scene, instanceId, rootMesh);
 
       boundingBoxMesh = boundingBoxController.mesh;

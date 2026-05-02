@@ -19,7 +19,7 @@ export interface SpawnRequest {
 export interface LoadedModel {
   instanceId: string;
   assetId: string;
-  category: "frame" | "interior" | "material";
+  category: "frame" | "component" | "material";
 }
 
 export interface TrialSelectionActionRequest {
@@ -36,7 +36,7 @@ interface TrialRoomState {
   draftRoomConfig: TrialRoomConfig;
   appliedRoomConfig: TrialRoomConfig;
   activeFrameProductIds: string[];
-  activeInteriorProductIds: string[];
+  activeComponentProductIds: string[];
   activeMaterialProductIds: string[];
 
   selectMesh: (name: string | null) => void;
@@ -45,9 +45,9 @@ interface TrialRoomState {
   setDraftRoomConfig: (patch: Partial<TrialRoomConfig>) => void;
   setAppliedRoomConfig: (nextRoomConfig: TrialRoomConfig) => void;
   setActiveFrameProductIds: (assetIds: string[]) => void;
-  setActiveInteriorProductIds: (assetIds: string[]) => void;
-  addActiveInteriorProductId: (assetId: string) => void;
-  clearActiveInteriorProductIds: () => void;
+  setActiveComponentProductIds: (assetIds: string[]) => void;
+  addActiveComponentProductId: (assetId: string) => void;
+  clearActiveComponentProductIds: () => void;
   setActiveMaterialProductIds: (assetIds: string[]) => void;
   requestAssetSpawn: (assetId: string, dropPoint?: SpawnPoint | null) => void;
   clearSpawnRequest: () => void;
@@ -69,7 +69,7 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
   draftRoomConfig: { ...DEFAULT_TRIAL_ROOM_CONFIG },
   appliedRoomConfig: { ...DEFAULT_TRIAL_ROOM_CONFIG },
   activeFrameProductIds: [],
-  activeInteriorProductIds: [],
+  activeComponentProductIds: [],
   activeMaterialProductIds: [],
 
   selectMesh: (name) => {
@@ -102,18 +102,18 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
     // Keep every loaded frame id in the store so pricing can follow the loaded trial state.
     set({ activeFrameProductIds: assetIds });
   },
-  setActiveInteriorProductIds: (assetIds) => {
-    set({ activeInteriorProductIds: assetIds });
+  setActiveComponentProductIds: (assetIds) => {
+    set({ activeComponentProductIds: assetIds });
   },
-  addActiveInteriorProductId: (assetId) => {
+  addActiveComponentProductId: (assetId) => {
     // Step 4:
-    // Interior items can be repeated, so we keep them as an ordered list.
+    // Component items can be repeated, so we keep them as an ordered list.
     set((state) => ({
-      activeInteriorProductIds: [...state.activeInteriorProductIds, assetId],
+      activeComponentProductIds: [...state.activeComponentProductIds, assetId],
     }));
   },
-  clearActiveInteriorProductIds: () => {
-    set({ activeInteriorProductIds: [] });
+  clearActiveComponentProductIds: () => {
+    set({ activeComponentProductIds: [] });
   },
   setActiveMaterialProductIds: (assetIds) => {
     set({ activeMaterialProductIds: assetIds });

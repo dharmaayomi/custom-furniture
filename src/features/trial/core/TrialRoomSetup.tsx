@@ -319,7 +319,7 @@ export const setupTrialRoom = (
   depthWallMat.zOffset = -0.005;
 
   const innerCeilingMat = new BABYLON.PBRMaterial("inner-ceiling-mat", scene);
-  innerCeilingMat.albedoColor = hexToColor3("#cccccc");
+  innerCeilingMat.albedoColor = hexToColor3("#bab8b8");
   innerCeilingMat.roughness = 0.75;
   innerCeilingMat.metallic = 0;
   innerCeilingMat.backFaceCulling = false;

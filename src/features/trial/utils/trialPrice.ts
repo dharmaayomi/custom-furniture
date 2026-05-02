@@ -2,7 +2,7 @@ import {
   TRIAL_PRODUCT_BASES,
   TRIAL_PRODUCT_COMPONENTS,
   TRIAL_PRODUCT_MATERIALS,
-} from "../core/trialAssetCatalog";
+} from "../core/AssetCatalog";
 
 /**
  * Step 1:
@@ -30,7 +30,7 @@ const getTrialProductMaterialPrice = (assetId: string) => {
 
 export const calculateTrialTotalPrice = (
   frameProductIds: string[],
-  interiorProductIds: string[],
+  componentProductIds: string[],
   materialProductIds: string[],
 ) => {
   let total = 0;
@@ -39,7 +39,7 @@ export const calculateTrialTotalPrice = (
     total += getTrialProductBasePrice(assetId);
   });
 
-  interiorProductIds.forEach((assetId) => {
+  componentProductIds.forEach((assetId) => {
     total += getTrialProductComponentPrice(assetId);
   });
 

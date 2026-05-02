@@ -1,7 +1,75 @@
 import * as BABYLON from "@babylonjs/core";
 import { TrialRoomConfig } from "../core/TrialConfig";
 
-export const createInteriorAnchorHelper = (
+type TrialDraggableDebugKind = "frame" | "component";
+
+const DRAGGABLE_DEBUG_STYLE: Record<
+  TrialDraggableDebugKind,
+  {
+    color: BABYLON.Color3;
+    fillAlpha: number;
+  }
+> = {
+  frame: {
+    color: new BABYLON.Color3(0.15, 0.8, 1),
+    fillAlpha: 0.1,
+  },
+  component: {
+    color: new BABYLON.Color3(1, 0.45, 0.15),
+    fillAlpha: 0.12,
+  },
+};
+
+// export const createDraggableBoundingBoxHelper = (
+//   scene: BABYLON.Scene,
+//   hitBox: BABYLON.Mesh,
+//   kind: TrialDraggableDebugKind,
+// ) => {
+//   const debugMesh = BABYLON.MeshBuilder.CreateBox(
+//     `${hitBox.name}-${kind}-debug`,
+//     { size: 1 },
+//     scene,
+//   );
+//   debugMesh.parent = hitBox;
+//   debugMesh.scaling.setAll(1);
+//   debugMesh.position.set(0, 0, 0);
+//   debugMesh.rotationQuaternion = null;
+//   debugMesh.rotation.set(0, 0, 0);
+//   debugMesh.isPickable = false;
+//   debugMesh.receiveShadows = false;
+
+//   const style = DRAGGABLE_DEBUG_STYLE[kind];
+//   const debugMaterial = new BABYLON.StandardMaterial(
+//     `${hitBox.name}-${kind}-debug-mat`,
+//     scene,
+//   );
+//   debugMaterial.diffuseColor = style.color;
+//   debugMaterial.emissiveColor = style.color;
+//   debugMaterial.alpha = style.fillAlpha;
+//   debugMaterial.wireframe = true;
+//   debugMaterial.disableLighting = true;
+//   debugMaterial.backFaceCulling = false;
+//   debugMesh.material = debugMaterial;
+
+//   debugMesh.enableEdgesRendering();
+//   debugMesh.edgesColor = new BABYLON.Color4(
+//     style.color.r,
+//     style.color.g,
+//     style.color.b,
+//     1,
+//   );
+//   debugMesh.edgesWidth = 2;
+
+//   return {
+//     dispose: () => {
+//       debugMesh.disableEdgesRendering();
+//       debugMesh.dispose();
+//       debugMaterial.dispose();
+//     },
+//   };
+// };
+
+export const createComponentAnchorHelper = (
   scene: BABYLON.Scene,
   parent: BABYLON.TransformNode,
   name: string,

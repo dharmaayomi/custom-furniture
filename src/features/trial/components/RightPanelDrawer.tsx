@@ -21,7 +21,7 @@ import {
   TRIAL_ASSET_DRAG_TYPE,
   TrialAssetCategory,
   TrialAssetItem,
-} from "../core/trialAssetCatalog";
+} from "../core/AssetCatalog";
 import { useTrialRoomStore } from "../store/useTrialRoomStore";
 
 interface RightPanelDrawerProps {
@@ -36,7 +36,7 @@ const getDrawerCategory = (
 ): TrialAssetCategory | null => {
   if (
     selectedTool === "frame" ||
-    selectedTool === "interior" ||
+    selectedTool === "component" ||
     selectedTool === "material"
   ) {
     return selectedTool;
@@ -63,7 +63,7 @@ export const RightPanelDrawer = ({
 
   // Step 1:
   // Clicking a card uses the default spawn flow.
-  // Frame Lemari goes to the back wall, while Interior Lemari attaches to the selected frame.
+  // Frame Lemari goes to the back wall, while Component Lemari attaches to the selected frame.
   const handleCardClick = (card: TrialAssetItem, disabled: boolean) => {
     if (disabled) {
       return;
@@ -148,7 +148,7 @@ export const RightPanelDrawer = ({
               {cards.map((card) => {
                 const isDisabled =
                   card.category === "material" ||
-                  (card.category === "interior" && !hasFrameProduct);
+                  (card.category === "component" && !hasFrameProduct);
 
                 return (
                   <article
@@ -214,7 +214,7 @@ export const RightPanelDrawer = ({
           ) : (
             <div className="flex h-full min-h-56 items-center justify-center rounded-2xl border border-dashed border-white/60 bg-white/50 px-6 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
               This tool is still empty. The spawn flow is currently wired for
-              Frame Lemari and Interior Lemari.
+              Frame Lemari and Component Lemari.
             </div>
           )}
         </div>

@@ -24,6 +24,6 @@
 │ ├── TrialModelUtils.ts # Kalkulasi OBB & Matrix[cite: 8, 11]
 │ └── behaviors/
 │ ├── FrameDrag.ts # Drag khusus lemari[cite: 3, 5]
-│ └── InteriorDrag.ts # Drag khusus aksesoris[cite: 3, 5]
+│ └── ComponentDrag.ts # Drag khusus aksesoris[cite: 3, 5]
 │
 └── TrialRoomCanvas.tsx # React Entry Point (Hanya Canvas)[cite: 8]

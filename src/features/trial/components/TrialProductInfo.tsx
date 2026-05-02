@@ -16,7 +16,7 @@ import {
   getTrialProductBaseById,
   getTrialProductComponentById,
   getTrialProductMaterialById,
-} from "../core/trialAssetCatalog";
+} from "../core/AssetCatalog";
 import { LoadedModel } from "../store/useTrialRoomStore";
 
 interface TrialProductInfoProps {
@@ -48,18 +48,18 @@ const resolveTrialProductInfo = (selectedModel: LoadedModel | null) => {
     };
   }
 
-  if (selectedModel.category === "interior") {
+  if (selectedModel.category === "component") {
     const component = getTrialProductComponentById(selectedModel.assetId);
     if (!component) {
       return null;
     }
 
     return {
-      badge: component.componentCategory ?? "Interior",
+      badge: component.componentCategory ?? "Component",
       code: component.componentSku ?? component.id,
       description: component.componentDesc,
-      dimensions: component.componentCategory ?? "Interior module",
-      image: component.componentImageUrls[0] ?? "/assets/trial/interior.webp",
+      dimensions: component.componentCategory ?? "Component module",
+      image: component.componentImageUrls[0] ?? "/assets/trial/component.webp",
       name: component.componentName,
       price: component.price,
       weight: `${component.weight} kg`,
@@ -197,7 +197,7 @@ export const TrialProductInfo = ({
               </div>
             ) : (
               <div className="flex h-full min-h-56 items-center justify-center rounded-2xl border border-dashed border-white/60 bg-white/50 px-6 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
-                Select a frame or interior item to inspect its details.
+                Select a frame or component item to inspect its details.
               </div>
             )}
           </div>
