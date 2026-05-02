@@ -16,11 +16,11 @@ import {
  *   3. Pasang outline controller + drag hitbox
  *   4. Return result — TIDAK menentukan posisi
  *
- * Posisi awal ditentukan oleh pemanggil (TrialSceneSetup atau hook React),
+ * Posisi awal ditentukan oleh pemanggil
  * karena hanya pemanggil yang tahu konteks ruangan saat itu.
  */
 
-export interface TrialModelLoadOptions {
+export interface AssetLoadOptions {
   instanceId: string;
   modelPath: string;
   meshName: string;
@@ -31,7 +31,7 @@ export interface TrialModelLoadOptions {
   centerOnXAxis?: boolean;
 }
 
-export interface TrialModelLoadResult {
+export interface AssetLoadResult {
   container: BABYLON.AssetContainer;
   dragBehavior: BABYLON.PointerDragBehavior | null;
   instanceId: string;
@@ -63,10 +63,10 @@ const getPlacementRoot = (
   return authoredRoot;
 };
 
-export const loadProductBase = async (
+export const LoadAsset = async (
   scene: BABYLON.Scene,
-  options: TrialModelLoadOptions,
-): Promise<TrialModelLoadResult | null> => {
+  options: AssetLoadOptions,
+): Promise<AssetLoadResult | null> => {
   const {
     instanceId,
     modelPath,

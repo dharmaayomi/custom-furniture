@@ -1,6 +1,7 @@
 import * as BABYLON from "@babylonjs/core";
 import { TRIAL_TEXTURES, TrialRoomConfig } from "./TrialConfig";
 import earcut from "earcut";
+import { createRoomAnchorHelper } from "../utils/DebugUtils";
 
 // --- Helpers ──────────────────────────────────────────────────────────────────
 
@@ -55,91 +56,6 @@ const createMaterial = (
   material.metallic = 0;
   material.backFaceCulling = false;
   return material;
-};
-
-const createRoomOriginHelper = (
-  scene: BABYLON.Scene,
-  roomConfig: TrialRoomConfig,
-) => {
-  const axisLength = BABYLON.Scalar.Clamp(
-    Math.min(roomConfig.width, roomConfig.depth) * 0.12,
-    0.2,
-    0.45,
-  );
-  const helperRoot = new BABYLON.TransformNode("trial-room-origin-root", scene);
-  helperRoot.position.set(0, roomConfig.floorThickness + 0.01, 0);
-
-  const centerMarker = BABYLON.MeshBuilder.CreateCylinder(
-    "trial-room-origin-marker",
-    {
-      diameter: axisLength * 0.22,
-      height: 0.01,
-      tessellation: 32,
-    },
-    scene,
-  );
-  centerMarker.parent = helperRoot;
-  centerMarker.isPickable = false;
-
-  const centerMaterial = new BABYLON.StandardMaterial(
-    "trial-room-origin-marker-mat",
-    scene,
-  );
-  centerMaterial.emissiveColor = new BABYLON.Color3(1, 1, 1);
-  centerMaterial.disableLighting = true;
-  centerMarker.material = centerMaterial;
-
-  const axisDefinitions: Array<{
-    name: string;
-    points: BABYLON.Vector3[];
-    color: BABYLON.Color3;
-  }> = [
-    {
-      name: "x",
-      points: [
-        new BABYLON.Vector3(-axisLength, 0, 0),
-        new BABYLON.Vector3(axisLength, 0, 0),
-      ],
-      color: new BABYLON.Color3(1, 0.25, 0.25),
-    },
-    {
-      name: "y",
-      points: [
-        BABYLON.Vector3.Zero(),
-        new BABYLON.Vector3(0, axisLength * 0.9, 0),
-      ],
-      color: new BABYLON.Color3(0.3, 1, 0.35),
-    },
-    {
-      name: "z",
-      points: [
-        new BABYLON.Vector3(0, 0, -axisLength),
-        new BABYLON.Vector3(0, 0, axisLength),
-      ],
-      color: new BABYLON.Color3(0.25, 0.7, 1),
-    },
-  ];
-
-  const axisLines = axisDefinitions.map(({ name, points, color }) => {
-    const line = BABYLON.MeshBuilder.CreateLines(
-      `trial-room-origin-axis-${name}`,
-      { points },
-      scene,
-    );
-    line.parent = helperRoot;
-    line.color = color;
-    line.isPickable = false;
-    return line;
-  });
-
-  return {
-    dispose: () => {
-      axisLines.forEach((line) => line.dispose());
-      centerMarker.dispose();
-      centerMaterial.dispose();
-      helperRoot.dispose();
-    },
-  };
 };
 
 const createWallSurfaceMaterial = (
@@ -354,7 +270,6 @@ export interface TrialRoomResult {
   leftWall: BABYLON.Mesh;
   rightWall: BABYLON.Mesh;
   walls: BABYLON.Mesh[];
-  shadowCasters: BABYLON.Mesh[];
   dispose: () => void;
 }
 
@@ -612,7 +527,7 @@ export const setupTrialRoom = (
   innerCeiling.receiveShadows = true;
   innerCeiling.metadata = { side: "ceiling" };
 
-  const roomOriginHelper = createRoomOriginHelper(scene, roomConfig);
+  const roomOriginHelper = createRoomAnchorHelper(scene, roomConfig);
 
   const walls = [
     ...frameWalls,
@@ -625,18 +540,7 @@ export const setupTrialRoom = (
     floor,
     floorVinyl,
   ];
-  const shadowCasters = [
-    backWall,
-    frontWall,
-    leftWall,
-    rightWall,
-    ceiling,
-    innerBackWall,
-    innerFrontWall,
-    innerLeftWall,
-    innerRightWall,
-    innerCeiling,
-  ];
+
   const allMeshes = [
     floor,
     ceiling,
@@ -666,7 +570,6 @@ export const setupTrialRoom = (
     leftWall,
     rightWall,
     walls,
-    shadowCasters,
     dispose: () => {
       roomOriginHelper.dispose();
       allMeshes.forEach((mesh) => mesh.dispose());

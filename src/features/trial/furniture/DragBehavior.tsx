@@ -93,6 +93,7 @@ export const attachFrameTrialDragBehavior = ({
   dragBehavior.moveAttached = false;
   dragBehavior.useObjectOrientationForDragging = false;
   dragBehavior.detachCameraControls = true;
+  dragBehavior.updateDragPlane = false;
 
   dragBehavior.onDragObservable.add((event) => {
     const localDelta = toParentLocalDelta(targetMesh, event.delta);

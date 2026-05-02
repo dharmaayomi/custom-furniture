@@ -6,25 +6,22 @@ import { toast } from "sonner";
 import { useTheme } from "next-themes";
 
 import { getBackWallPosition, initTrialScene } from "./core/TrialSceneSetup";
-import { TrialRoomConfig } from "./core/TrialConfig";
-import {
-  loadProductBase,
-  TrialModelLoadResult,
-} from "./furniture/TrialModelLoader";
+import { CABINET_CONFIG, TrialRoomConfig } from "./core/TrialConfig";
+import { LoadAsset, AssetLoadResult } from "./furniture/AssetLoader";
 import {
   getTrialResolvedDragTarget,
   tryStartTrialDragFromPick,
 } from "./furniture/DragBehavior";
 import {
   clearRegistry,
-  getModel,
-  registerModel,
-  unregisterModel,
+  getAsset,
+  registerAsset,
+  unregisterAsset,
 } from "./furniture/TrialModelRegistry";
 import { getTrialAssetById, TRIAL_ASSET_DRAG_TYPE } from "./trialAssetCatalog";
-import { TrialSpawnPoint, useTrialRoomStore } from "./useTrialRoomStore";
-import { CABINET_CONFIG } from "./CabinetConfig";
+import { SpawnPoint, useTrialRoomStore } from "./useTrialRoomStore";
 import { TrialThemeMode } from "./core/TrialLightingSetup";
+import { createInteriorAnchorHelper } from "./utils/DebugUtils";
 
 /**
  * TrialRoomCanvas.tsx
@@ -37,10 +34,10 @@ import { TrialThemeMode } from "./core/TrialLightingSetup";
  *   4. Cleanup saat unmount
  */
 
-const toVector3 = (point: TrialSpawnPoint) =>
+const toVector3 = (point: SpawnPoint) =>
   new BABYLON.Vector3(point.x, point.y, point.z);
 
-const toSpawnPoint = (point: BABYLON.Vector3): TrialSpawnPoint => ({
+const toSpawnPoint = (point: BABYLON.Vector3): SpawnPoint => ({
   x: point.x,
   y: point.y,
   z: point.z,
@@ -54,7 +51,7 @@ interface TrialMeshBounds {
 interface TrialInteriorInstance {
   assetId: string;
   instanceId: string;
-  result: TrialModelLoadResult;
+  result: AssetLoadResult;
 }
 
 interface TrialFrameInstance {
@@ -62,7 +59,7 @@ interface TrialFrameInstance {
   bounds: TrialMeshBounds;
   instanceId: string;
   interiors: TrialInteriorInstance[];
-  result: TrialModelLoadResult;
+  result: AssetLoadResult;
 }
 
 interface TrialInteractionPick {
@@ -77,73 +74,6 @@ interface TrialPointerOwnership {
   dragInstanceId: string | null;
   owner: "none" | "model";
 }
-
-const createInteriorAnchorDebugMarker = (
-  scene: BABYLON.Scene,
-  parent: BABYLON.TransformNode,
-  name: string,
-  localAnchor: BABYLON.Vector3,
-) => {
-  const markerRoot = new BABYLON.TransformNode(`${name}-anchor-root`, scene);
-  markerRoot.parent = parent;
-  markerRoot.position.copyFrom(localAnchor);
-
-  const marker = BABYLON.MeshBuilder.CreateSphere(
-    `${name}-anchor-point`,
-    { diameter: 0.035 },
-    scene,
-  );
-  marker.parent = markerRoot;
-  marker.isPickable = false;
-
-  const markerMaterial = new BABYLON.StandardMaterial(
-    `${name}-anchor-mat`,
-    scene,
-  );
-  markerMaterial.emissiveColor = new BABYLON.Color3(1, 0.4, 0.1);
-  markerMaterial.disableLighting = true;
-  marker.material = markerMaterial;
-
-  const axisLength = 0.18;
-  const axisDefinitions = [
-    {
-      suffix: "x",
-      points: [BABYLON.Vector3.Zero(), new BABYLON.Vector3(axisLength, 0, 0)],
-      color: new BABYLON.Color3(1, 0.9, 0.1),
-    },
-    {
-      suffix: "y",
-      points: [BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, axisLength, 0)],
-      color: new BABYLON.Color3(0.2, 1, 0.3),
-    },
-    {
-      suffix: "z",
-      points: [BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, 0, axisLength)],
-      color: new BABYLON.Color3(0.2, 0.7, 1),
-    },
-  ];
-
-  const axisLines = axisDefinitions.map(({ suffix, points, color }) => {
-    const line = BABYLON.MeshBuilder.CreateLines(
-      `${name}-anchor-axis-${suffix}`,
-      { points },
-      scene,
-    );
-    line.parent = markerRoot;
-    line.color = color;
-    line.isPickable = false;
-    return line;
-  });
-
-  return {
-    dispose: () => {
-      axisLines.forEach((line) => line.dispose());
-      markerMaterial.dispose();
-      marker.dispose();
-      markerRoot.dispose();
-    },
-  };
-};
 
 const toCentimeters = (valueInMeters: number) =>
   Math.round(valueInMeters * 100);
@@ -253,12 +183,11 @@ const getDefaultFrameSpawnPosition = (
 
 export const TrialRoomCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const updateThemeModeRef = useRef<((themeMode: TrialThemeMode) => void) | null>(
-    null,
-  );
+  const updateThemeModeRef = useRef<
+    ((themeMode: TrialThemeMode) => void) | null
+  >(null);
   const { resolvedTheme } = useTheme();
-  const themeMode: TrialThemeMode =
-    resolvedTheme === "dark" ? "dark" : "light";
+  const themeMode: TrialThemeMode = resolvedTheme === "dark" ? "dark" : "light";
 
   useEffect(() => {
     updateThemeModeRef.current?.(themeMode);
@@ -380,7 +309,7 @@ export const TrialRoomCanvas = () => {
         return;
       }
 
-      const selectedModel = getModel(selectedInstanceId);
+      const selectedModel = getAsset(selectedInstanceId);
 
       if (selectedModel && selectedModel.selectionMeshes.length > 0) {
         selectionLayer.addSelection(selectedModel.selectionMeshes);
@@ -439,7 +368,7 @@ export const TrialRoomCanvas = () => {
 
       const [interior] = frame.interiors.splice(interiorIndex, 1);
       useTrialRoomStore.getState().removeLoadedModel(interior.instanceId);
-      unregisterModel(interior.instanceId);
+      unregisterAsset(interior.instanceId);
       return interior;
     };
 
@@ -449,7 +378,7 @@ export const TrialRoomCanvas = () => {
       }
 
       useTrialRoomStore.getState().removeLoadedModel(frame.instanceId);
-      unregisterModel(frame.instanceId);
+      unregisterAsset(frame.instanceId);
     };
 
     const deleteSelectedInstance = (targetInstanceId: string) => {
@@ -556,7 +485,7 @@ export const TrialRoomCanvas = () => {
       };
     };
 
-    const registerDragLifecycle = (result: TrialModelLoadResult) => {
+    const registerDragLifecycle = (result: AssetLoadResult) => {
       if (!result.dragBehavior) {
         return;
       }
@@ -669,7 +598,7 @@ export const TrialRoomCanvas = () => {
     const spawnFrame = async (
       _requestId: number,
       assetId: string,
-      dropPoint: TrialSpawnPoint | null,
+      dropPoint: SpawnPoint | null,
     ) => {
       const asset = getTrialAssetById(assetId);
       if (!asset) {
@@ -684,7 +613,7 @@ export const TrialRoomCanvas = () => {
 
       try {
         const instanceId = createModelInstanceId("frame", asset.id);
-        const result = await loadProductBase(scene, {
+        const result = await LoadAsset(scene, {
           instanceId,
           modelPath: asset.modelPath,
           meshName: instanceId,
@@ -714,7 +643,7 @@ export const TrialRoomCanvas = () => {
 
         result.syncBoundingBox();
         registerDragLifecycle(result);
-        registerModel(instanceId, result);
+        registerAsset(instanceId, result);
         useTrialRoomStore.getState().addLoadedModel({
           instanceId,
           assetId,
@@ -751,7 +680,7 @@ export const TrialRoomCanvas = () => {
       if (!asset) return;
       const instanceId = createModelInstanceId("interior", asset.id);
 
-      const result = await loadProductBase(scene, {
+      const result = await LoadAsset(scene, {
         instanceId,
         modelPath: asset.modelPath,
         meshName: instanceId,
@@ -881,14 +810,14 @@ export const TrialRoomCanvas = () => {
       result.rootMesh.computeWorldMatrix(true);
       result.syncBoundingBox();
       registerDragLifecycle(result);
-      registerModel(instanceId, result);
+      registerAsset(instanceId, result);
       useTrialRoomStore.getState().addLoadedModel({
         instanceId,
         assetId,
         category: "interior",
       });
 
-      const anchorDebug = createInteriorAnchorDebugMarker(
+      const anchorDebug = createInteriorAnchorHelper(
         scene,
         targetFrame.result.rootMesh,
         result.rootMesh.name,

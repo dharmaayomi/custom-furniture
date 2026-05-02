@@ -1,16 +1,16 @@
 import { create } from "zustand";
 import { DEFAULT_TRIAL_ROOM_CONFIG, TrialRoomConfig } from "./core/TrialConfig";
 
-export interface TrialSpawnPoint {
+export interface SpawnPoint {
   x: number;
   y: number;
   z: number;
 }
 
-export interface TrialSpawnRequest {
+export interface SpawnRequest {
   requestId: number;
   assetId: string;
-  dropPoint: TrialSpawnPoint | null;
+  dropPoint: SpawnPoint | null;
 }
 
 export interface LoadedModel {
@@ -28,7 +28,7 @@ export interface TrialSelectionActionRequest {
 interface TrialRoomState {
   selectedMeshName: string | null;
   hasFrameProduct: boolean;
-  spawnRequest: TrialSpawnRequest | null;
+  spawnRequest: SpawnRequest | null;
   selectionActionRequest: TrialSelectionActionRequest | null;
   draftRoomConfig: TrialRoomConfig;
   appliedRoomConfig: TrialRoomConfig;
@@ -46,10 +46,7 @@ interface TrialRoomState {
   addActiveInteriorProductId: (assetId: string) => void;
   clearActiveInteriorProductIds: () => void;
   setActiveMaterialProductIds: (assetIds: string[]) => void;
-  requestAssetSpawn: (
-    assetId: string,
-    dropPoint?: TrialSpawnPoint | null,
-  ) => void;
+  requestAssetSpawn: (assetId: string, dropPoint?: SpawnPoint | null) => void;
   clearSpawnRequest: () => void;
   requestSelectionAction: (
     action: TrialSelectionActionRequest["action"],

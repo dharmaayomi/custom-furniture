@@ -3,8 +3,8 @@ import { TrialRoomConfig } from "./TrialConfig";
 import { getBackWallPosition } from "./TrialSceneSetup";
 import { useTrialRoomStore } from "../useTrialRoomStore";
 import { getTrialAssetById } from "../trialAssetCatalog";
-import { registerModel } from "../furniture/TrialModelRegistry";
-import { loadProductBase } from "../furniture/TrialModelLoader";
+import { registerAsset } from "../furniture/TrialModelRegistry";
+import { LoadAsset } from "../furniture/AssetLoader";
 
 const resolveSpawnPosition = (
   category: "frame" | "interior" | "material",
@@ -44,7 +44,7 @@ export const setupTrialSpawnListener = (
       roomConfig,
     );
 
-    const result = await loadProductBase(scene, {
+    const result = await LoadAsset(scene, {
       instanceId,
       modelPath: asset.modelPath,
       meshName: instanceId,
@@ -61,7 +61,7 @@ export const setupTrialSpawnListener = (
 
     if (!result) return;
 
-    registerModel(instanceId, result);
+    registerAsset(instanceId, result);
     useTrialRoomStore.getState().addLoadedModel({
       instanceId,
       assetId: asset.id,

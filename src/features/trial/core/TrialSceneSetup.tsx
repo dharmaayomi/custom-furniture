@@ -133,15 +133,11 @@ export const initTrialScene = (
 
   const updateRoomConfig = (nextRoomConfig: TrialRoomConfig) => {
     scene.onBeforeRenderObservable.remove(wallObserver);
-    // room.shadowCasters.forEach((mesh) => {
-    //   lighting.shadowGenerator.removeShadowCaster(mesh);
-    // });
+
     room.dispose();
 
     room = setupTrialRoom(scene, nextRoomConfig);
-    // room.shadowCasters.forEach((mesh) => {
-    //   lighting.shadowGenerator.addShadowCaster(mesh, false);
-    // });
+
     lighting.updateForRoomConfig(nextRoomConfig);
     wallObserver = setupTrialAutoHideWalls(scene, room.walls, camera);
     scheduleResize();

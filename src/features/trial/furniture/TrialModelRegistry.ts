@@ -1,20 +1,17 @@
-import { TrialModelLoadResult } from "./TrialModelLoader";
+import { AssetLoadResult } from "./AssetLoader";
 
-const registry = new Map<string, TrialModelLoadResult>();
+const registry = new Map<string, AssetLoadResult>();
 
-export const registerModel = (
-  instanceId: string,
-  result: TrialModelLoadResult,
-) => {
+export const registerAsset = (instanceId: string, result: AssetLoadResult) => {
   registry.set(instanceId, result);
 };
 
-export const unregisterModel = (instanceId: string) => {
+export const unregisterAsset = (instanceId: string) => {
   registry.get(instanceId)?.dispose();
   registry.delete(instanceId);
 };
 
-export const getModel = (instanceId: string) => registry.get(instanceId);
+export const getAsset = (instanceId: string) => registry.get(instanceId);
 
 export const clearRegistry = () => {
   registry.forEach((r) => r.dispose());
