@@ -17,7 +17,7 @@ import {
   getTrialProductComponentById,
   getTrialProductMaterialById,
 } from "../trialAssetCatalog";
-import { LoadedModel } from "../useTrialRoomStore";
+import { LoadedModel } from "../store/useTrialRoomStore";
 
 interface TrialProductInfoProps {
   open: boolean;
@@ -109,7 +109,7 @@ export const TrialProductInfo = ({
         <div className="bg-primary/10 pointer-events-none absolute bottom-12 left-6 h-24 w-24 rounded-full blur-3xl" />
 
         <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden">
-          <DrawerHeader className="border-b border-white/60 px-4 pt-3 pb-4 dark:border-white/10 md:px-7 md:pt-7">
+          <DrawerHeader className="border-b border-white/60 px-4 pt-3 pb-4 md:px-7 md:pt-7 dark:border-white/10">
             <div className="flex items-start justify-between gap-3 text-left">
               <div className="space-y-2">
                 <p className="text-xs font-medium tracking-[0.22em] text-slate-500 uppercase dark:text-slate-400">

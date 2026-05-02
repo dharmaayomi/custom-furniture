@@ -1,6 +1,6 @@
 import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders/glTF";
-import { useTrialRoomStore } from "../useTrialRoomStore";
+import { useTrialRoomStore } from "../store/useTrialRoomStore";
 import {
   attachFrameTrialDragBehavior,
   attachInteriorTrialDragBehavior,

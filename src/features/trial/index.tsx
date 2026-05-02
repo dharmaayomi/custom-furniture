@@ -1,23 +1,14 @@
 "use client";
 
-import {
-  LampFloor,
-  LayoutTemplate,
-  Package,
-  PaintBucket,
-} from "lucide-react";
+import { LampFloor, LayoutTemplate, Package, PaintBucket } from "lucide-react";
 import { TrialRoomCanvas } from "./TrialRoomCanvas";
-import {
-  RightPanel,
-  TrialTool,
-  TrialToolType,
-} from "./components/RightPanel";
+import { RightPanel, TrialTool, TrialToolType } from "./components/RightPanel";
 import { RightPanelDrawer } from "./components/RightPanelDrawer";
 import { TrialHeader } from "./components/TrialHeader";
 import { TrialFooter } from "./components/TrialFooter";
 import { TrialCustomizeDrawer } from "./components/TrialCustomizeDrawer";
 import { useMemo, useState } from "react";
-import { useTrialRoomStore } from "./useTrialRoomStore";
+import { useTrialRoomStore } from "./store/useTrialRoomStore";
 import { TrialProductInfo } from "./components/TrialProductInfo";
 import { TrialProductList } from "./components/TrialProductList";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -37,13 +28,16 @@ export const TrialPage = () => {
   const isProductListPanelOpen = activeOverlayDrawer === "productList";
   const isProductInfoPanelOpen = activeOverlayDrawer === "productInfo";
   const loadedModels = useTrialRoomStore((state) => state.loadedModels);
-  const selectedInstanceId = useTrialRoomStore((state) => state.selectedMeshName);
+  const selectedInstanceId = useTrialRoomStore(
+    (state) => state.selectedMeshName,
+  );
   const requestSelectionAction = useTrialRoomStore(
     (state) => state.requestSelectionAction,
   );
   const selectedModel = useMemo(
     () =>
-      loadedModels.find((model) => model.instanceId === selectedInstanceId) ?? null,
+      loadedModels.find((model) => model.instanceId === selectedInstanceId) ??
+      null,
     [loadedModels, selectedInstanceId],
   );
   const hasSelection = selectedModel !== null;

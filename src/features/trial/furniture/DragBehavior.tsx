@@ -1,5 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
-import { useTrialRoomStore } from "../useTrialRoomStore";
+import { useTrialRoomStore } from "../store/useTrialRoomStore";
 
 interface AttachTrialDragBehaviorOptions {
   targetMesh: BABYLON.TransformNode;

@@ -1,5 +1,8 @@
 import { create } from "zustand";
-import { DEFAULT_TRIAL_ROOM_CONFIG, TrialRoomConfig } from "./core/TrialConfig";
+import {
+  DEFAULT_TRIAL_ROOM_CONFIG,
+  TrialRoomConfig,
+} from "../core/TrialConfig";
 
 export interface SpawnPoint {
   x: number;

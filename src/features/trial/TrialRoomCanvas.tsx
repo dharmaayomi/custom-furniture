@@ -19,7 +19,7 @@ import {
   unregisterAsset,
 } from "./furniture/TrialModelRegistry";
 import { getTrialAssetById, TRIAL_ASSET_DRAG_TYPE } from "./trialAssetCatalog";
-import { SpawnPoint, useTrialRoomStore } from "./useTrialRoomStore";
+import { SpawnPoint, useTrialRoomStore } from "./store/useTrialRoomStore";
 import { TrialThemeMode } from "./core/TrialLightingSetup";
 import { createInteriorAnchorHelper } from "./utils/DebugUtils";
 

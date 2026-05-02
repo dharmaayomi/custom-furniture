@@ -22,7 +22,7 @@ import {
   TrialAssetCategory,
   TrialAssetItem,
 } from "../trialAssetCatalog";
-import { useTrialRoomStore } from "../useTrialRoomStore";
+import { useTrialRoomStore } from "../store/useTrialRoomStore";
 
 interface RightPanelDrawerProps {
   open: boolean;

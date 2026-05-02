@@ -1,7 +1,7 @@
 import * as BABYLON from "@babylonjs/core";
 import { TrialRoomConfig } from "./TrialConfig";
 import { getBackWallPosition } from "./TrialSceneSetup";
-import { useTrialRoomStore } from "../useTrialRoomStore";
+import { useTrialRoomStore } from "../store/useTrialRoomStore";
 import { getTrialAssetById } from "../trialAssetCatalog";
 import { registerAsset } from "../furniture/TrialModelRegistry";
 import { LoadAsset } from "../furniture/AssetLoader";
