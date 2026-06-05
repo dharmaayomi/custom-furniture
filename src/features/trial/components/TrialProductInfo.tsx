@@ -16,8 +16,8 @@ import {
   getTrialProductBaseById,
   getTrialProductComponentById,
   getTrialProductMaterialById,
-} from "../trialAssetCatalog";
-import { LoadedModel } from "../useTrialRoomStore";
+} from "../core/AssetCatalog";
+import { LoadedModel } from "../store/useTrialRoomStore";
 
 interface TrialProductInfoProps {
   open: boolean;
@@ -48,18 +48,18 @@ const resolveTrialProductInfo = (selectedModel: LoadedModel | null) => {
     };
   }
 
-  if (selectedModel.category === "interior") {
+  if (selectedModel.category === "component") {
     const component = getTrialProductComponentById(selectedModel.assetId);
     if (!component) {
       return null;
     }
 
     return {
-      badge: component.componentCategory ?? "Interior",
+      badge: component.componentCategory ?? "Component",
       code: component.componentSku ?? component.id,
       description: component.componentDesc,
-      dimensions: component.componentCategory ?? "Interior module",
-      image: component.componentImageUrls[0] ?? "/assets/trial/interior.webp",
+      dimensions: component.componentCategory ?? "Component module",
+      image: component.componentImageUrls[0] ?? "/assets/trial/component.webp",
       name: component.componentName,
       price: component.price,
       weight: `${component.weight} kg`,
@@ -109,7 +109,7 @@ export const TrialProductInfo = ({
         <div className="bg-primary/10 pointer-events-none absolute bottom-12 left-6 h-24 w-24 rounded-full blur-3xl" />
 
         <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden">
-          <DrawerHeader className="border-b border-white/60 px-4 pt-3 pb-4 dark:border-white/10 md:px-7 md:pt-7">
+          <DrawerHeader className="border-b border-white/60 px-4 pt-3 pb-4 md:px-7 md:pt-7 dark:border-white/10">
             <div className="flex items-start justify-between gap-3 text-left">
               <div className="space-y-2">
                 <p className="text-xs font-medium tracking-[0.22em] text-slate-500 uppercase dark:text-slate-400">
@@ -197,7 +197,7 @@ export const TrialProductInfo = ({
               </div>
             ) : (
               <div className="flex h-full min-h-56 items-center justify-center rounded-2xl border border-dashed border-white/60 bg-white/50 px-6 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
-                Select a frame or interior item to inspect its details.
+                Select a frame or component item to inspect its details.
               </div>
             )}
           </div>

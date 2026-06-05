@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/price";
 import { ListOrdered, MoveRight, Save } from "lucide-react";
-import { calculateTrialTotalPrice } from "../trialPrice";
-import { useTrialRoomStore } from "../useTrialRoomStore";
+import { calculateTrialTotalPrice } from "../utils/trialPrice";
+import { useTrialRoomStore } from "../store/useTrialRoomStore";
 import { MenuDrawer } from "./MenuDrawer";
 
 interface TrialHeaderProps {
@@ -13,8 +13,8 @@ export const TrialHeader = ({ onOpenProductList }: TrialHeaderProps) => {
   const activeFrameProductIds = useTrialRoomStore(
     (state) => state.activeFrameProductIds,
   );
-  const activeInteriorProductIds = useTrialRoomStore(
-    (state) => state.activeInteriorProductIds,
+  const activeComponentProductIds = useTrialRoomStore(
+    (state) => state.activeComponentProductIds,
   );
   const activeMaterialProductIds = useTrialRoomStore(
     (state) => state.activeMaterialProductIds,
@@ -22,7 +22,7 @@ export const TrialHeader = ({ onOpenProductList }: TrialHeaderProps) => {
 
   const totalPrice = calculateTrialTotalPrice(
     activeFrameProductIds,
-    activeInteriorProductIds,
+    activeComponentProductIds,
     activeMaterialProductIds,
   );
 

@@ -1,9 +1,13 @@
 import * as BABYLON from "@babylonjs/core";
 import { setupTrialCamera } from "./TrialCameraSetup";
 import { setupTrialRoom } from "./TrialRoomSetup";
-import { setupTrialAutoHideWalls } from "../furniture/WallVisibility";
+import { setupTrialAutoHideWalls } from "../systems/WallVisibility";
 import { DEFAULT_TRIAL_ROOM_CONFIG, TrialRoomConfig } from "./TrialConfig";
-import { setupTrialLighting, TrialLightingResult } from "./TrialLightingSetup";
+import {
+  setupTrialLighting,
+  TrialLightingResult,
+  TrialThemeMode,
+} from "./TrialLightingSetup";
 
 /**
  * TrialSceneSetup.ts
@@ -23,13 +27,34 @@ export interface TrialSceneContext {
   camera: BABYLON.ArcRotateCamera;
   lighting: TrialLightingResult;
   updateRoomConfig: (roomConfig: TrialRoomConfig) => void;
+  updateThemeMode: (themeMode: TrialThemeMode) => void;
   /** Dispose seluruh scene + engine + observer */
   dispose: () => void;
 }
 
+const applySceneThemeMood = (
+  scene: BABYLON.Scene,
+  themeMode: TrialThemeMode,
+) => {
+  const config = scene.imageProcessingConfiguration;
+  config.toneMappingEnabled = true;
+  config.toneMappingType =
+    BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+
+  if (themeMode === "dark") {
+    config.exposure = 1;
+    config.contrast = 1.2;
+    return;
+  }
+
+  config.exposure = 1.1;
+  config.contrast = 1.35;
+};
+
 export const initTrialScene = (
   canvas: HTMLCanvasElement,
   initialRoomConfig: TrialRoomConfig = DEFAULT_TRIAL_ROOM_CONFIG,
+  initialThemeMode: TrialThemeMode = "light",
 ): TrialSceneContext => {
   const engine = new BABYLON.Engine(canvas, true, {
     adaptToDeviceRatio: true,
@@ -38,26 +63,24 @@ export const initTrialScene = (
   });
 
   const scene = new BABYLON.Scene(engine);
-  // scene.clearColor = new BABYLON.Color4(0.95, 0.96, 0.96, 1);
   scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
 
   const camera = setupTrialCamera(canvas, scene, initialRoomConfig);
-  const lighting = setupTrialLighting(scene, initialRoomConfig);
+  const lighting = setupTrialLighting(
+    scene,
+    initialRoomConfig,
+    initialThemeMode,
+  );
   let room = setupTrialRoom(scene, initialRoomConfig);
 
-  room.shadowCasters.forEach((mesh) => {
-    lighting.shadowGenerator.addShadowCaster(mesh, false);
-  });
+  // room.shadowCasters.forEach((mesh) => {
+  //   lighting.shadowGenerator.addShadowCaster(mesh, false);
+  // });
 
   // Wall auto-hide
   let wallObserver = setupTrialAutoHideWalls(scene, room.walls, camera);
 
-  // Post-processing
-  scene.imageProcessingConfiguration.toneMappingEnabled = true;
-  scene.imageProcessingConfiguration.toneMappingType =
-    BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
-  scene.imageProcessingConfiguration.exposure = 1.1;
-  scene.imageProcessingConfiguration.contrast = 1.35;
+  applySceneThemeMood(scene, initialThemeMode);
 
   // Render loop
   engine.runRenderLoop(() => {
@@ -110,18 +133,19 @@ export const initTrialScene = (
 
   const updateRoomConfig = (nextRoomConfig: TrialRoomConfig) => {
     scene.onBeforeRenderObservable.remove(wallObserver);
-    room.shadowCasters.forEach((mesh) => {
-      lighting.shadowGenerator.removeShadowCaster(mesh);
-    });
+
     room.dispose();
 
     room = setupTrialRoom(scene, nextRoomConfig);
-    room.shadowCasters.forEach((mesh) => {
-      lighting.shadowGenerator.addShadowCaster(mesh, false);
-    });
+
     lighting.updateForRoomConfig(nextRoomConfig);
     wallObserver = setupTrialAutoHideWalls(scene, room.walls, camera);
     scheduleResize();
+  };
+
+  const updateThemeMode = (themeMode: TrialThemeMode) => {
+    lighting.updateThemeMode(themeMode);
+    applySceneThemeMood(scene, themeMode);
   };
 
   const dispose = () => {
@@ -136,7 +160,15 @@ export const initTrialScene = (
     engine.dispose();
   };
 
-  return { engine, scene, camera, lighting, updateRoomConfig, dispose };
+  return {
+    engine,
+    scene,
+    camera,
+    lighting,
+    updateRoomConfig,
+    updateThemeMode,
+    dispose,
+  };
 };
 
 // ─── Helpers yang dipakai pemanggil untuk hitung posisi furniture ─────────────

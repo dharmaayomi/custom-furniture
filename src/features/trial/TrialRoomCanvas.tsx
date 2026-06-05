@@ -3,26 +3,25 @@
 import { useEffect, useRef } from "react";
 import * as BABYLON from "@babylonjs/core";
 import { toast } from "sonner";
+import { useTheme } from "next-themes";
 
 import { getBackWallPosition, initTrialScene } from "./core/TrialSceneSetup";
-import { TrialRoomConfig } from "./core/TrialConfig";
-import {
-  loadProductBase,
-  TrialModelLoadResult,
-} from "./furniture/TrialModelLoader";
+import { CABINET_CONFIG, TrialRoomConfig } from "./core/TrialConfig";
+import { LoadAsset, AssetLoadResult } from "./asset/AssetLoader";
 import {
   getTrialResolvedDragTarget,
   tryStartTrialDragFromPick,
-} from "./furniture/DragBehavior";
+} from "./asset/DragBehavior";
 import {
   clearRegistry,
-  getModel,
-  registerModel,
-  unregisterModel,
-} from "./furniture/TrialModelRegistry";
-import { getTrialAssetById, TRIAL_ASSET_DRAG_TYPE } from "./trialAssetCatalog";
-import { TrialSpawnPoint, useTrialRoomStore } from "./useTrialRoomStore";
-import { CABINET_CONFIG } from "./CabinetConfig";
+  getAsset,
+  registerAsset,
+  unregisterAsset,
+} from "./asset/TrialModelRegistry";
+import { getTrialAssetById, TRIAL_ASSET_DRAG_TYPE } from "./core/AssetCatalog";
+import { SpawnPoint, useTrialRoomStore } from "./store/useTrialRoomStore";
+import { TrialThemeMode } from "./core/TrialLightingSetup";
+import { createComponentAnchorHelper } from "./utils/DebugUtils";
 
 /**
  * TrialRoomCanvas.tsx
@@ -35,10 +34,10 @@ import { CABINET_CONFIG } from "./CabinetConfig";
  *   4. Cleanup saat unmount
  */
 
-const toVector3 = (point: TrialSpawnPoint) =>
+const toVector3 = (point: SpawnPoint) =>
   new BABYLON.Vector3(point.x, point.y, point.z);
 
-const toSpawnPoint = (point: BABYLON.Vector3): TrialSpawnPoint => ({
+const toSpawnPoint = (point: BABYLON.Vector3): SpawnPoint => ({
   x: point.x,
   y: point.y,
   z: point.z,
@@ -49,18 +48,18 @@ interface TrialMeshBounds {
   max: BABYLON.Vector3;
 }
 
-interface TrialInteriorInstance {
+interface TrialComponentInstance {
   assetId: string;
   instanceId: string;
-  result: TrialModelLoadResult;
+  result: AssetLoadResult;
 }
 
 interface TrialFrameInstance {
   assetId: string;
   bounds: TrialMeshBounds;
   instanceId: string;
-  interiors: TrialInteriorInstance[];
-  result: TrialModelLoadResult;
+  components: TrialComponentInstance[];
+  result: AssetLoadResult;
 }
 
 interface TrialInteractionPick {
@@ -75,73 +74,6 @@ interface TrialPointerOwnership {
   dragInstanceId: string | null;
   owner: "none" | "model";
 }
-
-const createInteriorAnchorDebugMarker = (
-  scene: BABYLON.Scene,
-  parent: BABYLON.TransformNode,
-  name: string,
-  localAnchor: BABYLON.Vector3,
-) => {
-  const markerRoot = new BABYLON.TransformNode(`${name}-anchor-root`, scene);
-  markerRoot.parent = parent;
-  markerRoot.position.copyFrom(localAnchor);
-
-  const marker = BABYLON.MeshBuilder.CreateSphere(
-    `${name}-anchor-point`,
-    { diameter: 0.035 },
-    scene,
-  );
-  marker.parent = markerRoot;
-  marker.isPickable = false;
-
-  const markerMaterial = new BABYLON.StandardMaterial(
-    `${name}-anchor-mat`,
-    scene,
-  );
-  markerMaterial.emissiveColor = new BABYLON.Color3(1, 0.4, 0.1);
-  markerMaterial.disableLighting = true;
-  marker.material = markerMaterial;
-
-  const axisLength = 0.18;
-  const axisDefinitions = [
-    {
-      suffix: "x",
-      points: [BABYLON.Vector3.Zero(), new BABYLON.Vector3(axisLength, 0, 0)],
-      color: new BABYLON.Color3(1, 0.9, 0.1),
-    },
-    {
-      suffix: "y",
-      points: [BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, axisLength, 0)],
-      color: new BABYLON.Color3(0.2, 1, 0.3),
-    },
-    {
-      suffix: "z",
-      points: [BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, 0, axisLength)],
-      color: new BABYLON.Color3(0.2, 0.7, 1),
-    },
-  ];
-
-  const axisLines = axisDefinitions.map(({ suffix, points, color }) => {
-    const line = BABYLON.MeshBuilder.CreateLines(
-      `${name}-anchor-axis-${suffix}`,
-      { points },
-      scene,
-    );
-    line.parent = markerRoot;
-    line.color = color;
-    line.isPickable = false;
-    return line;
-  });
-
-  return {
-    dispose: () => {
-      axisLines.forEach((line) => line.dispose());
-      markerMaterial.dispose();
-      marker.dispose();
-      markerRoot.dispose();
-    },
-  };
-};
 
 const toCentimeters = (valueInMeters: number) =>
   Math.round(valueInMeters * 100);
@@ -251,6 +183,16 @@ const getDefaultFrameSpawnPosition = (
 
 export const TrialRoomCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const updateThemeModeRef = useRef<
+    ((themeMode: TrialThemeMode) => void) | null
+  >(null);
+  const { resolvedTheme } = useTheme();
+  const themeMode: TrialThemeMode = resolvedTheme === "dark" ? "dark" : "light";
+
+  useEffect(() => {
+    updateThemeModeRef.current?.(themeMode);
+  }, [themeMode]);
+
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -261,8 +203,10 @@ export const TrialRoomCanvas = () => {
       scene,
       lighting,
       updateRoomConfig,
+      updateThemeMode,
       dispose: disposeScene,
-    } = initTrialScene(canvas, initialRoomConfig);
+    } = initTrialScene(canvas, initialRoomConfig, themeMode);
+    updateThemeModeRef.current = updateThemeMode;
     const selectionLayer =
       scene.getSelectionOutlineLayerByName("trial-selection-outline") ??
       new BABYLON.SelectionOutlineLayer("trial-selection-outline", scene, {
@@ -298,7 +242,7 @@ export const TrialRoomCanvas = () => {
     };
 
     const createModelInstanceId = (
-      category: "frame" | "interior",
+      category: "frame" | "component",
       assetId: string,
     ) => {
       modelInstanceSerial += 1;
@@ -311,9 +255,9 @@ export const TrialRoomCanvas = () => {
       store.setActiveFrameProductIds(
         frameInstances.map((frame) => frame.assetId),
       );
-      store.setActiveInteriorProductIds(
+      store.setActiveComponentProductIds(
         frameInstances.flatMap((frame) =>
-          frame.interiors.map((interior) => interior.assetId),
+          frame.components.map((component) => component.assetId),
         ),
       );
     };
@@ -321,7 +265,7 @@ export const TrialRoomCanvas = () => {
     const getAllLoadedModels = () =>
       frameInstances.flatMap((frame) => [
         frame.result,
-        ...frame.interiors.map((interior) => interior.result),
+        ...frame.components.map((component) => component.result),
       ]);
 
     const getModelCategory = (instanceId: string | null) => {
@@ -335,9 +279,11 @@ export const TrialRoomCanvas = () => {
         }
 
         if (
-          frame.interiors.some((interior) => interior.instanceId === instanceId)
+          frame.components.some(
+            (component) => component.instanceId === instanceId,
+          )
         ) {
-          return "interior" as const;
+          return "component" as const;
         }
       }
 
@@ -365,7 +311,7 @@ export const TrialRoomCanvas = () => {
         return;
       }
 
-      const selectedModel = getModel(selectedInstanceId);
+      const selectedModel = getAsset(selectedInstanceId);
 
       if (selectedModel && selectedModel.selectionMeshes.length > 0) {
         selectionLayer.addSelection(selectedModel.selectionMeshes);
@@ -386,14 +332,14 @@ export const TrialRoomCanvas = () => {
 
       return (
         frameInstances.find((frame) =>
-          frame.interiors.some(
-            (interior) => interior.instanceId === selectedInstanceId,
+          frame.components.some(
+            (component) => component.instanceId === selectedInstanceId,
           ),
         ) ?? null
       );
     };
 
-    const resolveInteriorTargetFrame = () => {
+    const resolveComponentTargetFrame = () => {
       if (frameInstances.length === 1) {
         return frameInstances[0];
       }
@@ -406,35 +352,37 @@ export const TrialRoomCanvas = () => {
     const findFrameIndexByInstanceId = (instanceId: string) =>
       frameInstances.findIndex((frame) => frame.instanceId === instanceId);
 
-    const findInteriorOwnerFrame = (instanceId: string) =>
+    const findComponentOwnerFrame = (instanceId: string) =>
       frameInstances.find((frame) =>
-        frame.interiors.some((interior) => interior.instanceId === instanceId),
+        frame.components.some(
+          (component) => component.instanceId === instanceId,
+        ),
       ) ?? null;
 
-    const disposeInteriorInstance = (
+    const disposeComponentInstance = (
       frame: TrialFrameInstance,
-      interiorInstanceId: string,
+      componentInstanceId: string,
     ) => {
-      const interiorIndex = frame.interiors.findIndex(
-        (interior) => interior.instanceId === interiorInstanceId,
+      const componentIndex = frame.components.findIndex(
+        (component) => component.instanceId === componentInstanceId,
       );
-      if (interiorIndex < 0) {
+      if (componentIndex < 0) {
         return null;
       }
 
-      const [interior] = frame.interiors.splice(interiorIndex, 1);
-      useTrialRoomStore.getState().removeLoadedModel(interior.instanceId);
-      unregisterModel(interior.instanceId);
-      return interior;
+      const [component] = frame.components.splice(componentIndex, 1);
+      useTrialRoomStore.getState().removeLoadedModel(component.instanceId);
+      unregisterAsset(component.instanceId);
+      return component;
     };
 
     const disposeFrameInstance = (frame: TrialFrameInstance) => {
-      while (frame.interiors.length > 0) {
-        disposeInteriorInstance(frame, frame.interiors[0]!.instanceId);
+      while (frame.components.length > 0) {
+        disposeComponentInstance(frame, frame.components[0]!.instanceId);
       }
 
       useTrialRoomStore.getState().removeLoadedModel(frame.instanceId);
-      unregisterModel(frame.instanceId);
+      unregisterAsset(frame.instanceId);
     };
 
     const deleteSelectedInstance = (targetInstanceId: string) => {
@@ -452,16 +400,16 @@ export const TrialRoomCanvas = () => {
         return true;
       }
 
-      const ownerFrame = findInteriorOwnerFrame(targetInstanceId);
+      const ownerFrame = findComponentOwnerFrame(targetInstanceId);
       if (!ownerFrame) {
         return false;
       }
 
-      const removedInterior = disposeInteriorInstance(
+      const removedComponent = disposeComponentInstance(
         ownerFrame,
         targetInstanceId,
       );
-      if (!removedInterior) {
+      if (!removedComponent) {
         return false;
       }
 
@@ -498,7 +446,7 @@ export const TrialRoomCanvas = () => {
           const isBoundingBox = target?.kind === "bounding-box";
 
           let priority = 0;
-          if (category === "interior" && !isBoundingBox) {
+          if (category === "component" && !isBoundingBox) {
             priority = 500;
           } else if (category === "frame" && !isBoundingBox) {
             priority = 400;
@@ -541,7 +489,7 @@ export const TrialRoomCanvas = () => {
       };
     };
 
-    const registerDragLifecycle = (result: TrialModelLoadResult) => {
+    const registerDragLifecycle = (result: AssetLoadResult) => {
       if (!result.dragBehavior) {
         return;
       }
@@ -654,7 +602,7 @@ export const TrialRoomCanvas = () => {
     const spawnFrame = async (
       _requestId: number,
       assetId: string,
-      dropPoint: TrialSpawnPoint | null,
+      dropPoint: SpawnPoint | null,
     ) => {
       const asset = getTrialAssetById(assetId);
       if (!asset) {
@@ -669,7 +617,7 @@ export const TrialRoomCanvas = () => {
 
       try {
         const instanceId = createModelInstanceId("frame", asset.id);
-        const result = await loadProductBase(scene, {
+        const result = await LoadAsset(scene, {
           instanceId,
           modelPath: asset.modelPath,
           meshName: instanceId,
@@ -699,7 +647,7 @@ export const TrialRoomCanvas = () => {
 
         result.syncBoundingBox();
         registerDragLifecycle(result);
-        registerModel(instanceId, result);
+        registerAsset(instanceId, result);
         useTrialRoomStore.getState().addLoadedModel({
           instanceId,
           assetId,
@@ -710,7 +658,7 @@ export const TrialRoomCanvas = () => {
           assetId,
           bounds: getHierarchyBoundsInLocalSpace(result.rootMesh),
           instanceId,
-          interiors: [],
+          components: [],
           result,
         });
 
@@ -723,8 +671,8 @@ export const TrialRoomCanvas = () => {
       }
     };
 
-    // INTERIOR
-    const spawnInterior = async (
+    // COMPONENT
+    const spawnComponent = async (
       _requestId: number,
       assetId: string,
       targetFrame: TrialFrameInstance,
@@ -734,16 +682,16 @@ export const TrialRoomCanvas = () => {
     ) => {
       const asset = getTrialAssetById(assetId);
       if (!asset) return;
-      const instanceId = createModelInstanceId("interior", asset.id);
+      const instanceId = createModelInstanceId("component", asset.id);
 
-      const result = await loadProductBase(scene, {
+      const result = await LoadAsset(scene, {
         instanceId,
         modelPath: asset.modelPath,
         meshName: instanceId,
         initialPosition: BABYLON.Vector3.Zero(),
         initialRotationY: 0,
         shadowGenerator: lighting.shadowGenerator,
-        interactionMode: "interior",
+        interactionMode: "component",
         centerOnXAxis: false,
       });
 
@@ -758,7 +706,7 @@ export const TrialRoomCanvas = () => {
       result.rootMesh.rotation.set(0, asset.initialRotationY ?? 0, 0);
       result.rootMesh.computeWorldMatrix(true);
 
-      let interiorBounds = getHierarchyBoundsInLocalSpace(result.rootMesh);
+      let componentBounds = getHierarchyBoundsInLocalSpace(result.rootMesh);
       const frameWidth = targetFrame.bounds.max.x - targetFrame.bounds.min.x;
       const frameHeight = targetFrame.bounds.max.y - targetFrame.bounds.min.y;
       const frameDepth = targetFrame.bounds.max.z - targetFrame.bounds.min.z;
@@ -769,26 +717,28 @@ export const TrialRoomCanvas = () => {
         CABINET_CONFIG.thickness * 2;
       const availableDepth =
         frameDepth - CABINET_CONFIG.backGap - CABINET_CONFIG.backPanelThick;
-      const originalInteriorWidth = interiorBounds.max.x - interiorBounds.min.x;
-      const originalInteriorHeight =
-        interiorBounds.max.y - interiorBounds.min.y;
-      const originalInteriorDepth = interiorBounds.max.z - interiorBounds.min.z;
+      const originalComponentWidth =
+        componentBounds.max.x - componentBounds.min.x;
+      const originalComponentHeight =
+        componentBounds.max.y - componentBounds.min.y;
+      const originalComponentDepth =
+        componentBounds.max.z - componentBounds.min.z;
 
       const nextScaleX = getScaledAxis(
         result.rootMesh.scaling.x,
-        originalInteriorWidth,
+        originalComponentWidth,
         availableWidth,
         asset.fitWidthMode ?? "keep",
       );
       const nextScaleY = getScaledAxis(
         result.rootMesh.scaling.y,
-        originalInteriorHeight,
+        originalComponentHeight,
         availableHeight,
         asset.fitHeightMode ?? "keep",
       );
       const nextScaleZ = getScaledAxis(
         result.rootMesh.scaling.z,
-        originalInteriorDepth,
+        originalComponentDepth,
         availableDepth,
         asset.fitDepthMode ?? "keep",
       );
@@ -801,45 +751,46 @@ export const TrialRoomCanvas = () => {
       if (scalingChanged) {
         result.rootMesh.scaling.set(nextScaleX, nextScaleY, nextScaleZ);
         result.rootMesh.computeWorldMatrix(true);
-        interiorBounds = getHierarchyBoundsInLocalSpace(result.rootMesh);
+        componentBounds = getHierarchyBoundsInLocalSpace(result.rootMesh);
       }
 
-      const fittedInteriorWidth = interiorBounds.max.x - interiorBounds.min.x;
-      const interiorHeight = interiorBounds.max.y - interiorBounds.min.y;
-      const interiorDepth = interiorBounds.max.z - interiorBounds.min.z;
+      const fittedComponentWidth =
+        componentBounds.max.x - componentBounds.min.x;
+      const componentHeight = componentBounds.max.y - componentBounds.min.y;
+      const componentDepth = componentBounds.max.z - componentBounds.min.z;
       const fitIssues: string[] = [];
 
-      if (interiorHeight > availableHeight + 0.0001) {
+      if (componentHeight > availableHeight + 0.0001) {
         fitIssues.push(
-          `height ${toCentimeters(interiorHeight)}cm > ${toCentimeters(availableHeight)}cm`,
+          `height ${toCentimeters(componentHeight)}cm > ${toCentimeters(availableHeight)}cm`,
         );
       }
 
-      if (interiorDepth > availableDepth + 0.0001) {
+      if (componentDepth > availableDepth + 0.0001) {
         fitIssues.push(
-          `depth ${toCentimeters(interiorDepth)}cm > ${toCentimeters(availableDepth)}cm`,
+          `depth ${toCentimeters(componentDepth)}cm > ${toCentimeters(availableDepth)}cm`,
         );
       }
 
       if (fitIssues.length > 0) {
         const frameAsset = getTrialAssetById(targetFrame.assetId);
 
-        toast("Interior does not fit this frame", {
+        toast("Component does not fit this frame", {
           description: `${asset.name} cannot fit inside ${frameAsset?.name ?? "the current frame"}: ${fitIssues.join(", ")}.`,
         });
 
-        console.warn("[TrialRoomCanvas] Interior fit rejected", {
+        console.warn("[TrialRoomCanvas] Component fit rejected", {
           frameAssetId: frameAsset?.id ?? null,
-          interiorAssetId: asset.id,
+          componentAssetId: asset.id,
           availableWidth,
           availableHeight,
           availableDepth,
-          interiorWidth: fittedInteriorWidth,
-          originalInteriorWidth,
-          originalInteriorHeight,
-          originalInteriorDepth,
-          interiorHeight,
-          interiorDepth,
+          componentWidth: fittedComponentWidth,
+          originalComponentWidth,
+          originalComponentHeight,
+          originalComponentDepth,
+          componentHeight,
+          componentDepth,
         });
 
         result.dispose();
@@ -854,38 +805,38 @@ export const TrialRoomCanvas = () => {
         CABINET_CONFIG.backPanelThick;
       const anchorZ =
         asset.id === "component-hanging-rod"
-          ? baseAnchorZ + (availableDepth - interiorDepth) / 2
+          ? baseAnchorZ + (availableDepth - componentDepth) / 2
           : baseAnchorZ;
       const localAnchor = new BABYLON.Vector3(
-        anchorX - interiorBounds.min.x,
-        anchorY - interiorBounds.min.y,
-        anchorZ - interiorBounds.min.z,
+        anchorX - componentBounds.min.x,
+        anchorY - componentBounds.min.y,
+        anchorZ - componentBounds.min.z,
       );
 
       result.rootMesh.position.copyFrom(options?.localPosition ?? localAnchor);
       result.rootMesh.computeWorldMatrix(true);
       result.syncBoundingBox();
       registerDragLifecycle(result);
-      registerModel(instanceId, result);
+      registerAsset(instanceId, result);
       useTrialRoomStore.getState().addLoadedModel({
         instanceId,
         assetId,
-        category: "interior",
+        category: "component",
       });
 
-      const anchorDebug = createInteriorAnchorDebugMarker(
+      const anchorDebug = createComponentAnchorHelper(
         scene,
         targetFrame.result.rootMesh,
         result.rootMesh.name,
         localAnchor,
       );
-      const disposeInterior = result.dispose;
+      const disposeComponent = result.dispose;
       result.dispose = () => {
         anchorDebug.dispose();
-        disposeInterior();
+        disposeComponent();
       };
 
-      targetFrame.interiors.push({
+      targetFrame.components.push({
         assetId,
         instanceId,
         result,
@@ -915,24 +866,24 @@ export const TrialRoomCanvas = () => {
         return true;
       }
 
-      const ownerFrame = findInteriorOwnerFrame(targetInstanceId);
+      const ownerFrame = findComponentOwnerFrame(targetInstanceId);
       if (!ownerFrame) {
         return false;
       }
 
-      const sourceInterior =
-        ownerFrame.interiors.find(
-          (interior) => interior.instanceId === targetInstanceId,
+      const sourceComponent =
+        ownerFrame.components.find(
+          (component) => component.instanceId === targetInstanceId,
         ) ?? null;
-      if (!sourceInterior) {
+      if (!sourceComponent) {
         return false;
       }
 
-      const duplicateLocalPosition = sourceInterior.result.rootMesh.position
+      const duplicateLocalPosition = sourceComponent.result.rootMesh.position
         .clone()
         .add(new BABYLON.Vector3(0, 0.08, 0));
 
-      await spawnInterior(requestId, sourceInterior.assetId, ownerFrame, {
+      await spawnComponent(requestId, sourceComponent.assetId, ownerFrame, {
         localPosition: duplicateLocalPosition,
       });
       return true;
@@ -954,13 +905,13 @@ export const TrialRoomCanvas = () => {
         return;
       }
 
-      if (asset.category === "interior") {
-        const targetFrame = resolveInteriorTargetFrame();
+      if (asset.category === "component") {
+        const targetFrame = resolveComponentTargetFrame();
         if (!targetFrame) {
           if (frameInstances.length > 1) {
             toast("Select a frame first", {
               description:
-                "When multiple frames are loaded, interior items attach to the selected frame only.",
+                "When multiple frames are loaded, component items attach to the selected frame only.",
             });
           }
 
@@ -968,7 +919,7 @@ export const TrialRoomCanvas = () => {
           return;
         }
 
-        await spawnInterior(request.requestId, request.assetId, targetFrame);
+        await spawnComponent(request.requestId, request.assetId, targetFrame);
         finishSpawnRequest(request.requestId);
         return;
       }
@@ -1069,13 +1020,13 @@ export const TrialRoomCanvas = () => {
         return;
       }
 
-      if (asset.category === "interior") {
+      if (asset.category === "component") {
         if (!useTrialRoomStore.getState().hasFrameProduct) {
           return;
         }
 
         // Step 4:
-        // Interior attaches to the selected frame, or the only frame when just one exists.
+        // Component attaches to the selected frame, or the only frame when just one exists.
         useTrialRoomStore.getState().requestAssetSpawn(assetId, null);
         return;
       }
@@ -1113,6 +1064,7 @@ export const TrialRoomCanvas = () => {
       unsubscribeSelection();
       unsubscribeRoomConfig();
       isMounted = false;
+      updateThemeModeRef.current = null;
       setCameraInteractionEnabled(true);
       clearAllFrames();
       clearRegistry();

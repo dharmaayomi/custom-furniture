@@ -1,14 +1,13 @@
 import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders/glTF";
-import { useTrialRoomStore } from "../useTrialRoomStore";
-import {
-  attachFrameTrialDragBehavior,
-  attachInteriorTrialDragBehavior,
-  registerTrialDraggableMeshes,
-} from "./DragBehavior";
+import { useTrialRoomStore } from "../store/useTrialRoomStore";
+import { attachComponentDragBehavior } from "./ComponentDrag";
+// import { registerDraggableMeshes } from "./DragBehavior";
+import { attachFrameTrialDragBehavior } from "./FrameDrag";
+import { registerDraggableMeshes } from "./DragBehavior";
 
-const HITBOX_PADDING_XZ = 0.03;
-const HITBOX_PADDING_Y = 0.05;
+const HITBOX_PADDING_XZ = 0;
+const HITBOX_PADDING_Y = 0;
 
 export const getRenderableMeshes = (rootMesh: BABYLON.TransformNode) => {
   const renderMeshes = rootMesh.getChildMeshes();
@@ -59,6 +58,7 @@ const createDraggableBoundingBoxBase = (
   scene: BABYLON.Scene,
   rootInstanceId: string,
   targetMesh: BABYLON.TransformNode,
+  kind: "frame" | "component",
   attachDragBehavior: (options: {
     targetMesh: BABYLON.TransformNode;
     hitBox: BABYLON.Mesh;
@@ -79,7 +79,9 @@ const createDraggableBoundingBoxBase = (
     const { size, localCenter } = getBoundingBoxTransform(targetMesh);
 
     hitBox.parent =
-      targetMesh.parent instanceof BABYLON.TransformNode ? targetMesh.parent : null;
+      targetMesh.parent instanceof BABYLON.TransformNode
+        ? targetMesh.parent
+        : null;
     hitBox.rotationQuaternion = null;
     hitBox.rotation.set(0, 0, 0);
     hitBox.position.copyFrom(localCenter);
@@ -97,12 +99,8 @@ const createDraggableBoundingBoxBase = (
     targetMesh,
     hitBox,
   });
-  registerTrialDraggableMeshes(
-    rootInstanceId,
-    targetMesh,
-    hitBox,
-    dragBehavior,
-  );
+  registerDraggableMeshes(rootInstanceId, targetMesh, hitBox, dragBehavior);
+  // const debugHelper = createDraggableBoundingBoxHelper(scene, hitBox, kind);
 
   hitBox.actionManager = new BABYLON.ActionManager(scene);
   hitBox.actionManager.registerAction(
@@ -114,6 +112,7 @@ const createDraggableBoundingBoxBase = (
   return {
     dragBehavior,
     dispose: () => {
+      // debugHelper.dispose();
       hitBox.dispose();
       mat.dispose();
     },
@@ -131,10 +130,11 @@ export const createFrameDraggableBoundingBox = (
     scene,
     rootInstanceId,
     targetMesh,
+    "frame",
     attachFrameTrialDragBehavior,
   );
 
-export const createInteriorDraggableBoundingBox = (
+export const createComponentDraggableBoundingBox = (
   scene: BABYLON.Scene,
   rootInstanceId: string,
   targetMesh: BABYLON.TransformNode,
@@ -143,7 +143,8 @@ export const createInteriorDraggableBoundingBox = (
     scene,
     rootInstanceId,
     targetMesh,
-    attachInteriorTrialDragBehavior,
+    "component",
+    attachComponentDragBehavior,
   );
 
 // OUTLINE

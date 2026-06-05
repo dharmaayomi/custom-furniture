@@ -16,8 +16,8 @@ import {
   getTrialProductBaseById,
   getTrialProductComponentById,
   getTrialProductMaterialById,
-} from "../trialAssetCatalog";
-import { LoadedModel, useTrialRoomStore } from "../useTrialRoomStore";
+} from "../core/AssetCatalog";
+import { LoadedModel, useTrialRoomStore } from "../store/useTrialRoomStore";
 
 interface TrialProductListProps {
   open: boolean;
@@ -58,7 +58,7 @@ const resolveProductListEntry = (
     };
   }
 
-  if (category === "interior") {
+  if (category === "component") {
     const component = getTrialProductComponentById(assetId);
     if (!component) {
       return null;
@@ -69,7 +69,7 @@ const resolveProductListEntry = (
       category,
       code: component.componentSku ?? component.id,
       description: component.componentDesc,
-      image: component.componentImageUrls[0] ?? "/assets/trial/interior.webp",
+      image: component.componentImageUrls[0] ?? "/assets/trial/component.webp",
       name: component.componentName,
       price: component.price,
     };
@@ -146,7 +146,7 @@ export const TrialProductList = ({
         <div className="bg-primary/10 pointer-events-none absolute bottom-12 left-6 h-24 w-24 rounded-full blur-3xl" />
 
         <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden">
-          <DrawerHeader className="border-b border-white/60 px-4 pt-3 pb-4 dark:border-white/10 md:px-7 md:pt-7">
+          <DrawerHeader className="border-b border-white/60 px-4 pt-3 pb-4 md:px-7 md:pt-7 dark:border-white/10">
             <div className="flex items-start justify-between gap-3 text-left">
               <div className="space-y-2">
                 <p className="text-xs font-medium tracking-[0.22em] text-slate-500 uppercase dark:text-slate-400">
@@ -243,7 +243,7 @@ export const TrialProductList = ({
               </div>
             ) : (
               <div className="flex h-full min-h-56 items-center justify-center rounded-2xl border border-dashed border-white/60 bg-white/50 px-6 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
-                Add frames or interior items to build your trial product list.
+                Add frames or component items to build your trial product list.
               </div>
             )}
           </div>

@@ -3,7 +3,7 @@ import "@babylonjs/loaders/glTF";
 
 import {
   createFrameDraggableBoundingBox,
-  createInteriorDraggableBoundingBox,
+  createComponentDraggableBoundingBox,
   getRenderableMeshes,
 } from "./TrialModelUtils";
 
@@ -16,22 +16,22 @@ import {
  *   3. Pasang outline controller + drag hitbox
  *   4. Return result — TIDAK menentukan posisi
  *
- * Posisi awal ditentukan oleh pemanggil (TrialSceneSetup atau hook React),
+ * Posisi awal ditentukan oleh pemanggil
  * karena hanya pemanggil yang tahu konteks ruangan saat itu.
  */
 
-export interface TrialModelLoadOptions {
+export interface AssetLoadOptions {
   instanceId: string;
   modelPath: string;
   meshName: string;
   initialPosition: BABYLON.Vector3;
   initialRotationY?: number;
   shadowGenerator?: BABYLON.ShadowGenerator;
-  interactionMode?: "none" | "frame" | "interior";
+  interactionMode?: "none" | "frame" | "component";
   centerOnXAxis?: boolean;
 }
 
-export interface TrialModelLoadResult {
+export interface AssetLoadResult {
   container: BABYLON.AssetContainer;
   dragBehavior: BABYLON.PointerDragBehavior | null;
   instanceId: string;
@@ -63,10 +63,10 @@ const getPlacementRoot = (
   return authoredRoot;
 };
 
-export const loadProductBase = async (
+export const LoadAsset = async (
   scene: BABYLON.Scene,
-  options: TrialModelLoadOptions,
-): Promise<TrialModelLoadResult | null> => {
+  options: AssetLoadOptions,
+): Promise<AssetLoadResult | null> => {
   const {
     instanceId,
     modelPath,
@@ -129,8 +129,8 @@ export const loadProductBase = async (
     // Tambahan stays attached to the furniture and does not need its own drag surface.
     if (interactionMode !== "none") {
       const boundingBoxController =
-        interactionMode === "interior"
-          ? createInteriorDraggableBoundingBox(scene, instanceId, rootMesh)
+        interactionMode === "component"
+          ? createComponentDraggableBoundingBox(scene, instanceId, rootMesh)
           : createFrameDraggableBoundingBox(scene, instanceId, rootMesh);
 
       boundingBoxMesh = boundingBoxController.mesh;

@@ -15,6 +15,7 @@ import { useUser } from "@/providers/UserProvider";
 import {
   FolderOpen,
   Frame,
+  Home,
   Menu,
   PanelsTopLeft,
   Share2,
@@ -23,6 +24,12 @@ import {
 import { useRouter } from "next/navigation";
 
 const menuActions = [
+  {
+    id: "menu-homepage-button",
+    name: "menu-homepage",
+    label: "Homepage",
+    icon: Home,
+  },
   {
     id: "menu-open-design-code-button",
     name: "menu-open-design-code",

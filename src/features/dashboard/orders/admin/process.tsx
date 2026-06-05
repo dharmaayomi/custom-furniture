@@ -184,6 +184,7 @@ export default function AdminOrderProcessPage({
         loadingStates={processLoadingStates}
         loading={showLoader}
         duration={1500}
+        loop={true}
       />
 
       <header className="space-y-4">

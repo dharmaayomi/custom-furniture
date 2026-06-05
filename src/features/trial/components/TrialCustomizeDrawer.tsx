@@ -20,7 +20,7 @@ import {
   TRIAL_FLOOR_TEXTURE_OPTIONS,
   TRIAL_WALL_COLOR_OPTIONS,
 } from "../core/TrialConfig";
-import { useTrialRoomStore } from "../useTrialRoomStore";
+import { useTrialRoomStore } from "../store/useTrialRoomStore";
 
 interface TrialCustomizeDrawerProps {
   open: boolean;

@@ -1,22 +1,25 @@
 import { create } from "zustand";
-import { DEFAULT_TRIAL_ROOM_CONFIG, TrialRoomConfig } from "./core/TrialConfig";
+import {
+  DEFAULT_TRIAL_ROOM_CONFIG,
+  TrialRoomConfig,
+} from "../core/TrialConfig";
 
-export interface TrialSpawnPoint {
+export interface SpawnPoint {
   x: number;
   y: number;
   z: number;
 }
 
-export interface TrialSpawnRequest {
+export interface SpawnRequest {
   requestId: number;
   assetId: string;
-  dropPoint: TrialSpawnPoint | null;
+  dropPoint: SpawnPoint | null;
 }
 
 export interface LoadedModel {
   instanceId: string;
   assetId: string;
-  category: "frame" | "interior" | "material";
+  category: "frame" | "component" | "material";
 }
 
 export interface TrialSelectionActionRequest {
@@ -28,12 +31,12 @@ export interface TrialSelectionActionRequest {
 interface TrialRoomState {
   selectedMeshName: string | null;
   hasFrameProduct: boolean;
-  spawnRequest: TrialSpawnRequest | null;
+  spawnRequest: SpawnRequest | null;
   selectionActionRequest: TrialSelectionActionRequest | null;
   draftRoomConfig: TrialRoomConfig;
   appliedRoomConfig: TrialRoomConfig;
   activeFrameProductIds: string[];
-  activeInteriorProductIds: string[];
+  activeComponentProductIds: string[];
   activeMaterialProductIds: string[];
 
   selectMesh: (name: string | null) => void;
@@ -42,14 +45,11 @@ interface TrialRoomState {
   setDraftRoomConfig: (patch: Partial<TrialRoomConfig>) => void;
   setAppliedRoomConfig: (nextRoomConfig: TrialRoomConfig) => void;
   setActiveFrameProductIds: (assetIds: string[]) => void;
-  setActiveInteriorProductIds: (assetIds: string[]) => void;
-  addActiveInteriorProductId: (assetId: string) => void;
-  clearActiveInteriorProductIds: () => void;
+  setActiveComponentProductIds: (assetIds: string[]) => void;
+  addActiveComponentProductId: (assetId: string) => void;
+  clearActiveComponentProductIds: () => void;
   setActiveMaterialProductIds: (assetIds: string[]) => void;
-  requestAssetSpawn: (
-    assetId: string,
-    dropPoint?: TrialSpawnPoint | null,
-  ) => void;
+  requestAssetSpawn: (assetId: string, dropPoint?: SpawnPoint | null) => void;
   clearSpawnRequest: () => void;
   requestSelectionAction: (
     action: TrialSelectionActionRequest["action"],
@@ -69,7 +69,7 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
   draftRoomConfig: { ...DEFAULT_TRIAL_ROOM_CONFIG },
   appliedRoomConfig: { ...DEFAULT_TRIAL_ROOM_CONFIG },
   activeFrameProductIds: [],
-  activeInteriorProductIds: [],
+  activeComponentProductIds: [],
   activeMaterialProductIds: [],
 
   selectMesh: (name) => {
@@ -102,18 +102,18 @@ export const useTrialRoomStore = create<TrialRoomState>((set, get) => ({
     // Keep every loaded frame id in the store so pricing can follow the loaded trial state.
     set({ activeFrameProductIds: assetIds });
   },
-  setActiveInteriorProductIds: (assetIds) => {
-    set({ activeInteriorProductIds: assetIds });
+  setActiveComponentProductIds: (assetIds) => {
+    set({ activeComponentProductIds: assetIds });
   },
-  addActiveInteriorProductId: (assetId) => {
+  addActiveComponentProductId: (assetId) => {
     // Step 4:
-    // Interior items can be repeated, so we keep them as an ordered list.
+    // Component items can be repeated, so we keep them as an ordered list.
     set((state) => ({
-      activeInteriorProductIds: [...state.activeInteriorProductIds, assetId],
+      activeComponentProductIds: [...state.activeComponentProductIds, assetId],
     }));
   },
-  clearActiveInteriorProductIds: () => {
-    set({ activeInteriorProductIds: [] });
+  clearActiveComponentProductIds: () => {
+    set({ activeComponentProductIds: [] });
   },
   setActiveMaterialProductIds: (assetIds) => {
     set({ activeMaterialProductIds: assetIds });

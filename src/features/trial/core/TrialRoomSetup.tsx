@@ -1,6 +1,7 @@
 import * as BABYLON from "@babylonjs/core";
 import { TRIAL_TEXTURES, TrialRoomConfig } from "./TrialConfig";
 import earcut from "earcut";
+import { createRoomAnchorHelper } from "../utils/DebugUtils";
 
 // --- Helpers ──────────────────────────────────────────────────────────────────
 
@@ -269,7 +270,6 @@ export interface TrialRoomResult {
   leftWall: BABYLON.Mesh;
   rightWall: BABYLON.Mesh;
   walls: BABYLON.Mesh[];
-  shadowCasters: BABYLON.Mesh[];
   dispose: () => void;
 }
 
@@ -308,6 +308,7 @@ export const setupTrialRoom = (
     innerWallHeight,
     wallColor,
   );
+  widthWallMat.zOffset = -0.005;
   const depthWallMat = createWallSurfaceMaterial(
     scene,
     "inner-wall-depth-mat",
@@ -315,12 +316,14 @@ export const setupTrialRoom = (
     innerWallHeight,
     wallColor,
   );
+  depthWallMat.zOffset = -0.005;
 
   const innerCeilingMat = new BABYLON.PBRMaterial("inner-ceiling-mat", scene);
-  innerCeilingMat.albedoColor = hexToColor3(wallColor);
+  innerCeilingMat.albedoColor = hexToColor3("#bab8b8");
   innerCeilingMat.roughness = 0.75;
   innerCeilingMat.metallic = 0;
   innerCeilingMat.backFaceCulling = false;
+  innerCeilingMat.zOffset = -0.005;
 
   // 1. LANTAI (Floor)
   const floor = createSolidMiterPanel(
@@ -448,11 +451,11 @@ export const setupTrialRoom = (
   });
 
   const innerWallY = floorThickness + innerWallHeight / 2;
-  const innerSurfaceThickness = 0.002;
+  const innerSurfaceThickness = 0.02;
 
   const innerBackWall = BABYLON.MeshBuilder.CreatePlane(
     "inner_wall_back",
-    { width, height: innerWallHeight },
+    { width: width, height: innerWallHeight },
     scene,
   );
   innerBackWall.position.set(
@@ -468,7 +471,7 @@ export const setupTrialRoom = (
 
   const innerFrontWall = BABYLON.MeshBuilder.CreatePlane(
     "inner_wall_front",
-    { width, height: innerWallHeight },
+    { width: width, height: innerWallHeight },
     scene,
   );
   innerFrontWall.position.set(
@@ -524,6 +527,8 @@ export const setupTrialRoom = (
   innerCeiling.receiveShadows = true;
   innerCeiling.metadata = { side: "ceiling" };
 
+  const roomOriginHelper = createRoomAnchorHelper(scene, roomConfig);
+
   const walls = [
     ...frameWalls,
     innerBackWall,
@@ -535,18 +540,7 @@ export const setupTrialRoom = (
     floor,
     floorVinyl,
   ];
-  const shadowCasters = [
-    backWall,
-    frontWall,
-    leftWall,
-    rightWall,
-    ceiling,
-    innerBackWall,
-    innerFrontWall,
-    innerLeftWall,
-    innerRightWall,
-    innerCeiling,
-  ];
+
   const allMeshes = [
     floor,
     ceiling,
@@ -576,8 +570,8 @@ export const setupTrialRoom = (
     leftWall,
     rightWall,
     walls,
-    shadowCasters,
     dispose: () => {
+      roomOriginHelper.dispose();
       allMeshes.forEach((mesh) => mesh.dispose());
       vinylTexture.dispose();
       frameMat.dispose();

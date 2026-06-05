@@ -14,7 +14,7 @@ export type TrialToolType =
   | "lighting"
   | "grid"
   | "frame"
-  | "interior"
+  | "component"
   | "material"
   | "chair"
   | "door"

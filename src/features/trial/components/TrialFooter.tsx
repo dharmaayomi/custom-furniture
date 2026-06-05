@@ -31,7 +31,7 @@ export const TrialFooter = ({
   onDuplicateSelected,
   onViewSelectedDetails,
 }: TrialFooterProps) => {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const selectionActions = [
     {
       icon: Trash2,
@@ -59,43 +59,66 @@ export const TrialFooter = ({
           <div className="bg-primary/10 pointer-events-none absolute right-16 bottom-2 h-28 w-28 rounded-full blur-3xl" />
 
           <div className="pointer-events-auto relative flex flex-col items-center gap-2 rounded-[1.75rem] border border-white/60 bg-white/55 p-2 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/70">
-            <div>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="size-9 rounded-2xl border-white/50 bg-white/70 shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                aria-label="Toggle theme"
-                title="Toggle theme"
-              >
-                <Moon className="h-4 w-4 md:h-5 md:w-5" />
-              </Button>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="size-9 rounded-2xl border-white/50 bg-white/70 shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    onClick={() =>
+                      setTheme(resolvedTheme === "dark" ? "light" : "dark")
+                    }
+                    aria-label="Night mode"
+                    title="Night mode"
+                  >
+                    <Moon className="h-4 w-4 md:h-5 md:w-5" />
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>night mode</p>
+              </TooltipContent>
+            </Tooltip>
 
-            <div>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="size-9 rounded-2xl border-white/50 bg-white/70 shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-                aria-label="Layout"
-              >
-                <Columns2 className="h-4 w-4 md:h-5 md:w-5" />
-              </Button>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="size-9 rounded-2xl border-white/50 bg-white/70 shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    aria-label="Helper"
+                  >
+                    <Columns2 className="h-4 w-4 md:h-5 md:w-5" />
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>helper</p>
+              </TooltipContent>
+            </Tooltip>
 
-            <div>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="size-9 rounded-2xl border-white/50 bg-white/70 shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-                aria-label="Measure"
-              >
-                <Ruler className="h-4 w-4 md:h-5 md:w-5" />
-              </Button>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="size-9 rounded-2xl border-white/50 bg-white/70 shadow-none hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    aria-label="Rule"
+                  >
+                    <Ruler className="h-4 w-4 md:h-5 md:w-5" />
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>ruler</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* MIDDLE */}

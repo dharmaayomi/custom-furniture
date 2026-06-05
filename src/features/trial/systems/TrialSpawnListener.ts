@@ -1,13 +1,13 @@
 import * as BABYLON from "@babylonjs/core";
-import { TrialRoomConfig } from "./TrialConfig";
-import { getBackWallPosition } from "./TrialSceneSetup";
-import { useTrialRoomStore } from "../useTrialRoomStore";
-import { getTrialAssetById } from "../trialAssetCatalog";
-import { registerModel } from "../furniture/TrialModelRegistry";
-import { loadProductBase } from "../furniture/TrialModelLoader";
+import { TrialRoomConfig } from "../core/TrialConfig";
+import { getBackWallPosition } from "../core/TrialSceneSetup";
+import { useTrialRoomStore } from "../store/useTrialRoomStore";
+import { getTrialAssetById } from "../core/AssetCatalog";
+import { registerAsset } from "../asset/TrialModelRegistry";
+import { LoadAsset } from "../asset/AssetLoader";
 
 const resolveSpawnPosition = (
-  category: "frame" | "interior" | "material",
+  category: "frame" | "component" | "material",
   dropPoint: { x: number; y: number; z: number } | null,
   roomConfig: TrialRoomConfig,
 ): BABYLON.Vector3 => {
@@ -18,7 +18,7 @@ const resolveSpawnPosition = (
   switch (category) {
     case "frame":
       return getBackWallPosition(roomConfig);
-    case "interior":
+    case "component":
     case "material":
     default:
       return new BABYLON.Vector3(0, roomConfig.floorThickness, 0);
@@ -44,7 +44,7 @@ export const setupTrialSpawnListener = (
       roomConfig,
     );
 
-    const result = await loadProductBase(scene, {
+    const result = await LoadAsset(scene, {
       instanceId,
       modelPath: asset.modelPath,
       meshName: instanceId,
@@ -53,15 +53,15 @@ export const setupTrialSpawnListener = (
       interactionMode:
         asset.category === "material"
           ? "none"
-          : asset.category === "interior"
-            ? "interior"
+          : asset.category === "component"
+            ? "component"
             : "frame",
       centerOnXAxis: asset.category === "frame",
     });
 
     if (!result) return;
 
-    registerModel(instanceId, result);
+    registerAsset(instanceId, result);
     useTrialRoomStore.getState().addLoadedModel({
       instanceId,
       assetId: asset.id,

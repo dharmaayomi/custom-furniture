@@ -307,7 +307,7 @@ export default function SummaryDesignPage() {
         loadingStates={CHECKOUT_LOADING_STATES}
         loading={isCheckoutTransitioning}
         duration={CHECKOUT_LOADER_DURATION_MS}
-        loop={false}
+        loop={true}
       />
 
       <main className="bg-background text-foreground min-h-screen">
